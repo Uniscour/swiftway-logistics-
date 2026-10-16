@@ -1,1001 +1,636 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SwiftWay Logistics</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-        tailwind.config = { theme: { extend: { colors: { swiftblue: '#0047AB' } } } }
-    </script>
-    <style>
-    @media print {
-        @page { size: 148mm 210mm; margin: 0; }
-        body { background: #fff !important; }
-        body > *:not(#receipt-overlay) { display: none !important; }
-        #receipt-overlay { position: static !important; background: #fff !important; overflow: visible !important; padding: 0 !important; display: block !important; }
-        .no-print { display: none !important; }
-        #receipt-sheet { box-shadow: none !important; margin: 0 !important; }
-    }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SwiftWay Logistics</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>tailwind.config = { theme: { extend: { colors: { swiftblue: '#0047AB' } } } }</script>
+<style>
+@media print {
+  @page { size: 148mm 210mm; margin: 0; }
+  body { background: #fff !important; }
+  body > *:not(#receipt-overlay) { display: none !important; }
+  #receipt-overlay { position: static !important; background: #fff !important; overflow: visible !important; padding: 0 !important; display: block !important; }
+  .no-print { display: none !important; }
+  #receipt-sheet { box-shadow: none !important; margin: 0 !important; }
+  #receipt-sheet, #receipt-sheet * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
 </head>
 <body class="bg-gray-50 min-h-screen">
+<div id="toast" class="hidden"></div>
+<div id="loading" class="min-h-screen flex items-center justify-center text-gray-500 font-medium">Chargement...</div>
 
-    <div id="toast" class="hidden"></div>
+<!-- ============ SUIVI PUBLIC ISOLÉ (aucune marque, aucun lien) ============ -->
+<div id="pub-view" class="hidden min-h-screen">
+  <div class="max-w-xl mx-auto px-4 py-8">
+    <h1 class="text-2xl font-extrabold text-gray-900 text-center mb-6">Suivre mon colis</h1>
+    <div id="pub-body"></div>
+  </div>
+</div>
 
-    <!-- Chargement -->
-    <div id="loading" class="min-h-screen flex items-center justify-center text-gray-500 font-medium">Chargement...</div>
-
-    <!-- ================= VUE CONNEXION ================= -->
-    <div id="auth-view" class="hidden min-h-screen flex items-center justify-center p-4 relative">
-
-        <div class="absolute top-6 right-6">
-            <button id="lang-toggle" type="button" class="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition cursor-pointer">
-                🌐 <span id="current-lang-text">EN</span>
-            </button>
-        </div>
-
-        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border border-gray-100">
-            <div class="text-center mb-6 pt-2">
-                <h1 class="text-3xl font-extrabold text-swiftblue tracking-tight">SwiftWay Logistics</h1>
-                <p id="t-subtitle" class="text-base text-gray-500 mt-2 font-medium">Gérez vos expéditions facilement</p>
-            </div>
-
-            <div class="flex bg-gray-100 p-1 rounded-xl mb-6">
-                <button id="tab-login" type="button" class="flex-1 py-2.5 text-sm font-semibold rounded-lg bg-white text-swiftblue shadow-sm transition cursor-pointer">Connexion</button>
-                <button id="tab-signup" type="button" class="flex-1 py-2.5 text-sm font-semibold rounded-lg text-gray-500 hover:text-gray-900 transition cursor-pointer">S'inscrire</button>
-            </div>
-
-            <div id="alert-box" class="hidden mb-6 p-4 rounded-xl text-sm text-center font-medium"></div>
-
-            <!-- Connexion -->
-            <form id="login-form" class="space-y-5">
-                <div>
-                    <label id="t-login-email" class="block text-sm font-semibold text-gray-700 mb-1.5">Email</label>
-                    <input type="email" id="login-email" required placeholder="votre@email.com"
-                        class="w-full px-5 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
-                </div>
-                <div>
-                    <label id="t-login-pass" class="block text-sm font-semibold text-gray-700 mb-1.5">Mot de passe</label>
-                    <div class="relative">
-                        <input type="password" id="login-password" required placeholder="••••••••"
-                            class="w-full px-5 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
-                        <button type="button" class="toggle-password absolute right-4 top-3.5 text-gray-400 hover:text-swiftblue transition cursor-pointer">👁️</button>
-                    </div>
-                </div>
-                <button type="submit" id="login-btn"
-                    class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition duration-200 shadow-md cursor-pointer">
-                    Se connecter
-                </button>
-            </form>
-
-            <!-- Inscription -->
-            <form id="signup-form" class="space-y-4 hidden">
-                <div>
-                    <label id="t-signup-email" class="block text-xs font-semibold text-gray-700 mb-1">Email</label>
-                    <input type="email" id="signup-email" required placeholder="votre@email.com"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
-                </div>
-                <div>
-                    <label id="t-signup-phone" class="block text-xs font-semibold text-gray-700 mb-1">Numéro de téléphone</label>
-                    <input type="tel" id="signup-phone" required placeholder="Ex: +237 6XXXXXXXX"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
-                </div>
-                <div>
-                    <label id="t-signup-pass" class="block text-xs font-semibold text-gray-700 mb-1">Mot de passe</label>
-                    <div class="relative">
-                        <input type="password" id="signup-password" required placeholder="••••••••"
-                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
-                        <button type="button" class="toggle-password absolute right-4 top-3 text-gray-400 hover:text-swiftblue transition cursor-pointer">👁️</button>
-                    </div>
-                </div>
-                <div>
-                    <label id="t-signup-pass-confirm" class="block text-xs font-semibold text-gray-700 mb-1">Confirmer le mot de passe</label>
-                    <div class="relative">
-                        <input type="password" id="signup-password-confirm" required placeholder="••••••••"
-                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
-                        <button type="button" class="toggle-password absolute right-4 top-3 text-gray-400 hover:text-swiftblue transition cursor-pointer">👁️</button>
-                    </div>
-                </div>
-                <button type="submit" id="signup-btn"
-                    class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition duration-200 shadow-md mt-2 cursor-pointer">
-                    S'inscrire
-                </button>
-            </form>
-        </div>
+<!-- ============ CONNEXION ============ -->
+<div id="auth-view" class="hidden min-h-screen flex items-center justify-center p-4 relative">
+  <div class="absolute top-6 right-6">
+    <button id="lang-toggle" type="button" class="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition cursor-pointer">🌐 <span id="current-lang-text">EN</span></button>
+  </div>
+  <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border border-gray-100">
+    <div class="text-center mb-6 pt-2">
+      <h1 class="text-3xl font-extrabold text-swiftblue tracking-tight">SwiftWay Logistics</h1>
+      <p id="t-subtitle" class="text-base text-gray-500 mt-2 font-medium">Gérez vos expéditions facilement</p>
     </div>
-
-    <!-- ================= VUE TABLEAU DE BORD ================= -->
-    <div id="dash-view" class="hidden">
-        <header class="bg-white border-b border-gray-200">
-            <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-                <div>
-                    <h1 class="text-xl font-extrabold text-swiftblue tracking-tight">SwiftWay Logistics</h1>
-                    <p id="user-email" class="text-xs text-gray-500 break-all"></p>
-                </div>
-                <button id="logout-btn" type="button"
-                    class="text-sm font-semibold text-gray-600 hover:text-red-600 border border-gray-200 rounded-full px-4 py-2 bg-white transition cursor-pointer">
-                    Se déconnecter
-                </button>
-            </div>
-        </header>
-
-        <main class="max-w-3xl mx-auto px-4 py-6">
-            <div class="flex overflow-x-auto gap-1 bg-gray-100 p-1 rounded-xl mb-6">
-                <button data-tab="list" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Mes colis</button>
-                <button data-tab="new" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Nouvelle</button>
-                <button data-tab="track" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Suivre</button>
-                <button data-tab="wallet" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Portefeuille</button>
-            </div>
-
-            <div id="d-alert" class="hidden mb-4 p-4 rounded-xl text-sm text-center font-medium"></div>
-
-            <!-- Mes colis -->
-            <section id="view-list"><div id="list-container"></div></section>
-
-            <!-- Nouvelle expédition -->
-            <section id="view-new" class="hidden">
-                <form id="new-form" class="space-y-5">
-                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-                    <div class="space-y-4">
-                        <div><h3 class="text-base font-bold text-gray-900">Expéditeur</h3><p class="text-xs text-gray-500">La personne qui envoie le colis</p></div>
-                        <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Nom complet</label>
-                        <input id="s-name" required  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                    </div>
-                        <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Téléphone</label>
-                        <input id="s-phone" required type="tel" placeholder="Ex: +237 6XXXXXXXX" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                    </div>
-                        <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Email <span class="text-gray-400 font-normal">(facultatif)</span></label>
-                        <input id="s-email" type="email" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                    </div>
-                        <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Adresse (rue, numéro, point de repère)</label>
-                        <input id="s-address" required  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                    </div>
-                        <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Quartier <span class="text-gray-400 font-normal">(facultatif)</span></label>
-                        <input id="s-district"  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                    </div>
-                        <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Ville</label>
-                        <input id="s-city" required  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                    </div>
-                        <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Région / Province</label>
-                        <input id="s-region" required  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                    </div>
-                        <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Pays</label>
-                        <select id="s-country" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50"></select>
-                    </div>
-                    </div>
-                    </div>
-
-                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-                    <div class="space-y-4">
-                        <div><h3 class="text-base font-bold text-gray-900">Destinataire</h3><p class="text-xs text-gray-500">La personne qui reçoit le colis</p></div>
-                        <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Nom complet</label>
-                        <input id="r-name" required  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                    </div>
-                        <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Téléphone</label>
-                        <input id="r-phone" required type="tel" placeholder="Ex: +237 6XXXXXXXX" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                    </div>
-                        <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Email <span class="text-gray-400 font-normal">(facultatif)</span></label>
-                        <input id="r-email" type="email" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                    </div>
-                        <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Adresse (rue, numéro, point de repère)</label>
-                        <input id="r-address" required  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                    </div>
-                        <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Quartier <span class="text-gray-400 font-normal">(facultatif)</span></label>
-                        <input id="r-district"  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                    </div>
-                        <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Ville</label>
-                        <input id="r-city" required  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                    </div>
-                        <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Région / Province</label>
-                        <input id="r-region" required  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                    </div>
-                        <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Pays</label>
-                        <select id="r-country" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50"></select>
-                    </div>
-                    </div>
-                    </div>
-
-                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
-                        <div><h3 class="text-base font-bold text-gray-900">Le colis</h3><p class="text-xs text-gray-500">Ce que vous envoyez</p></div>
-                        <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Contenu du colis</label>
-                        <input id="p-desc" required placeholder="Ex: vêtements, documents..." class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                    </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">Type de colis</label>
-                            <select id="p-type" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                                <option>Documents</option><option>Vêtements</option><option>Électronique</option>
-                                <option>Alimentaire</option><option>Cosmétiques</option><option>Pièces / Matériel</option><option>Autre</option>
-                            </select>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Nombre de colis</label>
-                        <input id="p-count" required value="1" type="number" min="1" step="1" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                    </div>
-                            <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Poids total (kg)</label>
-                        <input id="p-weight" required type="number" min="0.1" step="0.1" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                    </div>
-                        </div>
-                        <div>
-                            <p class="text-xs font-semibold text-gray-700 mb-1">Dimensions en cm <span class="text-gray-400 font-normal">(facultatif)</span></p>
-                            <div class="grid grid-cols-3 gap-3">
-                                <input id="p-length" type="number" min="0" step="0.1" placeholder="Long." class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                                <input id="p-width" type="number" min="0" step="0.1" placeholder="Larg." class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                                <input id="p-height" type="number" min="0" step="0.1" placeholder="Haut." class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                            </div>
-                        </div>
-                        <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Valeur déclarée (FCFA) <span class="text-gray-400 font-normal">(facultatif)</span></label>
-                        <input id="p-value" type="number" min="0" step="1" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                    </div>
-                    </div>
-
-                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
-                        <div><h3 class="text-base font-bold text-gray-900">Livraison</h3></div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">Agence / Transporteur</label>
-                            <input id="p-agency" required maxlength="80" placeholder="Ex: Agence Voyage Central, Express Carrier..." class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                            <p class="text-xs text-gray-400 mt-1">Ce nom apparaîtra sur le reçu comme émetteur du bordereau.</p>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">Type de service</label>
-                            <select id="p-service" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                                <option value="standard">Standard</option>
-                                <option value="express">Express (plus rapide)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">Qui paie la livraison ?</label>
-                            <select id="p-payer" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                                <option value="sender">L'expéditeur</option>
-                                <option value="receiver">Le destinataire</option>
-                            </select>
-                        </div>
-                        <label class="flex items-center gap-3 text-sm font-semibold text-gray-700">
-                            <input id="p-fragile" type="checkbox" class="w-5 h-5 rounded border-gray-300"> Colis fragile
-                        </label>
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">Instructions de livraison <span class="text-gray-400 font-normal">(facultatif)</span></label>
-                            <textarea id="p-notes" rows="3" placeholder="Ex: appeler avant de livrer, laisser chez le gardien..." class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50"></textarea>
-                        </div>
-                    </div>
-
-                    <button type="submit" id="new-btn" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition shadow-md cursor-pointer">
-                        Créer l'expédition
-                    </button>
-                </form>
-            </section>
-
-            <!-- Suivre un colis -->
-            <section id="view-track" class="hidden space-y-4">
-                <form id="track-form" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
-                    <h2 class="text-lg font-bold text-gray-900">Suivre un colis</h2>
-                    <input id="track-code" required placeholder="Code de suivi, ex: SW1A2B3C4D" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50 uppercase">
-                    <button type="submit" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition shadow-md cursor-pointer">Rechercher</button>
-                </form>
-                <div id="track-result"></div>
-            </section>
-
-            <!-- Portefeuille (client) -->
-            <section id="view-wallet" class="hidden space-y-4">
-                <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-                    <p class="text-xs font-semibold text-gray-500">Solde du portefeuille</p>
-                    <p id="wallet-balance" class="text-3xl font-extrabold text-swiftblue mt-1">0 FCFA</p>
-                </div>
-                <form id="recharge-form" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
-                    <h2 class="text-lg font-bold text-gray-900">Demander une recharge</h2>
-                    <p class="text-xs text-gray-500">Effectuez votre paiement, puis indiquez ici sa référence. Un administrateur vérifiera et créditera votre solde.</p>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Montant (FCFA)</label>
-                        <input id="rc-amount" type="number" min="100" step="1" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Moyen de paiement</label>
-                        <select id="rc-method" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                            <option value="mobile_money">Mobile Money</option>
-                            <option value="virement">Virement</option>
-                            <option value="especes">Espèces</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Référence ou preuve de paiement</label>
-                        <input id="rc-ref" required placeholder="Ex: numéro de transaction" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                    </div>
-                    <button type="submit" id="rc-btn" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition shadow-md cursor-pointer">Envoyer la demande</button>
-                </form>
-                <div id="recharge-list"></div>
-            </section>
-
-        </main>
+    <div class="flex bg-gray-100 p-1 rounded-xl mb-6">
+      <button id="tab-login" type="button" class="flex-1 py-2.5 text-sm font-semibold rounded-lg bg-white text-swiftblue shadow-sm transition cursor-pointer">Connexion</button>
+      <button id="tab-signup" type="button" class="flex-1 py-2.5 text-sm font-semibold rounded-lg text-gray-500 hover:text-gray-900 transition cursor-pointer">S'inscrire</button>
     </div>
+    <div id="alert-box" class="hidden mb-6 p-4 rounded-xl text-sm text-center font-medium"></div>
+    <form id="login-form" class="space-y-5">
+      <div><label id="t-login-email" class="block text-sm font-semibold text-gray-700 mb-1.5">Email</label>
+        <input type="email" id="login-email" required placeholder="votre@email.com" class="w-full px-5 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50"></div>
+      <div><label id="t-login-pass" class="block text-sm font-semibold text-gray-700 mb-1.5">Mot de passe</label>
+        <div class="relative"><input type="password" id="login-password" required placeholder="••••••••" class="w-full px-5 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
+        <button type="button" class="toggle-password absolute right-4 top-3.5 text-gray-400 hover:text-swiftblue transition cursor-pointer">👁️</button></div></div>
+      <button type="submit" id="login-btn" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition duration-200 shadow-md cursor-pointer">Se connecter</button>
+    </form>
+    <form id="signup-form" class="space-y-4 hidden">
+      <div><label id="t-signup-email" class="block text-xs font-semibold text-gray-700 mb-1">Email</label>
+        <input type="email" id="signup-email" required placeholder="votre@email.com" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50"></div>
+      <div><label id="t-signup-phone" class="block text-xs font-semibold text-gray-700 mb-1">Numéro de téléphone</label>
+        <input type="tel" id="signup-phone" required placeholder="Ex: +237 6XXXXXXXX" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50"></div>
+      <div><label id="t-signup-pass" class="block text-xs font-semibold text-gray-700 mb-1">Mot de passe</label>
+        <div class="relative"><input type="password" id="signup-password" required placeholder="••••••••" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
+        <button type="button" class="toggle-password absolute right-4 top-3 text-gray-400 hover:text-swiftblue transition cursor-pointer">👁️</button></div></div>
+      <div><label id="t-signup-pass-confirm" class="block text-xs font-semibold text-gray-700 mb-1">Confirmer le mot de passe</label>
+        <div class="relative"><input type="password" id="signup-password-confirm" required placeholder="••••••••" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
+        <button type="button" class="toggle-password absolute right-4 top-3 text-gray-400 hover:text-swiftblue transition cursor-pointer">👁️</button></div></div>
+      <button type="submit" id="signup-btn" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition duration-200 shadow-md mt-2 cursor-pointer">S'inscrire</button>
+    </form>
+  </div>
+</div>
 
-    <!-- ================= INTERFACE ADMINISTRATEUR : construite par le script « Control Room » en bas de page ================= -->
-    <div id="admin-view" class="hidden"></div>
+<!-- ============ TABLEAU DE BORD ============ -->
+<div id="dash-view" class="hidden">
+  <header class="bg-white border-b border-gray-200">
+    <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div><h1 class="text-xl font-extrabold text-swiftblue tracking-tight">SwiftWay Logistics</h1><p id="user-email" class="text-xs text-gray-500 break-all"></p></div>
+      <button id="logout-btn" type="button" class="text-sm font-semibold text-gray-600 hover:text-red-600 border border-gray-200 rounded-full px-4 py-2 bg-white transition cursor-pointer">Se déconnecter</button>
+    </div>
+  </header>
+  <main class="max-w-3xl mx-auto px-4 py-6">
+    <div class="flex overflow-x-auto gap-1 bg-gray-100 p-1 rounded-xl mb-6">
+      <button data-tab="list" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Mes colis</button>
+      <button data-tab="new" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Nouvelle</button>
+      <button data-tab="track" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Suivre</button>
+      <button data-tab="wallet" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Portefeuille</button>
+    </div>
+    <div id="d-alert" class="hidden mb-4 p-4 rounded-xl text-sm text-center font-medium"></div>
+    <section id="view-list"><div id="list-container"></div></section>
+    <section id="view-new" class="hidden"><form id="new-form" class="space-y-5"></form></section>
+    <section id="view-track" class="hidden space-y-4">
+      <form id="track-form" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
+        <h2 class="text-lg font-bold text-gray-900">Suivre un colis</h2>
+        <input id="track-code" required placeholder="Code de suivi, ex: SW1A2B3C4D" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50 uppercase">
+        <button type="submit" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition shadow-md cursor-pointer">Rechercher</button>
+      </form>
+      <div id="track-result"></div>
+    </section>
+    <section id="view-wallet" class="hidden space-y-4">
+      <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+        <p class="text-xs font-semibold text-gray-500">Solde du portefeuille</p>
+        <p id="wallet-balance" class="text-3xl font-extrabold text-swiftblue mt-1">0 FCFA</p>
+      </div>
+      <form id="recharge-form" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
+        <h2 class="text-lg font-bold text-gray-900">Demander une recharge</h2>
+        <p class="text-xs text-gray-500">Effectuez votre paiement Mobile Money, puis indiquez l'ID de la transaction et joignez la capture d'écran. Un administrateur vérifiera et créditera votre solde.</p>
+        <div><label class="block text-xs font-semibold text-gray-700 mb-1">Opérateur</label>
+          <select id="rc-method" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+            <option value="mtn">MTN Money</option><option value="orange">Orange Money</option></select></div>
+        <div><label class="block text-xs font-semibold text-gray-700 mb-1">Montant (FCFA)</label>
+          <input id="rc-amount" type="number" min="100" step="1" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50"></div>
+        <div><label class="block text-xs font-semibold text-gray-700 mb-1">ID de la transaction</label>
+          <input id="rc-ref" required placeholder="Ex: MP240101.1234.A56789" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50"></div>
+        <div><label class="block text-xs font-semibold text-gray-700 mb-1">Capture d'écran de la preuve de paiement</label>
+          <input id="rc-file" type="file" accept="image/*" required class="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-blue-50 file:text-swiftblue file:font-semibold"></div>
+        <button type="submit" id="rc-btn" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition shadow-md cursor-pointer">Envoyer la demande</button>
+      </form>
+      <div id="recharge-list"></div>
+    </section>
+  </main>
+</div>
 
-    <script>
-        const SUPABASE_URL = 'https://cwgpxyiodzxcabkavdbk.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_zXgU5Q2p2UL3--3no-spmA_noD8JRvF';
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+<div id="admin-view" class="hidden"></div>
 
-        // ---------- Affichage des vues ----------
-        const $ = (id) => document.getElementById(id);
+<script>
+const SUPABASE_URL = 'https://cwgpxyiodzxcabkavdbk.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_zXgU5Q2p2UL3--3no-spmA_noD8JRvF';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = (id) => document.getElementById(id);
 
-        function showAuthView() {
-            $('loading').classList.add('hidden');
-            $('dash-view').classList.add('hidden');
-            $('admin-view').classList.add('hidden');
-            document.body.style.background = '';
-            $('auth-view').classList.remove('hidden');
-        }
-
-        let currentUser = null, isAdmin = false;
-        async function showDashView(user) {
-            currentUser = user;
-            isAdmin = false;
-            try {
-                const { data: prof } = await supabaseClient.from('sw_profiles')
-                    .select('role,is_active').eq('id', user.id).maybeSingle();
-                if (prof && prof.is_active === false) {
-                    await supabaseClient.auth.signOut();
-                    showAuthView();
-                    showAlert('Ce compte est désactivé. Contactez SwiftWay Logistics.');
-                    return;
-                }
-                isAdmin = !!prof && prof.role === 'admin';
-            } catch (err) { isAdmin = false; }
-            $('loading').classList.add('hidden');
-            $('auth-view').classList.add('hidden');
-            if (isAdmin) {
-                $('dash-view').classList.add('hidden');
-                $('admin-email').textContent = (user && user.email) || '';
-                document.body.style.background = '#06080b';
-                $('admin-view').classList.remove('hidden');
-                showSub('radar');
-                return;
-            }
-            $('admin-view').classList.add('hidden');
-            document.body.style.background = '';
-            $('user-email').textContent = (user && user.email) || '';
-            $('dash-view').classList.remove('hidden');
-            showTab('list');
-        }
-
-        // =====================================================
-        //                    CONNEXION
-        // =====================================================
-        const tabLogin = $('tab-login');
-        const tabSignup = $('tab-signup');
-        const loginForm = $('login-form');
-        const signupForm = $('signup-form');
-        const alertBox = $('alert-box');
-
-        function hideAlert() { alertBox.classList.add('hidden'); }
-
-        tabLogin.addEventListener('click', () => {
-            tabLogin.className = "flex-1 py-2.5 text-sm font-semibold rounded-lg bg-white text-swiftblue shadow-sm transition cursor-pointer";
-            tabSignup.className = "flex-1 py-2.5 text-sm font-semibold rounded-lg text-gray-500 hover:text-gray-900 transition cursor-pointer";
-            loginForm.classList.remove('hidden');
-            signupForm.classList.add('hidden');
-            hideAlert();
-        });
-
-        tabSignup.addEventListener('click', () => {
-            tabSignup.className = "flex-1 py-2.5 text-sm font-semibold rounded-lg bg-white text-swiftblue shadow-sm transition cursor-pointer";
-            tabLogin.className = "flex-1 py-2.5 text-sm font-semibold rounded-lg text-gray-500 hover:text-gray-900 transition cursor-pointer";
-            signupForm.classList.remove('hidden');
-            loginForm.classList.add('hidden');
-            hideAlert();
-        });
-
-        const translations = {
-            fr: {
-                subtitle: "Gérez vos expéditions facilement",
-                loginTab: "Connexion", signupTab: "S'inscrire",
-                email: "Email", password: "Mot de passe",
-                confirmPassword: "Confirmer le mot de passe", phone: "Numéro de téléphone",
-                loginBtn: "Se connecter", signupBtn: "S'inscrire",
-                langToggleDisplay: "EN",
-                processing: "Traitement en cours...",
-                successLogin: "Connexion réussie !",
-                successSignup: "Compte créé avec succès !",
-                confirmEmail: "Compte créé ! Vérifiez votre email pour confirmer votre compte, puis connectez-vous.",
-                passMismatch: "Les mots de passe ne correspondent pas."
-            },
-            en: {
-                subtitle: "Manage your shipments easily",
-                loginTab: "Login", signupTab: "Sign up",
-                email: "Email", password: "Password",
-                confirmPassword: "Confirm Password", phone: "Phone Number",
-                loginBtn: "Login", signupBtn: "Sign up",
-                langToggleDisplay: "FR",
-                processing: "Processing...",
-                successLogin: "Login successful!",
-                successSignup: "Account created successfully!",
-                confirmEmail: "Account created! Check your email to confirm your account, then log in.",
-                passMismatch: "Passwords do not match."
-            }
-        };
-
-        let currentLang = 'fr';
-
-        function updateLanguage(lang) {
-            currentLang = lang;
-            const t = translations[lang];
-            $('current-lang-text').textContent = t.langToggleDisplay;
-            $('t-subtitle').textContent = t.subtitle;
-            tabLogin.textContent = t.loginTab;
-            tabSignup.textContent = t.signupTab;
-            $('t-login-email').textContent = t.email;
-            $('t-login-pass').textContent = t.password;
-            $('login-btn').textContent = t.loginBtn;
-            $('t-signup-email').textContent = t.email;
-            $('t-signup-phone').textContent = t.phone;
-            $('t-signup-pass').textContent = t.password;
-            $('t-signup-pass-confirm').textContent = t.confirmPassword;
-            $('signup-btn').textContent = t.signupBtn;
-        }
-
-        $('lang-toggle').addEventListener('click', (e) => {
-            e.preventDefault();
-            updateLanguage(currentLang === 'fr' ? 'en' : 'fr');
-        });
-
-        document.querySelectorAll('.toggle-password').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const input = e.target.previousElementSibling;
-                const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
-                input.setAttribute('type', type);
-                e.target.textContent = type === 'password' ? '👁️' : '🙈';
-            });
-        });
-
-        function showAlert(message, type = 'error') {
-            alertBox.textContent = message;
-            alertBox.className = `mb-6 p-4 rounded-xl text-sm text-center font-medium ${type === 'error' ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-green-50 text-green-700 border border-green-100'}`;
-            alertBox.classList.remove('hidden');
-        }
-
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = $('login-email').value.trim();
-            const password = $('login-password').value;
-            const t = translations[currentLang];
-
-            showAlert(t.processing, 'success');
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-
-            if (error) {
-                showAlert(error.message);
-            } else {
-                hideAlert();
-                showDashView(data.user);
-            }
-        });
-
-        signupForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = $('signup-email').value.trim();
-            const phone = $('signup-phone').value.trim();
-            const password = $('signup-password').value;
-            const passwordConfirm = $('signup-password-confirm').value;
-            const t = translations[currentLang];
-
-            if (password !== passwordConfirm) { showAlert(t.passMismatch); return; }
-
-            showAlert(t.processing, 'success');
-            const { data, error } = await supabaseClient.auth.signUp({
-                email, password, options: { data: { phone_number: phone } }
-            });
-
-            if (error) {
-                showAlert(error.message);
-            } else if (data.session) {
-                hideAlert();
-                showDashView(data.user);
-            } else {
-                showAlert(t.confirmEmail, 'success');
-            }
-        });
-
-        // =====================================================
-        //                  TABLEAU DE BORD
-        // =====================================================
-        const STATUS = {
-            pending:          { label: 'En attente',            color: 'bg-gray-100 text-gray-700' },
-            picked_up:        { label: 'Colis récupéré',        color: 'bg-blue-50 text-blue-700' },
-            in_transit:       { label: 'En transit',            color: 'bg-indigo-50 text-indigo-700' },
-            out_for_delivery: { label: 'En cours de livraison', color: 'bg-amber-50 text-amber-700' },
-            delivered:        { label: 'Livré',                 color: 'bg-green-50 text-green-700' },
-            cancelled:        { label: 'Annulé',                color: 'bg-red-50 text-red-700' }
-        };
-
-        const dAlert = $('d-alert');
-
-        const COUNTRIES = [
-    "Afghanistan","Afrique du Sud","Albanie","Algérie","Allemagne","Andorre","Angola","Antigua-et-Barbuda","Arabie saoudite","Argentine","Arménie","Australie","Autriche","Azerbaïdjan",
-    "Bahamas","Bahreïn","Bangladesh","Barbade","Belgique","Belize","Bénin","Bhoutan","Biélorussie","Birmanie (Myanmar)","Bolivie","Bosnie-Herzégovine","Botswana","Brésil","Brunei","Bulgarie","Burkina Faso","Burundi",
-    "Cambodge","Cameroun","Canada","Cap-Vert","Chili","Chine","Chypre","Colombie","Comores","Congo","Corée du Nord","Corée du Sud","Costa Rica","Côte d'Ivoire","Croatie","Cuba",
-    "Danemark","Djibouti","Dominique","Égypte","Émirats arabes unis","Équateur","Érythrée","Espagne","Estonie","Eswatini","États-Unis","Éthiopie",
-    "Fidji","Finlande","France","Gabon","Gambie","Géorgie","Ghana","Grèce","Grenade","Guatemala","Guinée","Guinée-Bissau","Guinée équatoriale","Guyana",
-    "Haïti","Honduras","Hongrie","Îles Marshall","Îles Salomon","Inde","Indonésie","Irak","Iran","Irlande","Islande","Israël","Italie",
-    "Jamaïque","Japon","Jordanie","Kazakhstan","Kenya","Kirghizistan","Kiribati","Koweït",
-    "Laos","Lesotho","Lettonie","Liban","Libéria","Libye","Liechtenstein","Lituanie","Luxembourg",
-    "Macédoine du Nord","Madagascar","Malaisie","Malawi","Maldives","Mali","Malte","Maroc","Maurice","Mauritanie","Mexique","Micronésie","Moldavie","Monaco","Mongolie","Monténégro","Mozambique",
-    "Namibie","Nauru","Népal","Nicaragua","Niger","Nigéria","Norvège","Nouvelle-Zélande","Oman","Ouganda","Ouzbékistan",
-    "Pakistan","Palaos","Palestine","Panama","Papouasie-Nouvelle-Guinée","Paraguay","Pays-Bas","Pérou","Philippines","Pologne","Portugal","Qatar",
-    "République centrafricaine","République démocratique du Congo","République dominicaine","Roumanie","Royaume-Uni","Russie","Rwanda",
-    "Saint-Christophe-et-Niévès","Sainte-Lucie","Saint-Marin","Saint-Vincent-et-les-Grenadines","Salvador","Samoa","Sao Tomé-et-Principe","Sénégal","Serbie","Seychelles","Sierra Leone","Singapour","Slovaquie","Slovénie","Somalie","Soudan","Soudan du Sud","Sri Lanka","Suède","Suisse","Suriname","Syrie",
-    "Tadjikistan","Tanzanie","Tchad","Tchéquie","Thaïlande","Timor oriental","Togo","Tonga","Trinité-et-Tobago","Tunisie","Turkménistan","Turquie","Tuvalu",
-    "Ukraine","Uruguay","Vanuatu","Vatican (Saint-Siège)","Venezuela","Viêt Nam","Yémen","Zambie","Zimbabwe"
-];
-
-function fillCountries() {
-    // Cameroun en premier (sélectionné par défaut), puis les autres par ordre alphabétique
-    const others = COUNTRIES.filter(c => c !== "Cameroun").sort((a, b) => a.localeCompare(b, 'fr'));
-    const options = ["Cameroun", ...others].map(c => `<option value="${c}">${c}</option>`).join('');
-    ['s-country', 'r-country'].forEach(id => { $(id).innerHTML = options; });
+function showAuthView() {
+  $('loading').classList.add('hidden'); $('dash-view').classList.add('hidden'); $('admin-view').classList.add('hidden');
+  document.body.style.background = ''; $('auth-view').classList.remove('hidden');
 }
-fillCountries();
 
-function esc(v) {
-            return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-        }
-        function fmtDate(d) {
-            return new Date(d).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
-        }
-        function badge(status) {
-            const s = STATUS[status] || { label: status, color: 'bg-gray-100 text-gray-700' };
-            return `<span class="inline-block px-3 py-1 rounded-full text-xs font-semibold ${s.color}">${esc(s.label)}</span>`;
-        }
-        function dShow(msg, type = 'error') {
-            dAlert.textContent = msg;
-            dAlert.className = `mb-4 p-4 rounded-xl text-sm text-center font-medium ${type === 'error'
-                ? 'bg-red-50 text-red-700 border border-red-100'
-                : 'bg-green-50 text-green-700 border border-green-100'}`;
-        }
-        function dHide() { dAlert.classList.add('hidden'); }
+let currentUser = null, isAdmin = false;
+async function showDashView(user) {
+  currentUser = user; isAdmin = false;
+  try {
+    const { data: prof } = await supabaseClient.from('sw_profiles').select('role,is_active').eq('id', user.id).maybeSingle();
+    if (prof && prof.is_active === false) {
+      await supabaseClient.auth.signOut(); showAuthView();
+      showAlert('Ce compte est désactivé. Contactez SwiftWay Logistics.'); return;
+    }
+    isAdmin = !!prof && prof.role === 'admin';
+  } catch (err) { isAdmin = false; }
+  $('loading').classList.add('hidden'); $('auth-view').classList.add('hidden');
+  if (isAdmin) {
+    $('dash-view').classList.add('hidden');
+    $('admin-email').textContent = (user && user.email) || '';
+    document.body.style.background = '#06080b';
+    $('admin-view').classList.remove('hidden');
+    showSub('radar'); return;
+  }
+  $('admin-view').classList.add('hidden'); document.body.style.background = '';
+  $('user-email').textContent = (user && user.email) || '';
+  $('dash-view').classList.remove('hidden');
+  loadPrice(); showTab('list');
+}
 
-        // Étapes et jalons de la fenêtre de livraison (48 h standard / 24 h express)
-        // Jalons en part de la fenêtre : 0 %, 12,5 % (6 h), 25 % (12 h), 75 % (36 h), 100 % (48 h)
-        const STEPS = ['pending', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered'];
-        const STEP_FRAC = [0, 0.125, 0.25, 0.75, 1];
+// ---------- CONNEXION ----------
+const tabLogin = $('tab-login'), tabSignup = $('tab-signup'), loginForm = $('login-form'), signupForm = $('signup-form'), alertBox = $('alert-box');
+function hideAlert() { alertBox.classList.add('hidden'); }
+const TON = "flex-1 py-2.5 text-sm font-semibold rounded-lg bg-white text-swiftblue shadow-sm transition cursor-pointer";
+const TOFF = "flex-1 py-2.5 text-sm font-semibold rounded-lg text-gray-500 hover:text-gray-900 transition cursor-pointer";
+tabLogin.addEventListener('click', () => { tabLogin.className = TON; tabSignup.className = TOFF; loginForm.classList.remove('hidden'); signupForm.classList.add('hidden'); hideAlert(); });
+tabSignup.addEventListener('click', () => { tabSignup.className = TON; tabLogin.className = TOFF; signupForm.classList.remove('hidden'); loginForm.classList.add('hidden'); hideAlert(); });
 
-        function timeline(events, ship) {
-            events = events || [];
-            const byStatus = {};
-            const extra = {};
-            events.forEach(e => {
-                if (!byStatus[e.status]) byStatus[e.status] = e;
-                else if (e.note) (extra[e.status] = extra[e.status] || []).push(e);
-            });
+const translations = {
+  fr: { subtitle: "Gérez vos expéditions facilement", loginTab: "Connexion", signupTab: "S'inscrire", email: "Email", password: "Mot de passe", confirmPassword: "Confirmer le mot de passe", phone: "Numéro de téléphone", loginBtn: "Se connecter", signupBtn: "S'inscrire", langToggleDisplay: "EN", processing: "Traitement en cours...", confirmEmail: "Compte créé ! Vérifiez votre email pour confirmer votre compte, puis connectez-vous.", passMismatch: "Les mots de passe ne correspondent pas." },
+  en: { subtitle: "Manage your shipments easily", loginTab: "Login", signupTab: "Sign up", email: "Email", password: "Password", confirmPassword: "Confirm Password", phone: "Phone Number", loginBtn: "Login", signupBtn: "Sign up", langToggleDisplay: "FR", processing: "Processing...", confirmEmail: "Account created! Check your email to confirm your account, then log in.", passMismatch: "Passwords do not match." }
+};
+let currentLang = 'fr';
+function updateLanguage(lang) {
+  currentLang = lang; const t = translations[lang];
+  $('current-lang-text').textContent = t.langToggleDisplay; $('t-subtitle').textContent = t.subtitle;
+  tabLogin.textContent = t.loginTab; tabSignup.textContent = t.signupTab;
+  $('t-login-email').textContent = t.email; $('t-login-pass').textContent = t.password; $('login-btn').textContent = t.loginBtn;
+  $('t-signup-email').textContent = t.email; $('t-signup-phone').textContent = t.phone; $('t-signup-pass').textContent = t.password;
+  $('t-signup-pass-confirm').textContent = t.confirmPassword; $('signup-btn').textContent = t.signupBtn;
+}
+$('lang-toggle').addEventListener('click', (e) => { e.preventDefault(); updateLanguage(currentLang === 'fr' ? 'en' : 'fr'); });
+document.querySelectorAll('.toggle-password').forEach(btn => btn.addEventListener('click', (e) => {
+  const input = e.target.previousElementSibling, type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+  input.setAttribute('type', type); e.target.textContent = type === 'password' ? '👁️' : '🙈';
+}));
+function showAlert(message, type = 'error') {
+  alertBox.textContent = message;
+  alertBox.className = `mb-6 p-4 rounded-xl text-sm text-center font-medium ${type === 'error' ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-green-50 text-green-700 border border-green-100'}`;
+  alertBox.classList.remove('hidden');
+}
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = $('login-email').value.trim(), password = $('login-password').value, t = translations[currentLang];
+  showAlert(t.processing, 'success');
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) showAlert(error.message); else { hideAlert(); showDashView(data.user); }
+});
+signupForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = $('signup-email').value.trim(), phone = $('signup-phone').value.trim(), password = $('signup-password').value, t = translations[currentLang];
+  if (password !== $('signup-password-confirm').value) { showAlert(t.passMismatch); return; }
+  showAlert(t.processing, 'success');
+  const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { phone_number: phone } } });
+  if (error) showAlert(error.message);
+  else if (data.session) { hideAlert(); showDashView(data.user); }
+  else showAlert(t.confirmEmail, 'success');
+});
 
-            const win = (ship && ship.delivery_window_hours) || 48;
-            const start = ship ? new Date(ship.created_at).getTime() : null;
-            const cancelled = !!ship && ship.status === 'cancelled';
-            const idx = ship ? STEPS.indexOf(ship.status) : -1;
-            const pct = ship ? (ship.status === 'delivered' ? 100 : Math.max(0, idx) * 25) : 0;
-            const lastDone = STEPS.reduce((acc, st, i) => byStatus[st] ? i : acc, -1);
+// ---------- DONNÉES & OUTILS ----------
+const STATUS = {
+  pending: { label: 'En attente', color: 'bg-gray-100 text-gray-700' },
+  picked_up: { label: 'Colis récupéré', color: 'bg-blue-50 text-blue-700' },
+  in_transit: { label: 'En transit', color: 'bg-indigo-50 text-indigo-700' },
+  out_for_delivery: { label: 'En cours de livraison', color: 'bg-amber-50 text-amber-700' },
+  delivered: { label: 'Livré', color: 'bg-green-50 text-green-700' },
+  cancelled: { label: 'Annulé', color: 'bg-red-50 text-red-700' }
+};
+const dAlert = $('d-alert');
+const COUNTRIES = ["Afghanistan","Afrique du Sud","Albanie","Algérie","Allemagne","Andorre","Angola","Antigua-et-Barbuda","Arabie saoudite","Argentine","Arménie","Australie","Autriche","Azerbaïdjan","Bahamas","Bahreïn","Bangladesh","Barbade","Belgique","Belize","Bénin","Bhoutan","Biélorussie","Birmanie (Myanmar)","Bolivie","Bosnie-Herzégovine","Botswana","Brésil","Brunei","Bulgarie","Burkina Faso","Burundi","Cambodge","Cameroun","Canada","Cap-Vert","Chili","Chine","Chypre","Colombie","Comores","Congo","Corée du Nord","Corée du Sud","Costa Rica","Côte d'Ivoire","Croatie","Cuba","Danemark","Djibouti","Dominique","Égypte","Émirats arabes unis","Équateur","Érythrée","Espagne","Estonie","Eswatini","États-Unis","Éthiopie","Fidji","Finlande","France","Gabon","Gambie","Géorgie","Ghana","Grèce","Grenade","Guatemala","Guinée","Guinée-Bissau","Guinée équatoriale","Guyana","Haïti","Honduras","Hongrie","Îles Marshall","Îles Salomon","Inde","Indonésie","Irak","Iran","Irlande","Islande","Israël","Italie","Jamaïque","Japon","Jordanie","Kazakhstan","Kenya","Kirghizistan","Kiribati","Koweït","Laos","Lesotho","Lettonie","Liban","Libéria","Libye","Liechtenstein","Lituanie","Luxembourg","Macédoine du Nord","Madagascar","Malaisie","Malawi","Maldives","Mali","Malte","Maroc","Maurice","Mauritanie","Mexique","Micronésie","Moldavie","Monaco","Mongolie","Monténégro","Mozambique","Namibie","Nauru","Népal","Nicaragua","Niger","Nigéria","Norvège","Nouvelle-Zélande","Oman","Ouganda","Ouzbékistan","Pakistan","Palaos","Palestine","Panama","Papouasie-Nouvelle-Guinée","Paraguay","Pays-Bas","Pérou","Philippines","Pologne","Portugal","Qatar","République centrafricaine","République démocratique du Congo","République dominicaine","Roumanie","Royaume-Uni","Russie","Rwanda","Saint-Christophe-et-Niévès","Sainte-Lucie","Saint-Marin","Saint-Vincent-et-les-Grenadines","Salvador","Samoa","Sao Tomé-et-Principe","Sénégal","Serbie","Seychelles","Sierra Leone","Singapour","Slovaquie","Slovénie","Somalie","Soudan","Soudan du Sud","Sri Lanka","Suède","Suisse","Suriname","Syrie","Tadjikistan","Tanzanie","Tchad","Tchéquie","Thaïlande","Timor oriental","Togo","Tonga","Trinité-et-Tobago","Tunisie","Turkménistan","Turquie","Tuvalu","Ukraine","Uruguay","Vanuatu","Vatican (Saint-Siège)","Venezuela","Viêt Nam","Yémen","Zambie","Zimbabwe"];
+const PKG_TYPES = ["Carton", "Valise", "Sac", "Mallette", "Enveloppe", "Autre"];
+const CURRENCIES = [['XAF', 'Franc CFA (FCFA / XAF)'], ['EUR', 'Euro (€ / EUR)'], ['USD', 'Dollar ($ / USD)']];
 
-            let html = '';
-            if (ship && !cancelled) {
-                const eta = ship.estimated_delivery_at || (start ? new Date(start + win * 3600000).toISOString() : null);
-                html += `<div class="mt-4">
-                    <div class="flex justify-between text-xs text-gray-500 mb-1">
-                        <span>${ship.status === 'delivered' ? 'Livré' : 'Livraison estimée'}</span>
-                        <span class="font-semibold text-gray-700">${eta ? fmtDate(eta) : ''}</span>
-                    </div>
-                    <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-2 bg-swiftblue rounded-full" style="width:${pct}%"></div></div>
-                    <p class="text-xs text-gray-400 mt-1">Délai prévu : ${win} h (${ship.service_type === 'express' ? 'Express' : 'Standard'})</p>
-                </div>`;
-            }
+function esc(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtDate(d) { return new Date(d).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }); }
+function fmtMoney(n) { return Number(n || 0).toLocaleString('fr-FR') + ' FCFA'; }
+function fmtCur(n, cur) {
+  const v = Number(n || 0).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+  return cur === 'EUR' ? v + ' €' : cur === 'USD' ? '$' + v : v + ' FCFA';
+}
+function badge(status) {
+  const s = STATUS[status] || { label: status, color: 'bg-gray-100 text-gray-700' };
+  return `<span class="inline-block px-3 py-1 rounded-full text-xs font-semibold ${s.color}">${esc(s.label)}</span>`;
+}
+function dShow(msg, type = 'error') {
+  dAlert.textContent = msg;
+  dAlert.className = `mb-4 p-4 rounded-xl text-sm text-center font-medium ${type === 'error' ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-green-50 text-green-700 border border-green-100'}`;
+}
+function dHide() { dAlert.classList.add('hidden'); }
 
-            html += '<ol class="space-y-3 mt-4">' + STEPS.map((st, i) => {
-                const ev = byStatus[st];
-                const done = !!ev;
-                const current = done && i === lastDone && !cancelled;
-                const label = (STATUS[st] || { label: st }).label;
-                const planned = start ? new Date(start + STEP_FRAC[i] * win * 3600000) : null;
-                const dot = done ? (current ? 'bg-swiftblue ring-4 ring-blue-100' : 'bg-swiftblue') : 'bg-gray-200';
-                const when = done
-                    ? `<p class="text-xs text-gray-400">${fmtDate(ev.created_at)}</p>`
-                    : (planned && !cancelled ? `<p class="text-xs text-gray-400">Prévu : ${fmtDate(planned)}</p>` : '');
-                const note = done && ev.note ? `<p class="text-xs text-gray-500">${esc(ev.note)}</p>` : '';
-                const extraNotes = (extra[st] || []).map(x => `<p class="text-xs text-gray-500">${esc(x.note)} <span class="text-gray-400">· ${fmtDate(x.created_at)}</span></p>`).join('');
-                return `<li class="flex gap-3 ${done ? '' : 'opacity-60'}">
-                    <span class="mt-1.5 w-3 h-3 rounded-full ${dot} shrink-0"></span>
-                    <div><p class="text-sm font-semibold ${done ? 'text-gray-900' : 'text-gray-500'}">${esc(label)}</p>${note}${extraNotes}${when}</div></li>`;
-            }).join('') + '</ol>';
+// ---------- FORMULAIRE NOUVELLE EXPÉDITION (généré) ----------
+const IC = 'w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50';
+const LB = 'block text-xs font-semibold text-gray-700 mb-1';
+const OPT = ' <span class="text-gray-400 font-normal">(facultatif)</span>';
+const F = (id, l, a = '', o) => `<div><label class="${LB}">${l}${o ? OPT : ''}</label><input id="${id}" ${a} class="${IC}"></div>`;
+const SEL = (id, l, opts) => `<div><label class="${LB}">${l}</label><select id="${id}" class="${IC}">${opts.map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join('')}</select></div>`;
+const CARD = (t, sub, body) => `<div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4"><div><h3 class="text-base font-bold text-gray-900">${t}</h3>${sub ? `<p class="text-xs text-gray-500">${sub}</p>` : ''}</div>${body}</div>`;
+const PARTY = (p, t, sub) => CARD(t, sub,
+  F(p + '-name', 'Nom complet', 'required') + F(p + '-phone', 'Téléphone', 'required type="tel" placeholder="Ex: +237 6XXXXXXXX"') +
+  F(p + '-email', 'Email', 'type="email"', 1) + F(p + '-address', 'Adresse (rue, numéro, point de repère)', 'required') +
+  F(p + '-district', 'Quartier', '', 1) + F(p + '-city', 'Ville', 'required') + F(p + '-region', 'Région / Province', 'required') +
+  SEL(p + '-country', 'Pays', [["Cameroun", "Cameroun"], ...COUNTRIES.filter(c => c !== "Cameroun").sort((a, b) => a.localeCompare(b, 'fr')).map(c => [c, c])]));
+const D3 = (id, ph) => `<input id="${id}" type="number" min="0" step="0.1" placeholder="${ph}" class="${IC}">`;
 
-            if (cancelled) {
-                const ev = byStatus['cancelled'];
-                html += `<div class="mt-3 bg-red-50 text-red-700 rounded-xl p-3 text-sm font-semibold">Expédition annulée${ev ? ' · ' + fmtDate(ev.created_at) : ''}</div>`;
-            }
-            return html;
-        }
+$('new-form').innerHTML =
+  PARTY('s', 'Expéditeur', 'La personne qui envoie le colis') +
+  PARTY('r', 'Destinataire', 'La personne qui reçoit le colis') +
+  CARD('Le colis', 'Ce que vous envoyez',
+    F('p-desc', 'Contenu du colis', 'required placeholder="Ex: vêtements, documents, pièces de rechange..."') +
+    SEL('p-type', 'Type de colis', PKG_TYPES.map(t => [t, t])) +
+    `<div class="grid grid-cols-2 gap-3">${F('p-count', 'Nombre de colis', 'required value="1" type="number" min="1" step="1"')}${F('p-weight', 'Poids total (kg)', 'required type="number" min="0.1" step="0.1"')}</div>` +
+    `<div><p class="${LB}">Dimensions en cm${OPT}</p><div class="grid grid-cols-3 gap-3">${D3('p-length', 'Long.')}${D3('p-width', 'Larg.')}${D3('p-height', 'Haut.')}</div></div>` +
+    SEL('p-cur', 'Devise affichée sur le reçu', CURRENCIES) +
+    `<div class="grid grid-cols-2 gap-3">${F('p-value', 'Valeur déclarée', 'type="number" min="0" step="any"', 1)}${F('p-fee', 'Frais de transport', 'type="number" min="0" step="any"', 1)}</div>`) +
+  CARD('Livraison', '',
+    F('p-agency', 'Agence / Transporteur', 'required maxlength="80" placeholder="Ex: Agence Voyage Central, Express Carrier..."') +
+    '<p class="text-xs text-gray-400 -mt-2">Ce nom sera le seul affiché sur le reçu.</p>' +
+    SEL('p-service', 'Type de service', [['standard', 'Standard'], ['express', 'Express (plus rapide)']]) +
+    SEL('p-payer', 'Qui paie la livraison ?', [['sender', "L'expéditeur"], ['receiver', 'Le destinataire']]) +
+    `<label class="flex items-center gap-3 text-sm font-semibold text-gray-700"><input id="p-fragile" type="checkbox" class="w-5 h-5 rounded border-gray-300"> Colis fragile</label>` +
+    `<div><label class="${LB}">Instructions de livraison${OPT}</label><textarea id="p-notes" rows="3" placeholder="Ex: appeler avant de livrer..." class="${IC}"></textarea></div>`) +
+  `<button type="submit" id="new-btn" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition shadow-md cursor-pointer">Créer l'expédition</button>`;
 
-        function line(label, v) { return v ? `<p class="text-sm text-gray-700"><span class="text-gray-400">${label} :</span> ${esc(v)}</p>` : ''; }
-        function party(title, n, phone, email, addr, district, city, region, country) {
-            return `<div class="bg-gray-50 rounded-xl p-3"><p class="text-xs font-bold text-swiftblue mb-1">${title}</p>
-                <p class="text-sm font-semibold text-gray-900">${esc(n)}</p>
-                ${line('Tél', phone)}${line('Email', email)}${line('Adresse', addr)}${line('Quartier', district)}
-                <p class="text-sm text-gray-700">${esc([city, region, country].filter(Boolean).join(', '))}</p></div>`;
-        }
-        function detailsHtml(s) {
-            if (!s) return '';
-            const dims = (s.length_cm || s.width_cm || s.height_cm) ? [s.length_cm, s.width_cm, s.height_cm].map(v => v ?? '?').join(' x ') + ' cm' : '';
-            return `<div class="mt-3 space-y-2">
-                ${party('Expéditeur', s.sender_name, s.sender_phone, s.sender_email, s.sender_address, s.sender_district, s.origin, s.sender_region, s.sender_country)}
-                ${party('Destinataire', s.receiver_name, s.receiver_phone, s.receiver_email, s.receiver_address, s.receiver_district, s.destination, s.receiver_region, s.receiver_country)}
-                <div class="bg-gray-50 rounded-xl p-3"><p class="text-xs font-bold text-swiftblue mb-1">Colis</p>
-                    ${line('Agence', s.agency_name)}
-                    ${line('Contenu', s.description)}${line('Type', s.package_type)}${line('Nombre', s.package_count)}
-                    ${line('Poids', s.weight_kg ? s.weight_kg + ' kg' : '')}${line('Dimensions', dims)}
-                    ${line('Valeur déclarée', s.declared_value ? s.declared_value + ' FCFA' : '')}
-                    ${line('Service', s.service_type === 'express' ? 'Express' : 'Standard')}
-                    ${line('Paiement', s.payer === 'receiver' ? 'Le destinataire' : "L'expéditeur")}
-                    ${s.is_fragile ? '<p class="text-sm font-semibold text-amber-700">Colis fragile</p>' : ''}
-                    ${line('Instructions', s.delivery_instructions)}</div></div>`;
-        }
+// ---------- SUIVI (frise) ----------
+const STEPS = ['pending', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered'];
+const STEP_FRAC = [0, 0.125, 0.25, 0.75, 1];
 
-        // =====================================================
-        //        REÇU A5 PAYANT (MARQUE BLANCHE)
-        // =====================================================
-        const RECEIPT_PRICE = 500; // affichage seulement : le vrai prix est fixé dans la fonction SQL sw_buy_receipt
-        let receiptSet = new Set();
+function timeline(events, ship) {
+  events = events || [];
+  const byStatus = {}, extra = {};
+  events.forEach(e => {
+    if (!byStatus[e.status]) byStatus[e.status] = e;
+    else if (e.note) (extra[e.status] = extra[e.status] || []).push(e);
+  });
+  const win = (ship && ship.delivery_window_hours) || 48;
+  const start = ship ? new Date(ship.created_at).getTime() : null;
+  const cancelled = !!ship && ship.status === 'cancelled';
+  const idx = ship ? STEPS.indexOf(ship.status) : -1;
+  const pct = ship ? (ship.status === 'delivered' ? 100 : Math.max(0, idx) * 25) : 0;
+  const lastDone = STEPS.reduce((acc, st, i) => byStatus[st] ? i : acc, -1);
+  let html = '';
+  if (ship && !cancelled) {
+    const eta = ship.estimated_delivery_at || (start ? new Date(start + win * 3600000).toISOString() : null);
+    html += `<div class="mt-4"><div class="flex justify-between text-xs text-gray-500 mb-1"><span>${ship.status === 'delivered' ? 'Livré' : 'Livraison estimée'}</span><span class="font-semibold text-gray-700">${eta ? fmtDate(eta) : ''}</span></div>
+      <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-2 bg-swiftblue rounded-full" style="width:${pct}%"></div></div>
+      <p class="text-xs text-gray-400 mt-1">Délai prévu : ${win} h (${ship.service_type === 'express' ? 'Express' : 'Standard'})</p></div>`;
+  }
+  html += '<ol class="space-y-3 mt-4">' + STEPS.map((st, i) => {
+    const ev = byStatus[st], done = !!ev, current = done && i === lastDone && !cancelled;
+    const label = (STATUS[st] || { label: st }).label;
+    const planned = start ? new Date(start + STEP_FRAC[i] * win * 3600000) : null;
+    const dot = done ? (current ? 'bg-swiftblue ring-4 ring-blue-100' : 'bg-swiftblue') : 'bg-gray-200';
+    const when = done ? `<p class="text-xs text-gray-400">${fmtDate(ev.created_at)}</p>` : (planned && !cancelled ? `<p class="text-xs text-gray-400">Prévu : ${fmtDate(planned)}</p>` : '');
+    const note = done && ev.note ? `<p class="text-xs text-gray-500">${esc(ev.note)}</p>` : '';
+    const extraNotes = (extra[st] || []).map(x => `<p class="text-xs text-gray-500">${esc(x.note)} <span class="text-gray-400">· ${fmtDate(x.created_at)}</span></p>`).join('');
+    return `<li class="flex gap-3 ${done ? '' : 'opacity-60'}"><span class="mt-1.5 w-3 h-3 rounded-full ${dot} shrink-0"></span>
+      <div><p class="text-sm font-semibold ${done ? 'text-gray-900' : 'text-gray-500'}">${esc(label)}</p>${note}${extraNotes}${when}</div></li>`;
+  }).join('') + '</ol>';
+  if (cancelled) {
+    const ev = byStatus['cancelled'];
+    html += `<div class="mt-3 bg-red-50 text-red-700 rounded-xl p-3 text-sm font-semibold">Expédition annulée${ev ? ' · ' + fmtDate(ev.created_at) : ''}</div>`;
+  }
+  return html;
+}
 
-        async function loadReceiptSet() {
-            try {
-                const { data } = await supabaseClient.from('sw_receipts').select('shipment_id').eq('user_id', currentUser.id);
-                receiptSet = new Set((data || []).map(r => r.shipment_id));
-            } catch (err) { receiptSet = new Set(); }
-        }
+function line(label, v) { return v ? `<p class="text-sm text-gray-700"><span class="text-gray-400">${label} :</span> ${esc(v)}</p>` : ''; }
+function party(title, n, phone, email, addr, district, city, region, country) {
+  return `<div class="bg-gray-50 rounded-xl p-3"><p class="text-xs font-bold text-swiftblue mb-1">${title}</p>
+    <p class="text-sm font-semibold text-gray-900">${esc(n)}</p>${line('Tél', phone)}${line('Email', email)}${line('Adresse', addr)}${line('Quartier', district)}
+    <p class="text-sm text-gray-700">${esc([city, region, country].filter(Boolean).join(', '))}</p></div>`;
+}
+function dimsOf(s) { return (s.length_cm || s.width_cm || s.height_cm) ? [s.length_cm, s.width_cm, s.height_cm].map(v => v ?? '?').join(' x ') + ' cm' : ''; }
+function detailsHtml(s) {
+  if (!s) return '';
+  const cur = s.currency || 'XAF';
+  return `<div class="mt-3 space-y-2">
+    ${party('Expéditeur', s.sender_name, s.sender_phone, s.sender_email, s.sender_address, s.sender_district, s.origin, s.sender_region, s.sender_country)}
+    ${party('Destinataire', s.receiver_name, s.receiver_phone, s.receiver_email, s.receiver_address, s.receiver_district, s.destination, s.receiver_region, s.receiver_country)}
+    <div class="bg-gray-50 rounded-xl p-3"><p class="text-xs font-bold text-swiftblue mb-1">Colis</p>
+      ${line('Agence', s.agency_name)}${line('Contenu', s.description)}${line('Type', s.package_type)}${line('Nombre', s.package_count)}
+      ${line('Poids', s.weight_kg ? s.weight_kg + ' kg' : '')}${line('Dimensions', dimsOf(s))}
+      ${line('Valeur déclarée', s.declared_value ? fmtCur(s.declared_value, cur) : '')}${line('Frais de transport', s.shipping_fee ? fmtCur(s.shipping_fee, cur) : '')}
+      ${line('Service', s.service_type === 'express' ? 'Express' : 'Standard')}${line('Paiement', s.payer === 'receiver' ? 'Le destinataire' : "L'expéditeur")}
+      ${s.is_fragile ? '<p class="text-sm font-semibold text-amber-700">Colis fragile</p>' : ''}${line('Instructions', s.delivery_instructions)}</div></div>`;
+}
 
-        function receiptHtml(s) {
-            const agency = (s.agency_name || '').trim();
-            const dims = (s.length_cm || s.width_cm || s.height_cm) ? [s.length_cm, s.width_cm, s.height_cm].map(v => v ?? '?').join(' x ') + ' cm' : '';
-            const row = (l, v) => v ? `<tr><td style="padding:2px 0;color:#666;width:34%;vertical-align:top">${l}</td><td style="padding:2px 0;font-weight:600">${esc(v)}</td></tr>` : '';
-            const box = (title, name, phone, addr, district, city, region, country) => `
-                <div style="flex:1;border:1px solid #222;padding:7px 9px;min-width:0">
-                    <div style="font-size:9px;letter-spacing:.12em;font-weight:800;margin-bottom:4px">${title}</div>
-                    <div style="font-weight:800;font-size:12px">${esc(name)}</div>
-                    <div>${esc(phone)}</div>
-                    <div>${esc([addr, district].filter(Boolean).join(', '))}</div>
-                    <div>${esc([city, region, country].filter(Boolean).join(', '))}</div>
-                </div>`;
-            return `<div id="receipt-sheet" style="width:148mm;height:210mm;box-sizing:border-box;padding:10mm;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.35;margin:0 auto;box-shadow:0 4px 24px #0006;display:flex;flex-direction:column;overflow:hidden">
-                <div style="text-align:center;border-bottom:2px solid #111;padding-bottom:8px">
-                    <div style="font-size:20px;font-weight:900;letter-spacing:.04em;text-transform:uppercase">${esc(agency || "Bordereau d'expédition")}</div>
-                    <div style="font-size:10px;letter-spacing:.2em;margin-top:2px">BORDEREAU D'EXPÉDITION</div>
-                </div>
-                <div style="display:flex;justify-content:space-between;align-items:flex-end;margin:10px 0">
-                    <div><div style="font-size:9px;color:#666">N° DE SUIVI</div><div style="font-size:18px;font-weight:900;letter-spacing:.06em">${esc(s.tracking_code)}</div></div>
-                    <div style="text-align:right"><div style="font-size:9px;color:#666">DATE</div><div style="font-weight:700">${fmtDate(s.created_at)}</div></div>
-                </div>
-                <div style="display:flex;gap:8px">
-                    ${box('EXPÉDITEUR', s.sender_name, s.sender_phone, s.sender_address, s.sender_district, s.origin, s.sender_region, s.sender_country)}
-                    ${box('DESTINATAIRE', s.receiver_name, s.receiver_phone, s.receiver_address, s.receiver_district, s.destination, s.receiver_region, s.receiver_country)}
-                </div>
-                <div style="margin-top:10px;border:1px solid #222;padding:7px 9px">
-                    <div style="font-size:9px;letter-spacing:.12em;font-weight:800;margin-bottom:4px">DÉTAILS DU COLIS</div>
-                    <table style="width:100%;border-collapse:collapse;font-size:11px">
-                        ${row('Contenu', s.description)}${row('Type', s.package_type)}${row('Nombre de colis', s.package_count)}
-                        ${row('Poids total', s.weight_kg ? s.weight_kg + ' kg' : '')}${row('Dimensions', dims)}
-                        ${row('Valeur déclarée', s.declared_value ? Number(s.declared_value).toLocaleString('fr-FR') + ' FCFA' : '')}
-                        ${row('Service', s.service_type === 'express' ? 'Express (24 h)' : 'Standard (48 h)')}
-                        ${row('Livraison payée par', s.payer === 'receiver' ? 'Le destinataire' : "L'expéditeur")}
-                        ${row('Mention', s.is_fragile ? 'COLIS FRAGILE' : '')}
-                        ${row('Instructions', s.delivery_instructions)}
-                    </table>
-                </div>
-                <div style="margin-top:10px;display:flex;gap:8px;flex:1;min-height:0">
-                    <div style="flex:1;border:1px dashed #222;padding:7px 9px"><div style="font-size:9px;color:#666;margin-bottom:34px">SIGNATURE EXPÉDITEUR</div></div>
-                    <div style="flex:1;border:1px dashed #222;padding:7px 9px"><div style="font-size:9px;color:#666;margin-bottom:34px">SIGNATURE DESTINATAIRE</div></div>
-                </div>
-                <div style="margin-top:10px;border-top:2px solid #111;padding-top:6px;text-align:center;font-size:10px">
-                    <div style="font-weight:800;text-transform:uppercase;letter-spacing:.06em">${esc(agency || '')}</div>
-                    <div style="color:#666">Document émis le ${fmtDate(new Date())}</div>
-                </div>
-            </div>`;
-        }
+// ---------- AVANCEMENT MANUEL PAR L'EXPÉDITEUR ----------
+function stepsCtl(s) {
+  if (s.status === 'cancelled') return '';
+  const i = STEPS.indexOf(s.status);
+  return `<div class="mt-3 bg-gray-50 rounded-xl p-3"><p class="text-xs font-bold text-swiftblue mb-2">Avancement : cochez / décochez les étapes</p>` +
+    STEPS.map((st, k) => `<label class="flex items-center gap-3 py-1 text-sm cursor-pointer"><input type="checkbox" class="step-cb w-5 h-5" data-id="${esc(s.id)}" data-k="${k}" ${k <= i ? 'checked' : ''}> ${esc(STATUS[st].label)}</label>`).join('') + '</div>';
+}
 
-        function showReceipt(s) {
-            closeReceipt();
-            const ov = document.createElement('div');
-            ov.id = 'receipt-overlay';
-            ov.style.cssText = 'position:fixed;inset:0;z-index:80;background:#111c;overflow:auto;padding:16px 8px 40px';
-            ov.innerHTML = `<div class="no-print" style="max-width:148mm;margin:0 auto 12px;display:flex;gap:8px">
-                    <button type="button" id="rcpt-print" class="flex-1 bg-swiftblue text-white font-semibold py-3 rounded-xl cursor-pointer">Imprimer / Enregistrer en PDF</button>
-                    <button type="button" id="rcpt-close" class="bg-white text-gray-800 font-semibold px-5 py-3 rounded-xl cursor-pointer">Fermer</button>
-                </div>
-                <div style="overflow-x:auto"><div style="width:148mm;margin:0 auto">${receiptHtml(s)}</div></div>`;
-            document.body.appendChild(ov);
-            $('rcpt-close').addEventListener('click', closeReceipt);
-            $('rcpt-print').addEventListener('click', () => {
-                const old = document.title;
-                document.title = 'Recu-' + s.tracking_code;
-                window.print();
-                setTimeout(() => { document.title = old; }, 500);
-            });
-        }
-        function closeReceipt() { const o = $('receipt-overlay'); if (o) o.remove(); }
+// ---------- REÇU A5 PAYANT (MARQUE BLANCHE) ----------
+let RECEIPT_PRICE = 500; // valeur réelle lue dans sw_settings, débit fait par sw_buy_receipt
+let receiptSet = new Set();
+async function loadPrice() {
+  try {
+    const { data } = await supabaseClient.from('sw_settings').select('value').eq('key', 'receipt_price').maybeSingle();
+    if (data && !isNaN(Number(data.value))) RECEIPT_PRICE = Number(data.value);
+  } catch (e) {}
+}
+async function loadReceiptSet() {
+  try {
+    const { data } = await supabaseClient.from('sw_receipts').select('shipment_id').eq('user_id', currentUser.id);
+    receiptSet = new Set((data || []).map(r => r.shipment_id));
+  } catch (err) { receiptSet = new Set(); }
+}
+function trackUrl(code) { return location.origin + location.pathname + '?t=' + encodeURIComponent(code); }
 
-        async function openReceipt(s, btn) {
-            if (!receiptSet.has(s.id)) {
-                if (!confirm('Générer le reçu A5 ?\n' + fmtMoney(RECEIPT_PRICE) + ' seront débités de votre portefeuille.')) return;
-                btn.disabled = true;
-                const { data, error } = await supabaseClient.rpc('sw_buy_receipt', { p_shipment_id: s.id });
-                btn.disabled = false;
-                if (error) { toast(error.message || 'Paiement refusé.', 'error'); return; }
-                receiptSet.add(s.id);
-                btn.textContent = 'Voir le reçu A5';
-                if (data && data.charged) toast('Reçu débloqué · ' + fmtMoney(data.price) + ' débités.');
-            }
-            showReceipt(s);
-        }
+function receiptHtml(s) {
+  const ag = (s.agency_name || '').trim(), cur = s.currency || 'XAF', m = v => fmtCur(v, cur), NAVY = '#0f2a4a';
+  let qrSvg = '';
+  try { const q = qrcode(0, 'M'); q.addData(trackUrl(s.tracking_code)); q.make(); qrSvg = q.createSvgTag(3, 0).replace('<svg', '<svg style="width:100%;height:100%;display:block"'); } catch (e) {}
+  const row = (l, v) => v ? `<tr><td style="padding:2px 0;color:#667;width:36%;vertical-align:top">${l}</td><td style="padding:2px 0;font-weight:700">${esc(v)}</td></tr>` : '';
+  const box = (t, n, ph, ad, di, ci, re, co) => `<div style="flex:1;border:1px solid ${NAVY};min-width:0;background:#fff"><div style="background:${NAVY};color:#fff;font-size:8.5px;letter-spacing:.14em;font-weight:800;padding:3px 8px">${t}</div>
+    <div style="padding:6px 8px"><div style="font-weight:800;font-size:12px">${esc(n)}</div><div>${esc(ph)}</div><div>${esc([ad, di].filter(Boolean).join(', '))}</div><div>${esc([ci, re, co].filter(Boolean).join(', '))}</div></div></div>`;
+  const fee = Number(s.shipping_fee || 0), val = Number(s.declared_value || 0);
+  const fees = (val || fee) ? `<div style="margin-top:8px;border:1px solid ${NAVY}"><div style="background:#e8eef7;font-size:8.5px;letter-spacing:.14em;font-weight:800;padding:3px 8px;color:${NAVY}">MONTANTS (${esc(cur === 'XAF' ? 'FCFA' : cur)})</div>
+    <table style="width:100%;border-collapse:collapse;font-size:10.5px;margin:2px 0">
+    ${val ? `<tr><td style="padding:2px 8px">Valeur déclarée</td><td style="padding:2px 8px;text-align:right;font-weight:700">${m(val)}</td></tr>` : ''}
+    ${fee ? `<tr><td style="padding:2px 8px">Frais de transport (${s.payer === 'receiver' ? 'payés par le destinataire' : "payés par l'expéditeur"})</td><td style="padding:2px 8px;text-align:right;font-weight:700">${m(fee)}</td></tr>` : ''}
+    </table></div>` : '';
+  const stamp = `<svg viewBox="0 0 100 100" style="width:23mm;height:23mm;transform:rotate(-12deg)"><circle cx="50" cy="50" r="46" fill="none" stroke="#1d4ed8" stroke-width="3" opacity=".75"/><circle cx="50" cy="50" r="39" fill="none" stroke="#1d4ed8" stroke-width="1" opacity=".75"/>
+    <text x="50" y="44" text-anchor="middle" font-family="Arial" font-weight="900" font-size="9" fill="#1d4ed8" opacity=".8">${esc(ag.slice(0, 18).toUpperCase())}</text>
+    <text x="50" y="57" text-anchor="middle" font-family="Arial" font-size="7" fill="#1d4ed8" opacity=".8">REÇU LE</text>
+    <text x="50" y="67" text-anchor="middle" font-family="Arial" font-weight="700" font-size="7.5" fill="#1d4ed8" opacity=".8">${esc(new Date(s.created_at).toLocaleDateString('fr-FR'))}</text></svg>`;
+  return `<div id="receipt-sheet" style="position:relative;width:148mm;height:210mm;box-sizing:border-box;padding:6mm;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;line-height:1.35;margin:0 auto;box-shadow:0 4px 24px #0006;overflow:hidden">
+    <div style="position:absolute;inset:6mm;border:2px solid ${NAVY};outline:1px solid ${NAVY};outline-offset:-5px;pointer-events:none"></div>
+    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;overflow:hidden"><div style="transform:rotate(-30deg);font-size:34px;font-weight:900;color:${NAVY};opacity:.055;white-space:nowrap;text-transform:uppercase;letter-spacing:.1em">${esc(ag)}</div></div>
+    <div style="position:relative;height:100%;padding:5mm;display:flex;flex-direction:column">
+      <div style="background:${NAVY};color:#fff;padding:9px 10px;text-align:center"><div style="font-size:19px;font-weight:900;letter-spacing:.05em;text-transform:uppercase">${esc(ag || "Bordereau d'expédition")}</div>
+        <div style="font-size:9px;letter-spacing:.3em;margin-top:2px;opacity:.85">BORDEREAU D'EXPÉDITION</div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0">
+        <div><div style="font-size:8.5px;color:#667">N° DE BORDEREAU / SUIVI</div><div style="font-size:17px;font-weight:900;letter-spacing:.06em;color:${NAVY}">${esc(s.tracking_code)}</div>
+          <div style="font-size:9px;color:#667;margin-top:2px">Émis le ${fmtDate(s.created_at)}</div>
+          <div style="display:inline-block;margin-top:3px;border:1px solid ${NAVY};color:${NAVY};font-size:8.5px;font-weight:800;padding:1px 7px;letter-spacing:.1em">${s.service_type === 'express' ? 'EXPRESS 24 H' : 'STANDARD 48 H'}</div></div>
+        <div style="text-align:center"><div style="width:22mm;height:22mm;border:1px solid ${NAVY};padding:1.5mm;background:#fff">${qrSvg}</div><div style="font-size:7.5px;color:#667;margin-top:1px">Scannez pour suivre</div></div>
+      </div>
+      <div style="display:flex;gap:7px">
+        ${box('EXPÉDITEUR', s.sender_name, s.sender_phone, s.sender_address, s.sender_district, s.origin, s.sender_region, s.sender_country)}
+        ${box('DESTINATAIRE', s.receiver_name, s.receiver_phone, s.receiver_address, s.receiver_district, s.destination, s.receiver_region, s.receiver_country)}
+      </div>
+      <div style="margin-top:8px;border:1px solid ${NAVY}"><div style="background:#e8eef7;font-size:8.5px;letter-spacing:.14em;font-weight:800;padding:3px 8px;color:${NAVY}">DÉTAILS DU COLIS</div>
+        <table style="width:100%;border-collapse:collapse;font-size:10.5px;margin:3px 8px;width:calc(100% - 16px)">
+          ${row('Contenu', s.description)}${row('Type', s.package_type)}${row('Nombre de colis', s.package_count)}${row('Poids total', s.weight_kg ? s.weight_kg + ' kg' : '')}${row('Dimensions', dimsOf(s))}
+          ${row('Mention', s.is_fragile ? 'COLIS FRAGILE' : '')}${row('Instructions', s.delivery_instructions)}</table></div>
+      ${fees}
+      <div style="flex:1"></div>
+      <div style="display:flex;gap:7px;align-items:stretch">
+        <div style="flex:1;border:1px dashed #556;padding:5px 8px;font-size:8.5px;color:#667">SIGNATURE EXPÉDITEUR</div>
+        <div style="flex:1;border:1px dashed #556;padding:5px 8px;font-size:8.5px;color:#667">SIGNATURE DESTINATAIRE</div>
+        <div style="flex:1.1;border:1px solid ${NAVY};padding:3px 6px;display:flex;flex-direction:column;align-items:center;justify-content:space-between"><div style="font-size:8.5px;color:#667">CACHET &amp; SIGNATURE AGENCE</div>${stamp}</div>
+      </div>
+      <div style="margin-top:8px;border-top:2px solid ${NAVY};padding-top:4px;text-align:center;font-size:9.5px"><div style="font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:${NAVY}">${esc(ag)}</div><div style="color:#667">Document émis le ${fmtDate(new Date())}</div></div>
+    </div></div>`;
+}
+function showReceipt(s) {
+  closeReceipt();
+  const ov = document.createElement('div');
+  ov.id = 'receipt-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:80;background:#111c;overflow:auto;padding:16px 8px 40px';
+  ov.innerHTML = `<div class="no-print" style="max-width:148mm;margin:0 auto 12px;display:flex;gap:8px">
+      <button type="button" id="rcpt-print" class="flex-1 bg-swiftblue text-white font-semibold py-3 rounded-xl cursor-pointer">Imprimer / Enregistrer en PDF</button>
+      <button type="button" id="rcpt-close" class="bg-white text-gray-800 font-semibold px-5 py-3 rounded-xl cursor-pointer">Fermer</button></div>
+    <div style="overflow-x:auto"><div style="width:148mm;margin:0 auto">${receiptHtml(s)}</div></div>`;
+  document.body.appendChild(ov);
+  $('rcpt-close').addEventListener('click', closeReceipt);
+  $('rcpt-print').addEventListener('click', () => {
+    const old = document.title; document.title = 'Recu-' + s.tracking_code; window.print();
+    setTimeout(() => { document.title = old; }, 500);
+  });
+}
+function closeReceipt() { const o = $('receipt-overlay'); if (o) o.remove(); }
+async function openReceipt(s, btn) {
+  if (!receiptSet.has(s.id)) {
+    if (!confirm('Générer le reçu A5 ?\n' + fmtMoney(RECEIPT_PRICE) + ' seront débités de votre portefeuille.')) return;
+    btn.disabled = true;
+    const { data, error } = await supabaseClient.rpc('sw_buy_receipt', { p_shipment_id: s.id });
+    btn.disabled = false;
+    if (error) { toast(error.message || 'Paiement refusé.', 'error'); return; }
+    receiptSet.add(s.id); btn.textContent = 'Voir le reçu A5';
+    if (data && data.charged) toast('Reçu débloqué · ' + fmtMoney(data.price) + ' débités.');
+  }
+  showReceipt(s);
+}
 
-        const TABS = ['list', 'new', 'track', 'wallet'];
-        function showTab(name) {
-            dHide();
-            TABS.forEach(t => { const el = $('view-' + t); if (el) el.classList.toggle('hidden', t !== name); });
-            document.querySelectorAll('.dtab').forEach(b => {
-                const active = b.dataset.tab === name;
-                b.className = 'dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer transition ' +
-                    (active ? 'bg-white text-swiftblue shadow-sm' : 'text-gray-500 hover:text-gray-900');
-            });
-            if (name === 'list') loadShipments();
-            if (name === 'wallet') loadWallet();
-        }
-        document.querySelectorAll('.dtab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+// ---------- ONGLETS & LISTE ----------
+const TABS = ['list', 'new', 'track', 'wallet'];
+function showTab(name) {
+  dHide();
+  TABS.forEach(t => { const el = $('view-' + t); if (el) el.classList.toggle('hidden', t !== name); });
+  document.querySelectorAll('.dtab').forEach(b => {
+    const active = b.dataset.tab === name;
+    b.className = 'dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer transition ' + (active ? 'bg-white text-swiftblue shadow-sm' : 'text-gray-500 hover:text-gray-900');
+  });
+  if (name === 'list') loadShipments();
+  if (name === 'wallet') loadWallet();
+}
+document.querySelectorAll('.dtab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 
-        async function loadShipments() {
-            const box = $('list-container');
-            box.innerHTML = '<p class="text-center text-gray-500 py-8">Chargement...</p>';
-            await supabaseClient.rpc('sw_advance_shipments');
-            const { data, error } = await supabaseClient
-                .from('sw_shipments').select('*').order('created_at', { ascending: false });
+let SH = {};
+async function renderDetails(id) {
+  const holder = $('ev-' + id), s = SH[id]; if (!holder || !s) return;
+  const { data: events, error } = await supabaseClient.from('sw_shipment_events').select('*').eq('shipment_id', id).order('created_at', { ascending: true });
+  holder.innerHTML = error ? '<p class="text-sm text-red-600 mt-3">Erreur de chargement.</p>' : detailsHtml(s) + stepsCtl(s) + timeline(events, s);
+  holder.classList.remove('hidden');
+  holder.querySelectorAll('.step-cb').forEach(cb => cb.addEventListener('change', async () => {
+    const k = Number(cb.dataset.k);
+    if (!cb.checked && k === 0) { cb.checked = true; return; }
+    const { error: er } = await supabaseClient.rpc('sw_user_set_step', { p_id: id, p_status: cb.checked ? STEPS[k] : STEPS[k - 1] });
+    if (er) { toast('Erreur : ' + er.message, 'error'); cb.checked = !cb.checked; return; }
+    await loadShipments(id);
+  }));
+}
 
-            if (error) {
-                box.innerHTML = '';
-                dShow("Impossible de charger les colis : " + error.message);
-                return;
-            }
-            if (!data.length) {
-                box.innerHTML = `<div class="bg-white rounded-3xl border border-gray-100 p-8 text-center">
-                    <p class="text-gray-500 mb-4">Vous n'avez pas encore d'expédition.</p>
-                    <button type="button" id="go-new" class="bg-swiftblue text-white font-semibold px-5 py-3 rounded-xl cursor-pointer">Créer ma première expédition</button></div>`;
-                $('go-new').addEventListener('click', () => showTab('new'));
-                return;
-            }
-            await loadReceiptSet();
-            const byId = {}; data.forEach(s => { byId[s.id] = s; });
-            box.innerHTML = data.map(s => `
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3">
-                    <div class="flex items-start justify-between gap-2">
-                        <div>
-                            <p class="font-bold text-gray-900">${esc(s.tracking_code)}</p>
-                            <p class="text-sm text-gray-500">${esc(s.origin)} → ${esc(s.destination)}</p>
-                            <p class="text-xs text-gray-400 mt-1">Pour ${esc(s.receiver_name)} · ${fmtDate(s.created_at)}</p>
-                            ${s.agency_name ? `<p class="text-xs text-gray-400">Agence : ${esc(s.agency_name)}</p>` : ''}
-                            ${s.estimated_delivery_at && s.status !== 'delivered' && s.status !== 'cancelled' ? `<p class="text-xs text-gray-500">Livraison estimée : ${fmtDate(s.estimated_delivery_at)}</p>` : ''}
-                        </div>
-                        ${badge(s.status)}
-                    </div>
-                    <div class="flex flex-wrap items-center gap-4 mt-3">
-                        <button type="button" data-id="${esc(s.id)}" class="details-btn text-sm font-semibold text-swiftblue cursor-pointer">Voir le suivi</button>
-                        <button type="button" data-id="${esc(s.id)}" class="receipt-btn text-sm font-semibold text-gray-700 border border-gray-200 rounded-full px-3 py-1 cursor-pointer">${receiptSet.has(s.id) ? 'Voir le reçu A5' : 'Reçu A5 · ' + fmtMoney(RECEIPT_PRICE)}</button>
-                    </div>
-                    <div id="ev-${esc(s.id)}" class="hidden"></div>
-                </div>`).join('');
+async function loadShipments(openId) {
+  const box = $('list-container');
+  if (!openId) box.innerHTML = '<p class="text-center text-gray-500 py-8">Chargement...</p>';
+  await supabaseClient.rpc('sw_advance_shipments');
+  const { data, error } = await supabaseClient.from('sw_shipments').select('*').order('created_at', { ascending: false });
+  if (error) { box.innerHTML = ''; dShow("Impossible de charger les colis : " + error.message); return; }
+  if (!data.length) {
+    box.innerHTML = `<div class="bg-white rounded-3xl border border-gray-100 p-8 text-center"><p class="text-gray-500 mb-4">Vous n'avez pas encore d'expédition.</p>
+      <button type="button" id="go-new" class="bg-swiftblue text-white font-semibold px-5 py-3 rounded-xl cursor-pointer">Créer ma première expédition</button></div>`;
+    $('go-new').addEventListener('click', () => showTab('new')); return;
+  }
+  await loadReceiptSet();
+  SH = {}; data.forEach(s => { SH[s.id] = s; });
+  box.innerHTML = data.map(s => `
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3">
+      <div class="flex items-start justify-between gap-2"><div>
+        <p class="font-bold text-gray-900">${esc(s.tracking_code)}</p>
+        <p class="text-sm text-gray-500">${esc(s.origin)} → ${esc(s.destination)}</p>
+        <p class="text-xs text-gray-400 mt-1">Pour ${esc(s.receiver_name)} · ${fmtDate(s.created_at)}</p>
+        ${s.agency_name ? `<p class="text-xs text-gray-400">Agence : ${esc(s.agency_name)}</p>` : ''}
+        ${s.estimated_delivery_at && s.status !== 'delivered' && s.status !== 'cancelled' ? `<p class="text-xs text-gray-500">Livraison estimée : ${fmtDate(s.estimated_delivery_at)}</p>` : ''}
+      </div>${badge(s.status)}</div>
+      <div class="flex flex-wrap items-center gap-3 mt-3">
+        <button type="button" data-id="${esc(s.id)}" class="details-btn text-sm font-semibold text-swiftblue cursor-pointer">${openId === s.id ? 'Masquer le suivi' : 'Voir le suivi'}</button>
+        <button type="button" data-id="${esc(s.id)}" class="receipt-btn text-sm font-semibold text-gray-700 border border-gray-200 rounded-full px-3 py-1 cursor-pointer">${receiptSet.has(s.id) ? 'Voir le reçu A5' : 'Reçu A5 · ' + fmtMoney(RECEIPT_PRICE)}</button>
+        <button type="button" data-id="${esc(s.id)}" class="copy-btn text-sm font-semibold text-gray-700 border border-gray-200 rounded-full px-3 py-1 cursor-pointer">Copier le lien de suivi</button>
+        <button type="button" data-id="${esc(s.id)}" class="del-btn text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button>
+      </div>
+      <div id="ev-${esc(s.id)}" class="hidden"></div></div>`).join('');
+  box.querySelectorAll('.receipt-btn').forEach(b => b.addEventListener('click', () => openReceipt(SH[b.dataset.id], b)));
+  box.querySelectorAll('.copy-btn').forEach(b => b.addEventListener('click', async () => {
+    const u = trackUrl(SH[b.dataset.id].tracking_code);
+    try { await navigator.clipboard.writeText(u); toast('Lien de suivi copié.'); } catch (e) { prompt('Copiez ce lien :', u); }
+  }));
+  box.querySelectorAll('.del-btn').forEach(b => b.addEventListener('click', async () => {
+    const s = SH[b.dataset.id];
+    if (!confirm('Supprimer définitivement ' + s.tracking_code + ' ?\nAucun remboursement : les frais de reçu déjà débités restent acquis.')) return;
+    const { data: del, error: er } = await supabaseClient.from('sw_shipments').delete().eq('id', s.id).select();
+    if (er || !del || !del.length) { toast('Suppression impossible' + (er ? ' : ' + er.message : '.'), 'error'); return; }
+    toast('Expédition supprimée.'); loadShipments();
+  }));
+  box.querySelectorAll('.details-btn').forEach(btn => btn.addEventListener('click', async () => {
+    const holder = $('ev-' + btn.dataset.id);
+    if (!holder.classList.contains('hidden')) { holder.classList.add('hidden'); btn.textContent = 'Voir le suivi'; return; }
+    await renderDetails(btn.dataset.id); btn.textContent = 'Masquer le suivi';
+  }));
+  if (openId && SH[openId]) await renderDetails(openId);
+}
 
-            document.querySelectorAll('.receipt-btn').forEach(btn => {
-                btn.addEventListener('click', () => openReceipt(byId[btn.dataset.id], btn));
-            });
+$('new-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = $('new-btn'); btn.disabled = true; btn.textContent = 'Création...';
+  const txt = (id) => $(id).value.trim() || null, val = (id) => $(id).value.trim();
+  const num = (id) => { const v = $(id).value; return v === '' ? null : Number(v); };
+  const row = { description: val('p-desc'), package_type: $('p-type').value, package_count: num('p-count') || 1, weight_kg: num('p-weight'),
+    length_cm: num('p-length'), width_cm: num('p-width'), height_cm: num('p-height'), declared_value: num('p-value'), shipping_fee: num('p-fee'),
+    currency: $('p-cur').value, agency_name: val('p-agency'), service_type: $('p-service').value, payer: $('p-payer').value,
+    is_fragile: $('p-fragile').checked, delivery_instructions: txt('p-notes') };
+  [['s', 'sender_', 'origin'], ['r', 'receiver_', 'destination']].forEach(([p, pre, city]) => {
+    row[pre + 'name'] = val(p + '-name'); row[pre + 'phone'] = val(p + '-phone'); row[pre + 'email'] = txt(p + '-email');
+    row[pre + 'address'] = val(p + '-address'); row[pre + 'district'] = txt(p + '-district'); row[city] = val(p + '-city');
+    row[pre + 'region'] = val(p + '-region'); row[pre + 'country'] = val(p + '-country');
+  });
+  const { data, error } = await supabaseClient.from('sw_shipments').insert(row).select().single();
+  btn.disabled = false; btn.textContent = "Créer l'expédition";
+  if (error) { dShow("Erreur : " + error.message); return; }
+  e.target.reset(); showTab('list');
+  dShow("Expédition créée ! Code de suivi : " + data.tracking_code + (data.estimated_delivery_at ? " · Livraison estimée : " + fmtDate(data.estimated_delivery_at) : ""), 'success');
+});
 
-            document.querySelectorAll('.details-btn').forEach(btn => {
-                btn.addEventListener('click', async () => {
-                    const holder = $('ev-' + btn.dataset.id);
-                    if (!holder.classList.contains('hidden')) {
-                        holder.classList.add('hidden');
-                        btn.textContent = 'Voir le suivi';
-                        return;
-                    }
-                    const { data: events, error: err } = await supabaseClient
-                        .from('sw_shipment_events').select('*')
-                        .eq('shipment_id', btn.dataset.id).order('created_at', { ascending: true });
-                    holder.innerHTML = err ? '<p class="text-sm text-red-600 mt-3">Erreur de chargement.</p>' : detailsHtml(byId[btn.dataset.id]) + timeline(events, byId[btn.dataset.id]);
-                    holder.classList.remove('hidden');
-                    btn.textContent = 'Masquer le suivi';
-                });
-            });
-        }
+$('track-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const out = $('track-result'), code = $('track-code').value.trim();
+  out.innerHTML = '<p class="text-center text-gray-500">Recherche...</p>';
+  const { data, error } = await supabaseClient.rpc('sw_track_shipment', { p_code: code });
+  if (error) { out.innerHTML = ''; dShow("Erreur : " + error.message); return; }
+  dHide();
+  if (!data) { out.innerHTML = '<div class="bg-white rounded-2xl border border-gray-100 p-6 text-center text-gray-500">Aucun colis trouvé avec ce code. Vérifiez-le et réessayez.</div>'; return; }
+  out.innerHTML = `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5"><div class="flex items-start justify-between gap-2">
+    <div><p class="font-bold text-gray-900">${esc(data.tracking_code)}</p><p class="text-sm text-gray-500">${esc(data.origin)} → ${esc(data.destination)}</p></div>${badge(data.status)}</div>${timeline(data.events, data)}</div>`;
+});
 
-        $('new-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = $('new-btn');
-            btn.disabled = true;
-            btn.textContent = 'Création...';
+const doLogout = async () => {
+  await supabaseClient.auth.signOut(); isAdmin = false; currentUser = null; closeReceipt();
+  const ov = $('x-drawer'); if (ov) ov.classList.remove('open');
+  const vl = $('x-veil'); if (vl) vl.style.display = 'none';
+  showAuthView();
+};
+$('logout-btn').addEventListener('click', doLogout);
 
-            const txt = (id) => $(id).value.trim() || null;
-            const num = (id) => { const v = $(id).value; return v === '' ? null : Number(v); };
-            const { data, error } = await supabaseClient.from('sw_shipments').insert({
-                sender_name: $('s-name').value.trim(),
-                sender_phone: $('s-phone').value.trim(),
-                sender_email: txt('s-email'),
-                sender_address: $('s-address').value.trim(),
-                sender_district: txt('s-district'),
-                origin: $('s-city').value.trim(),
-                sender_region: $('s-region').value.trim(),
-                sender_country: $('s-country').value.trim(),
-                receiver_name: $('r-name').value.trim(),
-                receiver_phone: $('r-phone').value.trim(),
-                receiver_email: txt('r-email'),
-                receiver_address: $('r-address').value.trim(),
-                receiver_district: txt('r-district'),
-                destination: $('r-city').value.trim(),
-                receiver_region: $('r-region').value.trim(),
-                receiver_country: $('r-country').value.trim(),
-                description: $('p-desc').value.trim(),
-                package_type: $('p-type').value,
-                package_count: num('p-count') || 1,
-                weight_kg: num('p-weight'),
-                length_cm: num('p-length'),
-                width_cm: num('p-width'),
-                height_cm: num('p-height'),
-                declared_value: num('p-value'),
-                agency_name: $('p-agency').value.trim(),
-                service_type: $('p-service').value,
-                payer: $('p-payer').value,
-                is_fragile: $('p-fragile').checked,
-                delivery_instructions: txt('p-notes')
-            }).select().single();
+// ---------- PORTEFEUILLE ----------
+const METHODS = { mtn: 'MTN Money', orange: 'Orange Money', mobile_money: 'Mobile Money', virement: 'Virement', especes: 'Espèces' };
+const RSTATUS = {
+  pending: { label: 'En attente', color: 'bg-amber-50 text-amber-700' },
+  approved: { label: 'Approuvée', color: 'bg-green-50 text-green-700' },
+  rejected: { label: 'Rejetée', color: 'bg-red-50 text-red-700' }
+};
+const LOADING = '<p class="text-center text-gray-500 py-6">Chargement...</p>';
+function rbadge(st) { const s = RSTATUS[st] || { label: st, color: 'bg-gray-100 text-gray-700' }; return `<span class="inline-block px-3 py-1 rounded-full text-xs font-semibold ${s.color}">${esc(s.label)}</span>`; }
+function hoursText(x) { const t = Math.round(Math.abs(x) * 60); return Math.floor(t / 60) + ' h ' + String(t % 60).padStart(2, '0') + ' min'; }
+function toast(msg, type) {
+  const t = $('toast'); t.textContent = msg;
+  t.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 z-[90] w-[90%] max-w-sm px-4 py-3 rounded-xl text-sm font-semibold text-center shadow-lg ' + (type === 'error' ? 'bg-red-600 text-white' : 'bg-gray-900 text-white');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.add('hidden'), 3500);
+}
+async function openProof(path) {
+  const { data, error } = await supabaseClient.storage.from('sw-proofs').createSignedUrl(path, 300);
+  if (error) { toast('Capture introuvable : ' + error.message, 'error'); return; }
+  window.open(data.signedUrl, '_blank');
+}
+async function loadWallet() {
+  const list = $('recharge-list'); list.innerHTML = LOADING;
+  const [w, r] = await Promise.all([
+    supabaseClient.from('sw_wallets').select('balance').eq('user_id', currentUser.id).maybeSingle(),
+    supabaseClient.from('sw_recharges').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false })
+  ]);
+  $('wallet-balance').textContent = fmtMoney(w.data ? w.data.balance : 0);
+  if (r.error) { list.innerHTML = ''; dShow('Erreur : ' + r.error.message); return; }
+  if (!r.data.length) { list.innerHTML = '<p class="text-center text-sm text-gray-500">Aucune demande de recharge pour le moment.</p>'; return; }
+  list.innerHTML = '<h3 class="text-sm font-bold text-gray-900 mb-2">Mes demandes de recharge</h3>' + r.data.map(rc => `
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3"><div class="flex items-start justify-between gap-2"><div>
+      <p class="font-bold text-gray-900">${fmtMoney(rc.amount)}</p>
+      <p class="text-sm text-gray-500">${esc(METHODS[rc.method] || rc.method)} · ID ${esc(rc.reference)}</p>
+      <p class="text-xs text-gray-400 mt-1">${fmtDate(rc.created_at)}</p>
+      ${rc.admin_note ? `<p class="text-xs text-gray-500 mt-1">Note : ${esc(rc.admin_note)}</p>` : ''}</div>${rbadge(rc.status)}</div></div>`).join('');
+}
+$('recharge-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = $('rc-btn'), f = $('rc-file').files[0];
+  if (!f) { toast('Ajoutez la capture d\'écran.', 'error'); return; }
+  if (f.size > 5 * 1024 * 1024) { toast('Image trop lourde (5 Mo max).', 'error'); return; }
+  btn.disabled = true; btn.textContent = 'Envoi...';
+  const path = currentUser.id + '/' + Date.now() + '-' + f.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const up = await supabaseClient.storage.from('sw-proofs').upload(path, f, { contentType: f.type });
+  if (up.error) { btn.disabled = false; btn.textContent = 'Envoyer la demande'; toast('Envoi de la capture impossible : ' + up.error.message, 'error'); return; }
+  const { error } = await supabaseClient.from('sw_recharges').insert({
+    amount: Number($('rc-amount').value), method: $('rc-method').value, reference: $('rc-ref').value.trim(), proof_path: path });
+  btn.disabled = false; btn.textContent = 'Envoyer la demande';
+  if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+  e.target.reset(); toast('Demande envoyée. Elle sera vérifiée par un administrateur.'); loadWallet();
+});
 
-            btn.disabled = false;
-            btn.textContent = "Créer l'expédition";
+// ---------- PAGE PUBLIQUE DE SUIVI ----------
+let pubTimer = null;
+async function loadPublic(code) {
+  const { data } = await supabaseClient.rpc('sw_public_track', { p_code: code });
+  if (!data) { $('pub-body').innerHTML = ''; return false; } // livré, supprimé, expiré ou inconnu : rien ne s'affiche
+  $('pub-body').innerHTML = `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5"><div class="flex items-start justify-between gap-2">
+    <div><p class="font-bold text-gray-900">${esc(data.tracking_code)}</p><p class="text-sm text-gray-500">${esc(data.origin)} → ${esc(data.destination)}</p></div>${badge(data.status)}</div>${timeline(data.events, data)}</div>`;
+  return true;
+}
+async function startPublic(code) {
+  document.title = 'Suivre mon colis';
+  $('loading').classList.add('hidden'); $('pub-view').classList.remove('hidden');
+  const ok = await loadPublic(code);
+  if (ok) pubTimer = setInterval(async () => { if (!(await loadPublic(code))) clearInterval(pubTimer); }, 15000);
+}
 
-            if (error) { dShow("Erreur : " + error.message); return; }
-            e.target.reset();
-            $('s-country').value = 'Cameroun'; $('r-country').value = 'Cameroun';
-            showTab('list');
-            dShow("Expédition créée ! Code de suivi : " + data.tracking_code + (data.estimated_delivery_at ? " · Livraison estimée : " + fmtDate(data.estimated_delivery_at) : ""), 'success');
-        });
+// ---------- DÉMARRAGE ----------
+const PUB = new URLSearchParams(location.search).get('t');
+if (PUB) startPublic(PUB);
+else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) showDashView(data.session.user); else showAuthView(); });
+</script>
 
-        $('track-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const out = $('track-result');
-            const code = $('track-code').value.trim();
-            out.innerHTML = '<p class="text-center text-gray-500">Recherche...</p>';
-
-            const { data, error } = await supabaseClient.rpc('sw_track_shipment', { p_code: code });
-            if (error) { out.innerHTML = ''; dShow("Erreur : " + error.message); return; }
-            dHide();
-            if (!data) {
-                out.innerHTML = '<div class="bg-white rounded-2xl border border-gray-100 p-6 text-center text-gray-500">Aucun colis trouvé avec ce code. Vérifiez-le et réessayez.</div>';
-                return;
-            }
-            out.innerHTML = `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                <div class="flex items-start justify-between gap-2">
-                    <div><p class="font-bold text-gray-900">${esc(data.tracking_code)}</p>
-                    <p class="text-sm text-gray-500">${esc(data.origin)} → ${esc(data.destination)}</p></div>
-                    ${badge(data.status)}
-                </div>
-                ${timeline(data.events, data)}
-            </div>`;
-        });
-
-        const doLogout = async () => {
-            await supabaseClient.auth.signOut();
-            isAdmin = false; currentUser = null;
-            closeReceipt();
-            const ov = $('x-drawer'); if (ov) ov.classList.remove('open');
-            const vl = $('x-veil'); if (vl) vl.style.display = 'none';
-            showAuthView();
-        };
-        $('logout-btn').addEventListener('click', doLogout);
-
-        // =====================================================
-        //        PORTEFEUILLE (client) + OUTILS PARTAGÉS
-        // =====================================================
-        const METHODS = { mobile_money: 'Mobile Money', virement: 'Virement', especes: 'Espèces' };
-        const RSTATUS = {
-            pending:  { label: 'En attente', color: 'bg-amber-50 text-amber-700' },
-            approved: { label: 'Approuvée',  color: 'bg-green-50 text-green-700' },
-            rejected: { label: 'Rejetée',    color: 'bg-red-50 text-red-700' }
-        };
-        const LOADING = '<p class="text-center text-gray-500 py-6">Chargement...</p>';
-
-        function fmtMoney(n) { return Number(n || 0).toLocaleString('fr-FR') + ' FCFA'; }
-        function rbadge(st) {
-            const s = RSTATUS[st] || { label: st, color: 'bg-gray-100 text-gray-700' };
-            return `<span class="inline-block px-3 py-1 rounded-full text-xs font-semibold ${s.color}">${esc(s.label)}</span>`;
-        }
-        function hoursText(x) {
-            const total = Math.round(Math.abs(x) * 60);
-            const hh = Math.floor(total / 60);
-            const mm = total % 60;
-            return hh + ' h ' + String(mm).padStart(2, '0') + ' min';
-        }
-        function toast(msg, type) {
-            const t = $('toast');
-            t.textContent = msg;
-            t.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 z-[90] w-[90%] max-w-sm px-4 py-3 rounded-xl text-sm font-semibold text-center shadow-lg ' +
-                (type === 'error' ? 'bg-red-600 text-white' : 'bg-gray-900 text-white');
-            clearTimeout(toast._t);
-            toast._t = setTimeout(() => t.classList.add('hidden'), 3500);
-        }
-
-        async function loadWallet() {
-            const list = $('recharge-list');
-            list.innerHTML = LOADING;
-            const [w, r] = await Promise.all([
-                supabaseClient.from('sw_wallets').select('balance').eq('user_id', currentUser.id).maybeSingle(),
-                supabaseClient.from('sw_recharges').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false })
-            ]);
-            $('wallet-balance').textContent = fmtMoney(w.data ? w.data.balance : 0);
-            if (r.error) { list.innerHTML = ''; dShow('Erreur : ' + r.error.message); return; }
-            if (!r.data.length) {
-                list.innerHTML = '<p class="text-center text-sm text-gray-500">Aucune demande de recharge pour le moment.</p>';
-                return;
-            }
-            list.innerHTML = '<h3 class="text-sm font-bold text-gray-900 mb-2">Mes demandes de recharge</h3>' + r.data.map(rc => `
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3">
-                    <div class="flex items-start justify-between gap-2">
-                        <div>
-                            <p class="font-bold text-gray-900">${fmtMoney(rc.amount)}</p>
-                            <p class="text-sm text-gray-500">${esc(METHODS[rc.method] || rc.method)} · ${esc(rc.reference)}</p>
-                            <p class="text-xs text-gray-400 mt-1">${fmtDate(rc.created_at)}</p>
-                            ${rc.admin_note ? `<p class="text-xs text-gray-500 mt-1">Note : ${esc(rc.admin_note)}</p>` : ''}
-                        </div>
-                        ${rbadge(rc.status)}
-                    </div>
-                </div>`).join('');
-        }
-
-        $('recharge-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = $('rc-btn');
-            btn.disabled = true;
-            const { error } = await supabaseClient.from('sw_recharges').insert({
-                amount: Number($('rc-amount').value),
-                method: $('rc-method').value,
-                reference: $('rc-ref').value.trim()
-            });
-            btn.disabled = false;
-            if (error) { toast('Erreur : ' + error.message, 'error'); return; }
-            e.target.reset();
-            toast('Demande envoyée. Elle sera vérifiée par un administrateur.');
-            loadWallet();
-        });
-
-        // =====================================================
-        //                    DÉMARRAGE
-        // =====================================================
-        supabaseClient.auth.getSession().then(({ data }) => {
-            if (data.session) showDashView(data.session.user);
-            else showAuthView();
-        });
-    </script>
-
-<!-- ===== SWIFTWAY : CONSOLE ADMIN "CONTROL ROOM" ===== -->
+<!-- ===== CONSOLE ADMIN "CONTROL ROOM" ===== -->
 <style>
 #admin-view{background:#06080b;color:#cfd8e3;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;min-height:100vh;
   background-image:linear-gradient(#ffffff09 1px,transparent 1px),linear-gradient(90deg,#ffffff09 1px,transparent 1px);background-size:34px 34px}
@@ -1047,6 +682,7 @@ function esc(v) {
   <nav class="x-rail">
     <button data-v="radar"><b>◉</b>RADAR</button><button data-v="pipe"><b>▦</b>FLUX</button>
     <button data-v="cash"><b>◈</b>CAISSE<span class="n" id="nav-rech-badge"></span></button><button data-v="acct"><b>☷</b>COMPTES</button>
+    <button data-v="cfg"><b>⚙</b>PARAMS</button>
   </nav>
   <main id="x-main"></main><div id="admin-home" class="hidden"></div>
   <div id="x-veil"></div><aside id="x-drawer"></aside>`;
@@ -1063,6 +699,7 @@ function esc(v) {
 
   async function loadAll() {
     await supabaseClient.rpc('sw_advance_shipments');
+    await loadPrice();
     const q = (t, f) => supabaseClient.from(t).select(f || '*');
     const [sh, pr, rc, wl] = await Promise.all([
       q('sw_shipments').order('created_at', { ascending: false }).limit(500),
@@ -1084,11 +721,7 @@ function esc(v) {
     window.scrollTo(0, 0);
     await loadAll(); draw();
   };
-
-  function draw() {
-    ({ radar, pipe, cash, acct })[S.v]();
-    if (S.open) openDrawer(S.open, true);
-  }
+  function draw() { ({ radar, pipe, cash, acct, cfg })[S.v](); if (S.open) openDrawer(S.open, true); }
 
   function radar() {
     const act = S.ship.filter(live), lt = S.ship.filter(late);
@@ -1108,7 +741,7 @@ function esc(v) {
     <div class="x-panel"><p class="x-h">PIPELINE (${S.ship.length})</p>
       <div class="x-seg">${seg.map(([k, n]) => `<span style="width:${S.ship.length ? n / S.ship.length * 100 : 0}%;background:${COL[k]}"></span>`).join('')}</div>
       <div class="x-leg">${seg.map(([k, n]) => `<span><i style="background:${COL[k]}"></i>${esc(STATUS[k].label)} ${n}</span>`).join('')}</div></div>
-    <div class="x-panel"><p class="x-h">ALERTES RETARD</p>${lt.length ? lt.slice(0, 8).map(s => `<button class="x-row" data-open="${esc(s.id)}"><span>${esc(s.tracking_code)} <span style="color:#7d8da0">${esc(s.origin)} → ${esc(s.destination)}</span></span><span style="color:#ff5a5f">+${hoursText(hrs(s) - win(s))}</span></button>`).join('') : '<span style="color:#c6ff3d">RAS : aucun retard.</span>'}</div>`;
+    <div class="x-panel"><p class="x-h">ALERTES RETARD (+${48} h)</p>${lt.length ? lt.slice(0, 8).map(s => `<button class="x-row" data-open="${esc(s.id)}"><span>${esc(s.tracking_code)} <span style="color:#7d8da0">${esc(s.origin)} → ${esc(s.destination)}</span></span><span style="color:#ff5a5f">+${hoursText(hrs(s) - win(s))}</span></button>`).join('') : '<span style="color:#c6ff3d">RAS : aucun retard.</span>'}</div>`;
   }
 
   function pipe() {
@@ -1133,7 +766,8 @@ function esc(v) {
     <div class="x-chips">${[['pending', 'EN ATTENTE'], ['', 'TOUTES'], ['approved', 'APPROUVÉES'], ['rejected', 'REJETÉES']].map(([v, l]) => `<button class="x-btn ${S.rf === v ? 'on' : ''}" data-rf="${v}">${l}</button>`).join('')}</div>
     ${rows.length ? rows.map(r => { const u = S.own[r.user_id] || {}; return `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-size:20px;color:#e9f1f8">${fmtMoney(r.amount)}</strong><span class="x-tag" style="color:${col[r.status]}">${esc(RSTATUS[r.status].label.toUpperCase())}</span></div>
-      <p style="font-size:12px;color:#7d8da0;margin:6px 0">${esc(METHODS[r.method] || r.method)} · réf. ${esc(r.reference)}<br>${esc(u.email || '-')} ${u.phone ? '· ' + esc(u.phone) : ''}<br>${fmtDate(r.created_at)}${r.admin_note ? '<br>note : ' + esc(r.admin_note) : ''}</p>
+      <p style="font-size:12px;color:#7d8da0;margin:6px 0">${esc(METHODS[r.method] || r.method)} · ID transaction : <span style="color:#e9f1f8">${esc(r.reference)}</span><br>${esc(u.email || '-')} ${u.phone ? '· ' + esc(u.phone) : ''}<br>${fmtDate(r.created_at)}${r.admin_note ? '<br>note : ' + esc(r.admin_note) : ''}</p>
+      ${r.proof_path ? `<button class="x-btn" style="margin-bottom:8px" data-proof="${esc(r.proof_path)}">VOIR LA CAPTURE</button>` : '<p style="font-size:11px;color:#ff5a5f;margin-bottom:8px">// aucune capture jointe</p>'}
       ${r.status === 'pending' ? `<input id="rn-${esc(r.id)}" class="x-in" placeholder="note (facultatif)" style="margin-bottom:8px"><div style="display:flex;gap:8px">
         <button class="x-btn go" data-rv="1" data-id="${esc(r.id)}">APPROUVER</button><button class="x-btn no" data-rv="0" data-id="${esc(r.id)}">REJETER</button></div>` : ''}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucune demande</p>'}`;
   }
@@ -1152,6 +786,13 @@ function esc(v) {
         <select id="ua-${esc(u.id)}" class="x-in"><option value="1" ${u.is_active ? 'selected' : ''}>ACTIF</option><option value="0" ${!u.is_active ? 'selected' : ''}>COUPÉ</option></select>
         <button class="x-btn go" data-us="${esc(u.id)}">OK</button></div></div>`).join('')}`;
     const qi = $('x-uq'); qi.oninput = () => { S.uq = qi.value; const p = qi.selectionStart; acct(); const n = $('x-uq'); n.focus(); n.setSelectionRange(p, p); };
+  }
+
+  function cfg() {
+    M.innerHTML = `<p class="x-h"><b>●</b> PARAMÈTRES // TARIFICATION</p>
+    <div class="x-panel" style="margin-top:0"><p class="x-h">PRIX DU REÇU A5 / CODE DE SUIVI (FCFA)</p>
+      <p style="font-size:12px;color:#7d8da0;margin:0 0 10px">Montant débité du portefeuille du client à la première génération du reçu d'une expédition. Prix actuel : <span style="color:#c6ff3d">${fmtMoney(RECEIPT_PRICE)}</span></p>
+      <div style="display:flex;gap:8px"><input id="cfg-price" type="number" min="0" step="1" class="x-in" value="${esc(RECEIPT_PRICE)}"><button class="x-btn go" data-price="1">ENREGISTRER</button></div></div>`;
   }
 
   async function openDrawer(id, keep) {
@@ -1194,6 +835,12 @@ function esc(v) {
     if (g('data-close') || e.target.id === 'x-veil') return closeDrawer();
     if ((el = g('data-open'))) return openDrawer(el.dataset.open);
     if ((el = g('data-rf'))) { S.rf = el.dataset.rf; return cash(); }
+    if ((el = g('data-proof'))) return openProof(el.dataset.proof);
+    if (g('data-price')) {
+      const p = Number($('cfg-price').value);
+      if (isNaN(p) || p < 0) return toast('Prix invalide.', 'error');
+      return rpc('sw_admin_set_price', { p_price: p }, 'Prix du reçu mis à jour.');
+    }
     if ((el = g('data-rv'))) {
       const ap = el.dataset.rv === '1';
       if (!confirm(ap ? 'Approuver et créditer le portefeuille ?' : 'Rejeter cette demande ?')) return;
@@ -1211,7 +858,6 @@ function esc(v) {
     if ((el = g('data-win'))) { const h = parseInt($('d-win').value, 10); if (!h || h < 1) return toast('Délai invalide.', 'error'); return rpc('sw_admin_set_window', { p_id: el.dataset.win, p_hours: h }); }
   });
 
-  // Glisser-déposer des colis entre colonnes
   let dragId = null;
   A.addEventListener('dragstart', e => { const c = e.target.closest('.x-card'); if (c) dragId = c.dataset.id; });
   A.addEventListener('dragover', e => { const c = e.target.closest('.x-col'); if (c) { e.preventDefault(); c.classList.add('over'); } });
@@ -1225,6 +871,5 @@ function esc(v) {
   });
 })();
 </script>
-
 </body>
 </html>
