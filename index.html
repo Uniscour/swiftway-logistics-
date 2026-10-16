@@ -3,113 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SwiftWay Logistics - Connexion / Inscription</title>
-    <!-- Tailwind CSS -->
+    <title>SwiftWay Logistics</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SDK Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        swiftblue: '#0047AB',
-                    }
-                }
-            }
-        }
+        tailwind.config = { theme: { extend: { colors: { swiftblue: '#0047AB' } } } }
     </script>
-    <style>
-        body { display: flex; flex-direction: column; min-height: 100vh; }
-    </style>
 </head>
-<body class="bg-gray-50 flex items-center justify-center p-4 relative">
+<body class="bg-gray-50 min-h-screen">
 
-    <!-- Bouton de changement de langue (Haut droite) -->
-    <div class="absolute top-6 right-6">
-        <button id="lang-toggle" type="button" class="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition cursor-pointer">
-            🌐 <span id="current-lang-text">EN</span>
-        </button>
+    <!-- Chargement -->
+    <div id="loading" class="min-h-screen flex items-center justify-center text-gray-500 font-medium">Chargement...</div>
+
+    <!-- ================= VUE CONNEXION ================= -->
+    <div id="auth-view" class="hidden min-h-screen flex items-center justify-center p-4 relative">
+
+        <div class="absolute top-6 right-6">
+            <button id="lang-toggle" type="button" class="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition cursor-pointer">
+                🌐 <span id="current-lang-text">EN</span>
+            </button>
+        </div>
+
+        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border border-gray-100">
+            <div class="text-center mb-6 pt-2">
+                <h1 class="text-3xl font-extrabold text-swiftblue tracking-tight">SwiftWay Logistics</h1>
+                <p id="t-subtitle" class="text-base text-gray-500 mt-2 font-medium">Gérez vos expéditions facilement</p>
+            </div>
+
+            <div class="flex bg-gray-100 p-1 rounded-xl mb-6">
+                <button id="tab-login" type="button" class="flex-1 py-2.5 text-sm font-semibold rounded-lg bg-white text-swiftblue shadow-sm transition cursor-pointer">Connexion</button>
+                <button id="tab-signup" type="button" class="flex-1 py-2.5 text-sm font-semibold rounded-lg text-gray-500 hover:text-gray-900 transition cursor-pointer">S'inscrire</button>
+            </div>
+
+            <div id="alert-box" class="hidden mb-6 p-4 rounded-xl text-sm text-center font-medium"></div>
+
+            <!-- Connexion -->
+            <form id="login-form" class="space-y-5">
+                <div>
+                    <label id="t-login-email" class="block text-sm font-semibold text-gray-700 mb-1.5">Email</label>
+                    <input type="email" id="login-email" required placeholder="votre@email.com"
+                        class="w-full px-5 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
+                </div>
+                <div>
+                    <label id="t-login-pass" class="block text-sm font-semibold text-gray-700 mb-1.5">Mot de passe</label>
+                    <div class="relative">
+                        <input type="password" id="login-password" required placeholder="••••••••"
+                            class="w-full px-5 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
+                        <button type="button" class="toggle-password absolute right-4 top-3.5 text-gray-400 hover:text-swiftblue transition cursor-pointer">👁️</button>
+                    </div>
+                </div>
+                <button type="submit" id="login-btn"
+                    class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition duration-200 shadow-md cursor-pointer">
+                    Se connecter
+                </button>
+            </form>
+
+            <!-- Inscription -->
+            <form id="signup-form" class="space-y-4 hidden">
+                <div>
+                    <label id="t-signup-email" class="block text-xs font-semibold text-gray-700 mb-1">Email</label>
+                    <input type="email" id="signup-email" required placeholder="votre@email.com"
+                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
+                </div>
+                <div>
+                    <label id="t-signup-phone" class="block text-xs font-semibold text-gray-700 mb-1">Numéro de téléphone</label>
+                    <input type="tel" id="signup-phone" required placeholder="Ex: +237 6XXXXXXXX"
+                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
+                </div>
+                <div>
+                    <label id="t-signup-pass" class="block text-xs font-semibold text-gray-700 mb-1">Mot de passe</label>
+                    <div class="relative">
+                        <input type="password" id="signup-password" required placeholder="••••••••"
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
+                        <button type="button" class="toggle-password absolute right-4 top-3 text-gray-400 hover:text-swiftblue transition cursor-pointer">👁️</button>
+                    </div>
+                </div>
+                <div>
+                    <label id="t-signup-pass-confirm" class="block text-xs font-semibold text-gray-700 mb-1">Confirmer le mot de passe</label>
+                    <div class="relative">
+                        <input type="password" id="signup-password-confirm" required placeholder="••••••••"
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
+                        <button type="button" class="toggle-password absolute right-4 top-3 text-gray-400 hover:text-swiftblue transition cursor-pointer">👁️</button>
+                    </div>
+                </div>
+                <button type="submit" id="signup-btn"
+                    class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition duration-200 shadow-md mt-2 cursor-pointer">
+                    S'inscrire
+                </button>
+            </form>
+        </div>
     </div>
 
-    <!-- Carte Principale -->
-    <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border border-gray-100 transition-all duration-300">
-
-        <!-- En-tête Pro -->
-        <div class="text-center mb-6 pt-2">
-            <h1 class="text-3xl font-extrabold text-swiftblue tracking-tight">SwiftWay Logistics</h1>
-            <p id="t-subtitle" class="text-base text-gray-500 mt-2 font-medium">Gérez vos expéditions facilement</p>
-        </div>
-
-        <!-- Sélecteur d'onglets : Connexion / Inscription -->
-        <div class="flex bg-gray-100 p-1 rounded-xl mb-6">
-            <button id="tab-login" type="button" class="flex-1 py-2.5 text-sm font-semibold rounded-lg bg-white text-swiftblue shadow-sm transition cursor-pointer">Connexion</button>
-            <button id="tab-signup" type="button" class="flex-1 py-2.5 text-sm font-semibold rounded-lg text-gray-500 hover:text-gray-900 transition cursor-pointer">S'inscrire</button>
-        </div>
-
-        <!-- Message d'alerte -->
-        <div id="alert-box" class="hidden mb-6 p-4 rounded-xl text-sm text-center font-medium"></div>
-
-        <!-- FORMULAIRE DE CONNEXION -->
-        <form id="login-form" class="space-y-5">
-            <div>
-                <label id="t-login-email" class="block text-sm font-semibold text-gray-700 mb-1.5">Email</label>
-                <input type="email" id="login-email" required placeholder="votre@email.com"
-                    class="w-full px-5 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
-            </div>
-
-            <div>
-                <label id="t-login-pass" class="block text-sm font-semibold text-gray-700 mb-1.5">Mot de passe</label>
-                <div class="relative">
-                    <input type="password" id="login-password" required placeholder="••••••••"
-                        class="w-full px-5 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
-                    <button type="button" class="toggle-password absolute right-4 top-3.5 text-gray-400 hover:text-swiftblue transition cursor-pointer">👁️</button>
+    <!-- ================= VUE TABLEAU DE BORD ================= -->
+    <div id="dash-view" class="hidden">
+        <header class="bg-white border-b border-gray-200">
+            <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+                <div>
+                    <h1 class="text-xl font-extrabold text-swiftblue tracking-tight">SwiftWay Logistics</h1>
+                    <p id="user-email" class="text-xs text-gray-500 break-all"></p>
                 </div>
+                <button id="logout-btn" type="button"
+                    class="text-sm font-semibold text-gray-600 hover:text-red-600 border border-gray-200 rounded-full px-4 py-2 bg-white transition cursor-pointer">
+                    Se déconnecter
+                </button>
+            </div>
+        </header>
+
+        <main class="max-w-3xl mx-auto px-4 py-6">
+            <div class="flex bg-gray-100 p-1 rounded-xl mb-6">
+                <button data-tab="list" class="dtab flex-1 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Mes colis</button>
+                <button data-tab="new" class="dtab flex-1 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Nouvelle</button>
+                <button data-tab="track" class="dtab flex-1 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Suivre</button>
             </div>
 
-            <button type="submit" id="login-btn"
-                class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition duration-200 shadow-md cursor-pointer">
-                Se connecter
-            </button>
-        </form>
+            <div id="d-alert" class="hidden mb-4 p-4 rounded-xl text-sm text-center font-medium"></div>
 
-        <!-- FORMULAIRE D'INSCRIPTION -->
-        <form id="signup-form" class="space-y-4 hidden">
-            <div>
-                <label id="t-signup-email" class="block text-xs font-semibold text-gray-700 mb-1">Email</label>
-                <input type="email" id="signup-email" required placeholder="votre@email.com"
-                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
-            </div>
+            <!-- Mes colis -->
+            <section id="view-list"><div id="list-container"></div></section>
 
-            <div>
-                <label id="t-signup-phone" class="block text-xs font-semibold text-gray-700 mb-1">Numéro de téléphone</label>
-                <input type="tel" id="signup-phone" required placeholder="Ex: +237 6XXXXXXXX"
-                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
-            </div>
+            <!-- Nouvelle expédition -->
+            <section id="view-new" class="hidden">
+                <form id="new-form" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
+                    <h2 class="text-lg font-bold text-gray-900">Créer une expédition</h2>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Nom de l'expéditeur</label>
+                        <input id="f-sender" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Nom du destinataire</label>
+                        <input id="f-receiver" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Téléphone du destinataire</label>
+                        <input id="f-phone" type="tel" required placeholder="Ex: +237 6XXXXXXXX" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Ville de départ</label>
+                        <input id="f-origin" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Ville d'arrivée</label>
+                        <input id="f-destination" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Contenu du colis</label>
+                        <input id="f-description" placeholder="Ex: vêtements, documents..." class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Poids (kg)</label>
+                        <input id="f-weight" type="number" min="0" step="0.1" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                    </div>
+                    <button type="submit" id="new-btn" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition shadow-md cursor-pointer">
+                        Créer l'expédition
+                    </button>
+                </form>
+            </section>
 
-            <div>
-                <label id="t-signup-pass" class="block text-xs font-semibold text-gray-700 mb-1">Mot de passe</label>
-                <div class="relative">
-                    <input type="password" id="signup-password" required placeholder="••••••••"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
-                    <button type="button" class="toggle-password absolute right-4 top-3 text-gray-400 hover:text-swiftblue transition cursor-pointer">👁️</button>
-                </div>
-            </div>
-
-            <div>
-                <label id="t-signup-pass-confirm" class="block text-xs font-semibold text-gray-700 mb-1">Confirmer le mot de passe</label>
-                <div class="relative">
-                    <input type="password" id="signup-password-confirm" required placeholder="••••••••"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
-                    <button type="button" class="toggle-password absolute right-4 top-3 text-gray-400 hover:text-swiftblue transition cursor-pointer">👁️</button>
-                </div>
-            </div>
-
-            <button type="submit" id="signup-btn"
-                class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition duration-200 shadow-md mt-2 cursor-pointer">
-                S'inscrire
-            </button>
-        </form>
+            <!-- Suivre un colis -->
+            <section id="view-track" class="hidden space-y-4">
+                <form id="track-form" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
+                    <h2 class="text-lg font-bold text-gray-900">Suivre un colis</h2>
+                    <input id="track-code" required placeholder="Code de suivi, ex: SW1A2B3C4D" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50 uppercase">
+                    <button type="submit" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition shadow-md cursor-pointer">Rechercher</button>
+                </form>
+                <div id="track-result"></div>
+            </section>
+        </main>
     </div>
 
     <script>
@@ -117,13 +176,31 @@
         const SUPABASE_ANON_KEY = 'sb_publishable_zXgU5Q2p2UL3--3no-spmA_noD8JRvF';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        const DASHBOARD_PAGE = 'dashboard.html';
+        // ---------- Affichage des vues ----------
+        const $ = (id) => document.getElementById(id);
 
-        const tabLogin = document.getElementById('tab-login');
-        const tabSignup = document.getElementById('tab-signup');
-        const loginForm = document.getElementById('login-form');
-        const signupForm = document.getElementById('signup-form');
-        const alertBox = document.getElementById('alert-box');
+        function showAuthView() {
+            $('loading').classList.add('hidden');
+            $('dash-view').classList.add('hidden');
+            $('auth-view').classList.remove('hidden');
+        }
+
+        function showDashView(user) {
+            $('loading').classList.add('hidden');
+            $('auth-view').classList.add('hidden');
+            $('user-email').textContent = (user && user.email) || '';
+            $('dash-view').classList.remove('hidden');
+            showTab('list');
+        }
+
+        // =====================================================
+        //                    CONNEXION
+        // =====================================================
+        const tabLogin = $('tab-login');
+        const tabSignup = $('tab-signup');
+        const loginForm = $('login-form');
+        const signupForm = $('signup-form');
+        const alertBox = $('alert-box');
 
         function hideAlert() { alertBox.classList.add('hidden'); }
 
@@ -146,35 +223,27 @@
         const translations = {
             fr: {
                 subtitle: "Gérez vos expéditions facilement",
-                loginTab: "Connexion",
-                signupTab: "S'inscrire",
-                email: "Email",
-                password: "Mot de passe",
-                confirmPassword: "Confirmer le mot de passe",
-                phone: "Numéro de téléphone",
-                loginBtn: "Se connecter",
-                signupBtn: "S'inscrire",
+                loginTab: "Connexion", signupTab: "S'inscrire",
+                email: "Email", password: "Mot de passe",
+                confirmPassword: "Confirmer le mot de passe", phone: "Numéro de téléphone",
+                loginBtn: "Se connecter", signupBtn: "S'inscrire",
                 langToggleDisplay: "EN",
                 processing: "Traitement en cours...",
-                successLogin: "Connexion réussie ! Redirection...",
-                successSignup: "Compte créé avec succès ! Redirection...",
+                successLogin: "Connexion réussie !",
+                successSignup: "Compte créé avec succès !",
                 confirmEmail: "Compte créé ! Vérifiez votre email pour confirmer votre compte, puis connectez-vous.",
                 passMismatch: "Les mots de passe ne correspondent pas."
             },
             en: {
                 subtitle: "Manage your shipments easily",
-                loginTab: "Login",
-                signupTab: "Sign up",
-                email: "Email",
-                password: "Password",
-                confirmPassword: "Confirm Password",
-                phone: "Phone Number",
-                loginBtn: "Login",
-                signupBtn: "Sign up",
+                loginTab: "Login", signupTab: "Sign up",
+                email: "Email", password: "Password",
+                confirmPassword: "Confirm Password", phone: "Phone Number",
+                loginBtn: "Login", signupBtn: "Sign up",
                 langToggleDisplay: "FR",
                 processing: "Processing...",
-                successLogin: "Login successful! Redirecting...",
-                successSignup: "Account created successfully! Redirecting...",
+                successLogin: "Login successful!",
+                successSignup: "Account created successfully!",
                 confirmEmail: "Account created! Check your email to confirm your account, then log in.",
                 passMismatch: "Passwords do not match."
             }
@@ -185,21 +254,21 @@
         function updateLanguage(lang) {
             currentLang = lang;
             const t = translations[lang];
-            document.getElementById('current-lang-text').textContent = t.langToggleDisplay;
-            document.getElementById('t-subtitle').textContent = t.subtitle;
+            $('current-lang-text').textContent = t.langToggleDisplay;
+            $('t-subtitle').textContent = t.subtitle;
             tabLogin.textContent = t.loginTab;
             tabSignup.textContent = t.signupTab;
-            document.getElementById('t-login-email').textContent = t.email;
-            document.getElementById('t-login-pass').textContent = t.password;
-            document.getElementById('login-btn').textContent = t.loginBtn;
-            document.getElementById('t-signup-email').textContent = t.email;
-            document.getElementById('t-signup-phone').textContent = t.phone;
-            document.getElementById('t-signup-pass').textContent = t.password;
-            document.getElementById('t-signup-pass-confirm').textContent = t.confirmPassword;
-            document.getElementById('signup-btn').textContent = t.signupBtn;
+            $('t-login-email').textContent = t.email;
+            $('t-login-pass').textContent = t.password;
+            $('login-btn').textContent = t.loginBtn;
+            $('t-signup-email').textContent = t.email;
+            $('t-signup-phone').textContent = t.phone;
+            $('t-signup-pass').textContent = t.password;
+            $('t-signup-pass-confirm').textContent = t.confirmPassword;
+            $('signup-btn').textContent = t.signupBtn;
         }
 
-        document.getElementById('lang-toggle').addEventListener('click', (e) => {
+        $('lang-toggle').addEventListener('click', (e) => {
             e.preventDefault();
             updateLanguage(currentLang === 'fr' ? 'en' : 'fr');
         });
@@ -219,11 +288,10 @@
             alertBox.classList.remove('hidden');
         }
 
-        // Connexion
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('login-email').value.trim();
-            const password = document.getElementById('login-password').value;
+            const email = $('login-email').value.trim();
+            const password = $('login-password').value;
             const t = translations[currentLang];
 
             showAlert(t.processing, 'success');
@@ -232,49 +300,203 @@
             if (error) {
                 showAlert(error.message);
             } else {
-                showAlert(t.successLogin, 'success');
-                window.location.replace(DASHBOARD_PAGE);
+                hideAlert();
+                showDashView(data.user);
             }
         });
 
-        // Inscription
         signupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('signup-email').value.trim();
-            const phone = document.getElementById('signup-phone').value.trim();
-            const password = document.getElementById('signup-password').value;
-            const passwordConfirm = document.getElementById('signup-password-confirm').value;
+            const email = $('signup-email').value.trim();
+            const phone = $('signup-phone').value.trim();
+            const password = $('signup-password').value;
+            const passwordConfirm = $('signup-password-confirm').value;
             const t = translations[currentLang];
 
-            if (password !== passwordConfirm) {
-                showAlert(t.passMismatch);
-                return;
-            }
+            if (password !== passwordConfirm) { showAlert(t.passMismatch); return; }
 
             showAlert(t.processing, 'success');
-
             const { data, error } = await supabaseClient.auth.signUp({
-                email,
-                password,
-                options: {
-                    data: { phone_number: phone }
-                }
+                email, password, options: { data: { phone_number: phone } }
             });
 
             if (error) {
                 showAlert(error.message);
             } else if (data.session) {
-                showAlert(t.successSignup, 'success');
-                window.location.replace(DASHBOARD_PAGE);
+                hideAlert();
+                showDashView(data.user);
             } else {
-                // Confirmation par email activée dans Supabase : pas de session tout de suite
                 showAlert(t.confirmEmail, 'success');
             }
         });
 
-        // Si la personne est déjà connectée, aller directement au tableau de bord
+        // =====================================================
+        //                  TABLEAU DE BORD
+        // =====================================================
+        const STATUS = {
+            pending:          { label: 'En attente',            color: 'bg-gray-100 text-gray-700' },
+            picked_up:        { label: 'Colis récupéré',        color: 'bg-blue-50 text-blue-700' },
+            in_transit:       { label: 'En transit',            color: 'bg-indigo-50 text-indigo-700' },
+            out_for_delivery: { label: 'En cours de livraison', color: 'bg-amber-50 text-amber-700' },
+            delivered:        { label: 'Livré',                 color: 'bg-green-50 text-green-700' },
+            cancelled:        { label: 'Annulé',                color: 'bg-red-50 text-red-700' }
+        };
+
+        const dAlert = $('d-alert');
+
+        function esc(v) {
+            return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+        function fmtDate(d) {
+            return new Date(d).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
+        }
+        function badge(status) {
+            const s = STATUS[status] || { label: status, color: 'bg-gray-100 text-gray-700' };
+            return `<span class="inline-block px-3 py-1 rounded-full text-xs font-semibold ${s.color}">${esc(s.label)}</span>`;
+        }
+        function dShow(msg, type = 'error') {
+            dAlert.textContent = msg;
+            dAlert.className = `mb-4 p-4 rounded-xl text-sm text-center font-medium ${type === 'error'
+                ? 'bg-red-50 text-red-700 border border-red-100'
+                : 'bg-green-50 text-green-700 border border-green-100'}`;
+        }
+        function dHide() { dAlert.classList.add('hidden'); }
+
+        function timeline(events) {
+            if (!events || !events.length) return '<p class="text-sm text-gray-500 mt-3">Aucune étape pour le moment.</p>';
+            return '<ol class="space-y-3 mt-3">' + events.map((e, i) => {
+                const s = STATUS[e.status] || { label: e.status };
+                const last = i === events.length - 1;
+                return `<li class="flex gap-3">
+                    <span class="mt-1.5 w-3 h-3 rounded-full ${last ? 'bg-swiftblue' : 'bg-gray-300'} shrink-0"></span>
+                    <div><p class="text-sm font-semibold text-gray-900">${esc(s.label)}</p>
+                    ${e.note ? `<p class="text-xs text-gray-500">${esc(e.note)}</p>` : ''}
+                    <p class="text-xs text-gray-400">${fmtDate(e.created_at)}</p></div></li>`;
+            }).join('') + '</ol>';
+        }
+
+        function showTab(name) {
+            dHide();
+            ['list', 'new', 'track'].forEach(t => $('view-' + t).classList.toggle('hidden', t !== name));
+            document.querySelectorAll('.dtab').forEach(b => {
+                const active = b.dataset.tab === name;
+                b.className = 'dtab flex-1 py-2.5 text-sm font-semibold rounded-lg cursor-pointer transition ' +
+                    (active ? 'bg-white text-swiftblue shadow-sm' : 'text-gray-500 hover:text-gray-900');
+            });
+            if (name === 'list') loadShipments();
+        }
+        document.querySelectorAll('.dtab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+
+        async function loadShipments() {
+            const box = $('list-container');
+            box.innerHTML = '<p class="text-center text-gray-500 py-8">Chargement...</p>';
+            const { data, error } = await supabaseClient
+                .from('sw_shipments').select('*').order('created_at', { ascending: false });
+
+            if (error) {
+                box.innerHTML = '';
+                dShow("Impossible de charger les colis : " + error.message);
+                return;
+            }
+            if (!data.length) {
+                box.innerHTML = `<div class="bg-white rounded-3xl border border-gray-100 p-8 text-center">
+                    <p class="text-gray-500 mb-4">Vous n'avez pas encore d'expédition.</p>
+                    <button type="button" id="go-new" class="bg-swiftblue text-white font-semibold px-5 py-3 rounded-xl cursor-pointer">Créer ma première expédition</button></div>`;
+                $('go-new').addEventListener('click', () => showTab('new'));
+                return;
+            }
+            box.innerHTML = data.map(s => `
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3">
+                    <div class="flex items-start justify-between gap-2">
+                        <div>
+                            <p class="font-bold text-gray-900">${esc(s.tracking_code)}</p>
+                            <p class="text-sm text-gray-500">${esc(s.origin)} → ${esc(s.destination)}</p>
+                            <p class="text-xs text-gray-400 mt-1">Pour ${esc(s.receiver_name)} · ${fmtDate(s.created_at)}</p>
+                        </div>
+                        ${badge(s.status)}
+                    </div>
+                    <button type="button" data-id="${esc(s.id)}" class="details-btn mt-3 text-sm font-semibold text-swiftblue cursor-pointer">Voir le suivi</button>
+                    <div id="ev-${esc(s.id)}" class="hidden"></div>
+                </div>`).join('');
+
+            document.querySelectorAll('.details-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const holder = $('ev-' + btn.dataset.id);
+                    if (!holder.classList.contains('hidden')) {
+                        holder.classList.add('hidden');
+                        btn.textContent = 'Voir le suivi';
+                        return;
+                    }
+                    const { data: events, error: err } = await supabaseClient
+                        .from('sw_shipment_events').select('*')
+                        .eq('shipment_id', btn.dataset.id).order('created_at', { ascending: true });
+                    holder.innerHTML = err ? '<p class="text-sm text-red-600 mt-3">Erreur de chargement.</p>' : timeline(events);
+                    holder.classList.remove('hidden');
+                    btn.textContent = 'Masquer le suivi';
+                });
+            });
+        }
+
+        $('new-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = $('new-btn');
+            btn.disabled = true;
+            btn.textContent = 'Création...';
+
+            const weight = $('f-weight').value;
+            const { data, error } = await supabaseClient.from('sw_shipments').insert({
+                sender_name: $('f-sender').value.trim(),
+                receiver_name: $('f-receiver').value.trim(),
+                receiver_phone: $('f-phone').value.trim(),
+                origin: $('f-origin').value.trim(),
+                destination: $('f-destination').value.trim(),
+                description: $('f-description').value.trim() || null,
+                weight_kg: weight ? Number(weight) : null
+            }).select().single();
+
+            btn.disabled = false;
+            btn.textContent = "Créer l'expédition";
+
+            if (error) { dShow("Erreur : " + error.message); return; }
+            e.target.reset();
+            showTab('list');
+            dShow("Expédition créée ! Code de suivi : " + data.tracking_code, 'success');
+        });
+
+        $('track-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const out = $('track-result');
+            const code = $('track-code').value.trim();
+            out.innerHTML = '<p class="text-center text-gray-500">Recherche...</p>';
+
+            const { data, error } = await supabaseClient.rpc('sw_track_shipment', { p_code: code });
+            if (error) { out.innerHTML = ''; dShow("Erreur : " + error.message); return; }
+            dHide();
+            if (!data) {
+                out.innerHTML = '<div class="bg-white rounded-2xl border border-gray-100 p-6 text-center text-gray-500">Aucun colis trouvé avec ce code. Vérifiez-le et réessayez.</div>';
+                return;
+            }
+            out.innerHTML = `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <div class="flex items-start justify-between gap-2">
+                    <div><p class="font-bold text-gray-900">${esc(data.tracking_code)}</p>
+                    <p class="text-sm text-gray-500">${esc(data.origin)} → ${esc(data.destination)}</p></div>
+                    ${badge(data.status)}
+                </div>
+                ${timeline(data.events)}
+            </div>`;
+        });
+
+        $('logout-btn').addEventListener('click', async () => {
+            await supabaseClient.auth.signOut();
+            showAuthView();
+        });
+
+        // =====================================================
+        //                    DÉMARRAGE
+        // =====================================================
         supabaseClient.auth.getSession().then(({ data }) => {
-            if (data.session) window.location.replace(DASHBOARD_PAGE);
+            if (data.session) showDashView(data.session.user);
+            else showAuthView();
         });
     </script>
 </body>
