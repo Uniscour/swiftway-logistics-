@@ -123,36 +123,145 @@
 
             <!-- Nouvelle expédition -->
             <section id="view-new" class="hidden">
-                <form id="new-form" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
-                    <h2 class="text-lg font-bold text-gray-900">Créer une expédition</h2>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Nom de l'expéditeur</label>
-                        <input id="f-sender" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                <form id="new-form" class="space-y-5">
+                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+                    <div class="space-y-4">
+                        <div><h3 class="text-base font-bold text-gray-900">Expéditeur</h3><p class="text-xs text-gray-500">La personne qui envoie le colis</p></div>
+                        <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Nom complet</label>
+                        <input id="s-name" required  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Nom du destinataire</label>
-                        <input id="f-receiver" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                        <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Téléphone</label>
+                        <input id="s-phone" required type="tel" placeholder="Ex: +237 6XXXXXXXX" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Téléphone du destinataire</label>
-                        <input id="f-phone" type="tel" required placeholder="Ex: +237 6XXXXXXXX" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                        <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Email <span class="text-gray-400 font-normal">(facultatif)</span></label>
+                        <input id="s-email" type="email" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Ville de départ</label>
-                        <input id="f-origin" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                        <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Adresse (rue, numéro, point de repère)</label>
+                        <input id="s-address" required  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Ville d'arrivée</label>
-                        <input id="f-destination" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                        <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Quartier <span class="text-gray-400 font-normal">(facultatif)</span></label>
+                        <input id="s-district"  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
                     </div>
-                    <div>
+                        <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Ville</label>
+                        <input id="s-city" required  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                    </div>
+                        <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Région / Province</label>
+                        <input id="s-region" required  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                    </div>
+                        <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Pays</label>
+                        <input id="s-country" required value="Cameroun"  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                    </div>
+                    </div>
+                    </div>
+
+                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+                    <div class="space-y-4">
+                        <div><h3 class="text-base font-bold text-gray-900">Destinataire</h3><p class="text-xs text-gray-500">La personne qui reçoit le colis</p></div>
+                        <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Nom complet</label>
+                        <input id="r-name" required  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                    </div>
+                        <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Téléphone</label>
+                        <input id="r-phone" required type="tel" placeholder="Ex: +237 6XXXXXXXX" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                    </div>
+                        <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Email <span class="text-gray-400 font-normal">(facultatif)</span></label>
+                        <input id="r-email" type="email" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                    </div>
+                        <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Adresse (rue, numéro, point de repère)</label>
+                        <input id="r-address" required  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                    </div>
+                        <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Quartier <span class="text-gray-400 font-normal">(facultatif)</span></label>
+                        <input id="r-district"  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                    </div>
+                        <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Ville</label>
+                        <input id="r-city" required  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                    </div>
+                        <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Région / Province</label>
+                        <input id="r-region" required  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                    </div>
+                        <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Pays</label>
+                        <input id="r-country" required value="Cameroun"  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                    </div>
+                    </div>
+                    </div>
+
+                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
+                        <div><h3 class="text-base font-bold text-gray-900">Le colis</h3><p class="text-xs text-gray-500">Ce que vous envoyez</p></div>
+                        <div>
                         <label class="block text-xs font-semibold text-gray-700 mb-1">Contenu du colis</label>
-                        <input id="f-description" placeholder="Ex: vêtements, documents..." class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                        <input id="p-desc" required placeholder="Ex: vêtements, documents..." class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Poids (kg)</label>
-                        <input id="f-weight" type="number" min="0" step="0.1" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Type de colis</label>
+                            <select id="p-type" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                                <option>Documents</option><option>Vêtements</option><option>Électronique</option>
+                                <option>Alimentaire</option><option>Cosmétiques</option><option>Pièces / Matériel</option><option>Autre</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Nombre de colis</label>
+                        <input id="p-count" required value="1" type="number" min="1" step="1" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
                     </div>
+                            <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Poids total (kg)</label>
+                        <input id="p-weight" required type="number" min="0.1" step="0.1" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                    </div>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold text-gray-700 mb-1">Dimensions en cm <span class="text-gray-400 font-normal">(facultatif)</span></p>
+                            <div class="grid grid-cols-3 gap-3">
+                                <input id="p-length" type="number" min="0" step="0.1" placeholder="Long." class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                                <input id="p-width" type="number" min="0" step="0.1" placeholder="Larg." class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                                <input id="p-height" type="number" min="0" step="0.1" placeholder="Haut." class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                            </div>
+                        </div>
+                        <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Valeur déclarée (FCFA) <span class="text-gray-400 font-normal">(facultatif)</span></label>
+                        <input id="p-value" type="number" min="0" step="1" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                    </div>
+                    </div>
+
+                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
+                        <div><h3 class="text-base font-bold text-gray-900">Livraison</h3></div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Type de service</label>
+                            <select id="p-service" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                                <option value="standard">Standard</option>
+                                <option value="express">Express (plus rapide)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Qui paie la livraison ?</label>
+                            <select id="p-payer" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                                <option value="sender">L'expéditeur</option>
+                                <option value="receiver">Le destinataire</option>
+                            </select>
+                        </div>
+                        <label class="flex items-center gap-3 text-sm font-semibold text-gray-700">
+                            <input id="p-fragile" type="checkbox" class="w-5 h-5 rounded border-gray-300"> Colis fragile
+                        </label>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Instructions de livraison <span class="text-gray-400 font-normal">(facultatif)</span></label>
+                            <textarea id="p-notes" rows="3" placeholder="Ex: appeler avant de livrer, laisser chez le gardien..." class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50"></textarea>
+                        </div>
+                    </div>
+
                     <button type="submit" id="new-btn" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition shadow-md cursor-pointer">
                         Créer l'expédition
                     </button>
@@ -375,6 +484,29 @@
             }).join('') + '</ol>';
         }
 
+        function line(label, v) { return v ? `<p class="text-sm text-gray-700"><span class="text-gray-400">${label} :</span> ${esc(v)}</p>` : ''; }
+        function party(title, n, phone, email, addr, district, city, region, country) {
+            return `<div class="bg-gray-50 rounded-xl p-3"><p class="text-xs font-bold text-swiftblue mb-1">${title}</p>
+                <p class="text-sm font-semibold text-gray-900">${esc(n)}</p>
+                ${line('Tél', phone)}${line('Email', email)}${line('Adresse', addr)}${line('Quartier', district)}
+                <p class="text-sm text-gray-700">${esc([city, region, country].filter(Boolean).join(', '))}</p></div>`;
+        }
+        function detailsHtml(s) {
+            if (!s) return '';
+            const dims = (s.length_cm || s.width_cm || s.height_cm) ? [s.length_cm, s.width_cm, s.height_cm].map(v => v ?? '?').join(' x ') + ' cm' : '';
+            return `<div class="mt-3 space-y-2">
+                ${party('Expéditeur', s.sender_name, s.sender_phone, s.sender_email, s.sender_address, s.sender_district, s.origin, s.sender_region, s.sender_country)}
+                ${party('Destinataire', s.receiver_name, s.receiver_phone, s.receiver_email, s.receiver_address, s.receiver_district, s.destination, s.receiver_region, s.receiver_country)}
+                <div class="bg-gray-50 rounded-xl p-3"><p class="text-xs font-bold text-swiftblue mb-1">Colis</p>
+                    ${line('Contenu', s.description)}${line('Type', s.package_type)}${line('Nombre', s.package_count)}
+                    ${line('Poids', s.weight_kg ? s.weight_kg + ' kg' : '')}${line('Dimensions', dims)}
+                    ${line('Valeur déclarée', s.declared_value ? s.declared_value + ' FCFA' : '')}
+                    ${line('Service', s.service_type === 'express' ? 'Express' : 'Standard')}
+                    ${line('Paiement', s.payer === 'receiver' ? 'Le destinataire' : "L'expéditeur")}
+                    ${s.is_fragile ? '<p class="text-sm font-semibold text-amber-700">Colis fragile</p>' : ''}
+                    ${line('Instructions', s.delivery_instructions)}</div></div>`;
+        }
+
         function showTab(name) {
             dHide();
             ['list', 'new', 'track'].forEach(t => $('view-' + t).classList.toggle('hidden', t !== name));
@@ -405,6 +537,7 @@
                 $('go-new').addEventListener('click', () => showTab('new'));
                 return;
             }
+            const byId = {}; data.forEach(s => { byId[s.id] = s; });
             box.innerHTML = data.map(s => `
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3">
                     <div class="flex items-start justify-between gap-2">
@@ -430,7 +563,7 @@
                     const { data: events, error: err } = await supabaseClient
                         .from('sw_shipment_events').select('*')
                         .eq('shipment_id', btn.dataset.id).order('created_at', { ascending: true });
-                    holder.innerHTML = err ? '<p class="text-sm text-red-600 mt-3">Erreur de chargement.</p>' : timeline(events);
+                    holder.innerHTML = err ? '<p class="text-sm text-red-600 mt-3">Erreur de chargement.</p>' : detailsHtml(byId[btn.dataset.id]) + timeline(events);
                     holder.classList.remove('hidden');
                     btn.textContent = 'Masquer le suivi';
                 });
@@ -443,15 +576,37 @@
             btn.disabled = true;
             btn.textContent = 'Création...';
 
-            const weight = $('f-weight').value;
+            const txt = (id) => $(id).value.trim() || null;
+            const num = (id) => { const v = $(id).value; return v === '' ? null : Number(v); };
             const { data, error } = await supabaseClient.from('sw_shipments').insert({
-                sender_name: $('f-sender').value.trim(),
-                receiver_name: $('f-receiver').value.trim(),
-                receiver_phone: $('f-phone').value.trim(),
-                origin: $('f-origin').value.trim(),
-                destination: $('f-destination').value.trim(),
-                description: $('f-description').value.trim() || null,
-                weight_kg: weight ? Number(weight) : null
+                sender_name: $('s-name').value.trim(),
+                sender_phone: $('s-phone').value.trim(),
+                sender_email: txt('s-email'),
+                sender_address: $('s-address').value.trim(),
+                sender_district: txt('s-district'),
+                origin: $('s-city').value.trim(),
+                sender_region: $('s-region').value.trim(),
+                sender_country: $('s-country').value.trim(),
+                receiver_name: $('r-name').value.trim(),
+                receiver_phone: $('r-phone').value.trim(),
+                receiver_email: txt('r-email'),
+                receiver_address: $('r-address').value.trim(),
+                receiver_district: txt('r-district'),
+                destination: $('r-city').value.trim(),
+                receiver_region: $('r-region').value.trim(),
+                receiver_country: $('r-country').value.trim(),
+                description: $('p-desc').value.trim(),
+                package_type: $('p-type').value,
+                package_count: num('p-count') || 1,
+                weight_kg: num('p-weight'),
+                length_cm: num('p-length'),
+                width_cm: num('p-width'),
+                height_cm: num('p-height'),
+                declared_value: num('p-value'),
+                service_type: $('p-service').value,
+                payer: $('p-payer').value,
+                is_fragile: $('p-fragile').checked,
+                delivery_instructions: txt('p-notes')
             }).select().single();
 
             btn.disabled = false;
