@@ -117,7 +117,6 @@
                 <button data-tab="new" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Nouvelle</button>
                 <button data-tab="track" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Suivre</button>
                 <button data-tab="wallet" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Portefeuille</button>
-                <button data-tab="admin" class="dtab hidden shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Admin</button>
             </div>
 
             <div id="d-alert" class="hidden mb-4 p-4 rounded-xl text-sm text-center font-medium"></div>
@@ -281,7 +280,7 @@
                 </form>
                 <div id="track-result"></div>
             </section>
-        
+
             <!-- Portefeuille (client) -->
             <section id="view-wallet" class="hidden space-y-4">
                 <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
@@ -312,40 +311,11 @@
                 <div id="recharge-list"></div>
             </section>
 
-            <!-- Administration -->
-            <section id="view-admin" class="hidden space-y-4">
-                <div class="flex gap-2 overflow-x-auto">
-                    <button type="button" data-asub="ship" class="asub shrink-0 px-4 py-2 text-sm font-semibold rounded-full border cursor-pointer">Colis</button>
-                    <button type="button" data-asub="rech" class="asub shrink-0 px-4 py-2 text-sm font-semibold rounded-full border cursor-pointer">Recharges</button>
-                    <button type="button" data-asub="users" class="asub shrink-0 px-4 py-2 text-sm font-semibold rounded-full border cursor-pointer">Utilisateurs</button>
-                </div>
-
-                <div id="asub-ship" class="space-y-3">
-                    <div class="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
-                        <input id="a-search" placeholder="Rechercher : code SW..., nom, téléphone, ville" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-                        <select id="a-filter" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50"></select>
-                    </div>
-                    <p id="a-count" class="text-xs text-gray-500"></p>
-                    <div id="admin-ship-list"></div>
-                </div>
-
-                <div id="asub-rech" class="hidden space-y-3">
-                    <select id="a-rfilter" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-white">
-                        <option value="pending">Demandes en attente</option>
-                        <option value="">Toutes les demandes</option>
-                        <option value="approved">Approuvées</option>
-                        <option value="rejected">Rejetées</option>
-                    </select>
-                    <div id="admin-rech-list"></div>
-                </div>
-
-                <div id="asub-users" class="hidden space-y-3">
-                    <input id="a-usearch" placeholder="Rechercher : email ou téléphone" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-white">
-                    <div id="admin-user-list"></div>
-                </div>
-            </section>
         </main>
     </div>
+
+    <!-- ================= INTERFACE ADMINISTRATEUR : construite par le script « Control Room » en bas de page ================= -->
+    <div id="admin-view" class="hidden"></div>
 
     <script>
         const SUPABASE_URL = 'https://cwgpxyiodzxcabkavdbk.supabase.co';
@@ -358,6 +328,8 @@
         function showAuthView() {
             $('loading').classList.add('hidden');
             $('dash-view').classList.add('hidden');
+            $('admin-view').classList.add('hidden');
+            document.body.style.background = '';
             $('auth-view').classList.remove('hidden');
         }
 
@@ -378,7 +350,17 @@
             } catch (err) { isAdmin = false; }
             $('loading').classList.add('hidden');
             $('auth-view').classList.add('hidden');
-            $('user-email').textContent = ((user && user.email) || '') + (isAdmin ? ' · Administrateur' : '');
+            if (isAdmin) {
+                $('dash-view').classList.add('hidden');
+                $('admin-email').textContent = (user && user.email) || '';
+                document.body.style.background = '#06080b';
+                $('admin-view').classList.remove('hidden');
+                showSub('radar');
+                return;
+            }
+            $('admin-view').classList.add('hidden');
+            document.body.style.background = '';
+            $('user-email').textContent = (user && user.email) || '';
             $('dash-view').classList.remove('hidden');
             showTab('list');
         }
@@ -659,21 +641,17 @@ function esc(v) {
                     ${line('Instructions', s.delivery_instructions)}</div></div>`;
         }
 
-        const TABS = ['list', 'new', 'track', 'wallet', 'admin'];
+        const TABS = ['list', 'new', 'track', 'wallet'];
         function showTab(name) {
-            if (name === 'admin' && !isAdmin) name = 'list';
             dHide();
             TABS.forEach(t => { const el = $('view-' + t); if (el) el.classList.toggle('hidden', t !== name); });
             document.querySelectorAll('.dtab').forEach(b => {
                 const active = b.dataset.tab === name;
-                const hide = b.dataset.tab === 'admin' && !isAdmin;
                 b.className = 'dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer transition ' +
-                    (hide ? 'hidden ' : '') +
                     (active ? 'bg-white text-swiftblue shadow-sm' : 'text-gray-500 hover:text-gray-900');
             });
             if (name === 'list') loadShipments();
             if (name === 'wallet') loadWallet();
-            if (name === 'admin') loadAdmin();
         }
         document.querySelectorAll('.dtab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 
@@ -801,17 +779,18 @@ function esc(v) {
             </div>`;
         });
 
-        $('logout-btn').addEventListener('click', async () => {
+        const doLogout = async () => {
             await supabaseClient.auth.signOut();
             isAdmin = false; currentUser = null;
-            adminShipments = []; adminUsers = []; adminOpenId = null; adminUserOpen = null;
+            const ov = $('x-drawer'); if (ov) ov.classList.remove('open');
+            const vl = $('x-veil'); if (vl) vl.style.display = 'none';
             showAuthView();
-        });
+        };
+        $('logout-btn').addEventListener('click', doLogout);
 
         // =====================================================
-        //        PORTEFEUILLE (client) + ADMINISTRATION
+        //        PORTEFEUILLE (client) + OUTILS PARTAGÉS
         // =====================================================
-        const IC = "w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50";
         const METHODS = { mobile_money: 'Mobile Money', virement: 'Virement', especes: 'Espèces' };
         const RSTATUS = {
             pending:  { label: 'En attente', color: 'bg-amber-50 text-amber-700' },
@@ -825,16 +804,21 @@ function esc(v) {
             const s = RSTATUS[st] || { label: st, color: 'bg-gray-100 text-gray-700' };
             return `<span class="inline-block px-3 py-1 rounded-full text-xs font-semibold ${s.color}">${esc(s.label)}</span>`;
         }
+        function hoursText(x) {
+            const total = Math.round(Math.abs(x) * 60);
+            const hh = Math.floor(total / 60);
+            const mm = total % 60;
+            return hh + ' h ' + String(mm).padStart(2, '0') + ' min';
+        }
         function toast(msg, type) {
             const t = $('toast');
             t.textContent = msg;
-            t.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-sm px-4 py-3 rounded-xl text-sm font-semibold text-center shadow-lg ' +
+            t.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 z-[70] w-[90%] max-w-sm px-4 py-3 rounded-xl text-sm font-semibold text-center shadow-lg ' +
                 (type === 'error' ? 'bg-red-600 text-white' : 'bg-gray-900 text-white');
             clearTimeout(toast._t);
             toast._t = setTimeout(() => t.classList.add('hidden'), 3500);
         }
 
-        // ---------- Portefeuille (client) ----------
         async function loadWallet() {
             const list = $('recharge-list');
             list.innerHTML = LOADING;
@@ -878,325 +862,7 @@ function esc(v) {
             loadWallet();
         });
 
-        // ---------- Administration : navigation ----------
-        let adminSub = 'ship';
-        function showSub(name) {
-            adminSub = name;
-            ['ship', 'rech', 'users'].forEach(s => $('asub-' + s).classList.toggle('hidden', s !== name));
-            document.querySelectorAll('.asub').forEach(b => {
-                const a = b.dataset.asub === name;
-                b.className = 'asub shrink-0 px-4 py-2 text-sm font-semibold rounded-full border cursor-pointer ' +
-                    (a ? 'bg-swiftblue text-white border-swiftblue' : 'bg-white text-gray-600 border-gray-200');
-            });
-            if (name === 'ship') adminLoadShipments();
-            if (name === 'rech') adminLoadRecharges();
-            if (name === 'users') adminLoadUsers();
-        }
-        function loadAdmin() { if (isAdmin) showSub(adminSub); }
-        document.querySelectorAll('.asub').forEach(b => b.addEventListener('click', () => showSub(b.dataset.asub)));
-
-        // ---------- Administration : colis ----------
-        let adminShipments = [], adminOwners = {}, adminOpenId = null, adminEvents = {};
-
-        $('a-filter').innerHTML = '<option value="">Tous les statuts</option>' +
-            Object.keys(STATUS).map(k => `<option value="${k}">${esc(STATUS[k].label)}</option>`).join('');
-
-        function hoursText(x) {
-            const total = Math.round(Math.abs(x) * 60);
-            const hh = Math.floor(total / 60);
-            const mm = total % 60;
-            return hh + ' h ' + String(mm).padStart(2, '0') + ' min';
-        }
-        function elapsedInfo(s) {
-            if (s.status === 'delivered' || s.status === 'cancelled') return { text: '', late: false };
-            const win = s.delivery_window_hours || 48;
-            const h = (Date.now() - new Date(s.created_at).getTime()) / 3600000;
-            const left = win - h;
-            return left >= 0
-                ? { text: `Écoulé : ${hoursText(h)} · Reste : ${hoursText(left)} (délai ${win} h)`, late: false }
-                : { text: `En retard de ${hoursText(-left)} (délai ${win} h)`, late: true };
-        }
-
-        async function adminLoadEvents(id) {
-            const { data } = await supabaseClient.from('sw_shipment_events').select('*')
-                .eq('shipment_id', id).order('created_at', { ascending: true });
-            adminEvents[id] = data || [];
-        }
-
-        async function adminLoadShipments() {
-            const list = $('admin-ship-list');
-            if (!adminShipments.length) list.innerHTML = LOADING;
-            await supabaseClient.rpc('sw_advance_shipments');
-            const [sh, pr] = await Promise.all([
-                supabaseClient.from('sw_shipments').select('*').order('created_at', { ascending: false }).limit(500),
-                supabaseClient.from('sw_profiles').select('id,email')
-            ]);
-            if (sh.error) { list.innerHTML = ''; toast('Erreur : ' + sh.error.message, 'error'); return; }
-            adminShipments = sh.data;
-            adminOwners = {};
-            (pr.data || []).forEach(p => { adminOwners[p.id] = p.email; });
-            if (adminOpenId) await adminLoadEvents(adminOpenId);
-            renderAdminShipments();
-        }
-
-        function renderAdminShipments() {
-            const q = $('a-search').value.trim().toLowerCase();
-            const f = $('a-filter').value;
-            const rows = adminShipments.filter(s => {
-                if (f && s.status !== f) return false;
-                if (!q) return true;
-                return [s.tracking_code, s.receiver_name, s.sender_name, s.receiver_phone, s.sender_phone,
-                        s.origin, s.destination, adminOwners[s.user_id]]
-                    .some(v => String(v || '').toLowerCase().includes(q));
-            });
-            $('a-count').textContent = rows.length + ' colis sur ' + adminShipments.length;
-            $('admin-ship-list').innerHTML = rows.length ? rows.map(adminCard).join('')
-                : '<p class="text-center text-gray-500 py-6">Aucun colis trouvé.</p>';
-        }
-        $('a-search').addEventListener('input', renderAdminShipments);
-        $('a-filter').addEventListener('change', renderAdminShipments);
-
-        function adminCard(s) {
-            const open = adminOpenId === s.id;
-            const info = elapsedInfo(s);
-            return `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3">
-                <div class="flex items-start justify-between gap-2">
-                    <div>
-                        <p class="font-bold text-gray-900">${esc(s.tracking_code)}</p>
-                        <p class="text-sm text-gray-500">${esc(s.origin)} → ${esc(s.destination)}</p>
-                        <p class="text-xs text-gray-400 mt-1">${esc(s.sender_name)} → ${esc(s.receiver_name)}</p>
-                        <p class="text-xs text-gray-400">Compte : ${esc(adminOwners[s.user_id] || '-')}</p>
-                    </div>
-                    ${badge(s.status)}
-                </div>
-                ${info.text ? `<p class="text-xs font-semibold mt-2 ${info.late ? 'text-red-600' : 'text-gray-600'}">${info.text}</p>` : ''}
-                <button type="button" data-act="toggle" data-id="${esc(s.id)}" class="mt-3 text-sm font-semibold text-swiftblue cursor-pointer">${open ? 'Fermer' : 'Gérer ce colis'}</button>
-                ${open ? adminPanel(s) : ''}
-            </div>`;
-        }
-
-        function adminPanel(s) {
-            const id = esc(s.id);
-            const opts = Object.keys(STATUS).map(k =>
-                `<option value="${k}" ${k === s.status ? 'selected' : ''}>${esc(STATUS[k].label)}</option>`).join('');
-            return `<div class="mt-3 border-t border-gray-100 pt-3 space-y-3">
-                ${detailsHtml(s)}
-                <div class="bg-blue-50 rounded-xl p-3 space-y-2">
-                    <p class="text-xs font-bold text-swiftblue">Mettre à jour le statut</p>
-                    <select id="a-status-${id}" class="${IC}">${opts}</select>
-                    <input id="a-note-${id}" placeholder="Note (ex: Colis arrivé au hub de Douala)" class="${IC}">
-                    <button type="button" data-act="save-status" data-id="${id}" class="w-full bg-swiftblue text-white font-semibold py-2.5 rounded-xl cursor-pointer">Enregistrer</button>
-                    <p class="text-xs text-gray-500">Si le statut change, l'avancement automatique est désactivé pour ce colis. Sans changement de statut, la note est ajoutée au suivi.</p>
-                </div>
-                <div class="bg-gray-50 rounded-xl p-3 space-y-2">
-                    <p class="text-xs font-bold text-gray-700">Délai et avancement automatique</p>
-                    <p class="text-xs text-gray-600">Avancement automatique : <strong>${s.auto_progress ? 'activé' : 'désactivé'}</strong></p>
-                    <button type="button" data-act="toggle-auto" data-id="${id}" data-value="${s.auto_progress ? '0' : '1'}" class="text-sm font-semibold text-swiftblue cursor-pointer">${s.auto_progress ? 'Désactiver' : 'Réactiver'}</button>
-                    <div class="flex gap-2">
-                        <input id="a-win-${id}" type="number" min="1" max="720" value="${esc(s.delivery_window_hours)}" class="${IC}">
-                        <button type="button" data-act="save-window" data-id="${id}" class="shrink-0 bg-gray-900 text-white text-sm font-semibold px-4 rounded-xl cursor-pointer">Appliquer (h)</button>
-                    </div>
-                </div>
-                ${timeline(adminEvents[s.id] || [], s)}
-            </div>`;
-        }
-
-        $('admin-ship-list').addEventListener('click', async (e) => {
-            const btn = e.target.closest('[data-act]');
-            if (!btn) return;
-            const id = btn.dataset.id, act = btn.dataset.act;
-            const s = adminShipments.find(x => x.id === id);
-
-            if (act === 'toggle') {
-                adminOpenId = adminOpenId === id ? null : id;
-                if (adminOpenId) await adminLoadEvents(id);
-                renderAdminShipments();
-                return;
-            }
-
-            let res;
-            btn.disabled = true;
-            if (act === 'save-status') {
-                const status = $('a-status-' + id).value;
-                const note = $('a-note-' + id).value.trim();
-                if (s && status === s.status) {
-                    if (!note) { toast('Choisissez un nouveau statut ou écrivez une note.', 'error'); btn.disabled = false; return; }
-                    res = await supabaseClient.rpc('sw_admin_add_note', { p_id: id, p_note: note });
-                } else {
-                    res = await supabaseClient.rpc('sw_admin_update_status', { p_id: id, p_status: status, p_note: note || null });
-                }
-            } else if (act === 'toggle-auto') {
-                res = await supabaseClient.rpc('sw_admin_set_auto', { p_id: id, p_auto: btn.dataset.value === '1' });
-            } else if (act === 'save-window') {
-                const h = parseInt($('a-win-' + id).value, 10);
-                if (!h || h < 1) { toast('Entrez un délai valide en heures.', 'error'); btn.disabled = false; return; }
-                res = await supabaseClient.rpc('sw_admin_set_window', { p_id: id, p_hours: h });
-            }
-            btn.disabled = false;
-            if (res && res.error) { toast('Erreur : ' + res.error.message, 'error'); return; }
-            toast('Modification enregistrée.');
-            await adminLoadShipments();
-        });
-
-        // ---------- Administration : recharges ----------
-        async function adminLoadRecharges() {
-            const list = $('admin-rech-list');
-            list.innerHTML = LOADING;
-            const f = $('a-rfilter').value;
-            let q = supabaseClient.from('sw_recharges').select('*').order('created_at', { ascending: false }).limit(200);
-            if (f) q = q.eq('status', f);
-            const [r, pr] = await Promise.all([q, supabaseClient.from('sw_profiles').select('id,email,phone')]);
-            if (r.error) { list.innerHTML = ''; toast('Erreur : ' + r.error.message, 'error'); return; }
-            const owners = {};
-            (pr.data || []).forEach(p => { owners[p.id] = p; });
-            if (!r.data.length) { list.innerHTML = '<p class="text-center text-gray-500 py-6">Aucune demande.</p>'; return; }
-            list.innerHTML = r.data.map(rc => {
-                const u = owners[rc.user_id] || {};
-                const pending = rc.status === 'pending';
-                return `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3">
-                    <div class="flex items-start justify-between gap-2">
-                        <div>
-                            <p class="font-bold text-gray-900">${fmtMoney(rc.amount)}</p>
-                            <p class="text-sm text-gray-500">${esc(METHODS[rc.method] || rc.method)}</p>
-                            <p class="text-sm text-gray-700 mt-1">Référence : ${esc(rc.reference)}</p>
-                            <p class="text-xs text-gray-400 mt-1">${esc(u.email || '-')}${u.phone ? ' · ' + esc(u.phone) : ''}</p>
-                            <p class="text-xs text-gray-400">${fmtDate(rc.created_at)}</p>
-                            ${rc.admin_note ? `<p class="text-xs text-gray-500 mt-1">Note : ${esc(rc.admin_note)}</p>` : ''}
-                        </div>
-                        ${rbadge(rc.status)}
-                    </div>
-                    ${pending ? `<div class="mt-3 space-y-2">
-                        <input id="rn-${esc(rc.id)}" placeholder="Note (facultatif)" class="${IC}">
-                        <div class="grid grid-cols-2 gap-2">
-                            <button type="button" data-ract="approve" data-id="${esc(rc.id)}" class="bg-green-600 text-white font-semibold py-2.5 rounded-xl cursor-pointer">Approuver</button>
-                            <button type="button" data-ract="reject" data-id="${esc(rc.id)}" class="bg-red-600 text-white font-semibold py-2.5 rounded-xl cursor-pointer">Rejeter</button>
-                        </div></div>` : ''}
-                </div>`;
-            }).join('');
-        }
-        $('a-rfilter').addEventListener('change', adminLoadRecharges);
-
-        $('admin-rech-list').addEventListener('click', async (e) => {
-            const btn = e.target.closest('[data-ract]');
-            if (!btn) return;
-            const approve = btn.dataset.ract === 'approve';
-            if (!confirm(approve ? 'Approuver cette recharge et créditer le portefeuille du client ?' : 'Rejeter cette demande de recharge ?')) return;
-            btn.disabled = true;
-            const noteEl = $('rn-' + btn.dataset.id);
-            const { error } = await supabaseClient.rpc('sw_admin_review_recharge', {
-                p_id: btn.dataset.id, p_approve: approve, p_note: noteEl ? noteEl.value.trim() : null
-            });
-            btn.disabled = false;
-            if (error) { toast('Erreur : ' + error.message, 'error'); return; }
-            toast(approve ? 'Recharge approuvée, solde crédité.' : 'Recharge rejetée.');
-            adminLoadRecharges();
-        });
-
-        // ---------- Administration : utilisateurs ----------
-        let adminUsers = [], adminUserOpen = null, adminUserDetail = null;
-
-        async function adminLoadUsers() {
-            const list = $('admin-user-list');
-            if (!adminUsers.length) list.innerHTML = LOADING;
-            const [p, w, s] = await Promise.all([
-                supabaseClient.from('sw_profiles').select('*').order('created_at', { ascending: false }),
-                supabaseClient.from('sw_wallets').select('user_id,balance'),
-                supabaseClient.from('sw_shipments').select('user_id')
-            ]);
-            if (p.error) { list.innerHTML = ''; toast('Erreur : ' + p.error.message, 'error'); return; }
-            const bal = {}, cnt = {};
-            (w.data || []).forEach(x => { bal[x.user_id] = x.balance; });
-            (s.data || []).forEach(x => { cnt[x.user_id] = (cnt[x.user_id] || 0) + 1; });
-            adminUsers = p.data.map(u => ({ ...u, balance: bal[u.id] || 0, count: cnt[u.id] || 0 }));
-            renderAdminUsers();
-        }
-
-        function renderAdminUsers() {
-            const q = $('a-usearch').value.trim().toLowerCase();
-            const rows = adminUsers.filter(u => !q || [u.email, u.phone].some(v => String(v || '').toLowerCase().includes(q)));
-            $('admin-user-list').innerHTML = rows.length ? rows.map(u => {
-                const open = adminUserOpen === u.id;
-                return `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3">
-                    <div class="flex items-start justify-between gap-2">
-                        <div>
-                            <p class="font-bold text-gray-900 break-all">${esc(u.email || '-')}</p>
-                            <p class="text-sm text-gray-500">${esc(u.phone || 'Pas de téléphone')}</p>
-                            <p class="text-xs text-gray-400 mt-1">Solde : ${fmtMoney(u.balance)} · ${u.count} colis</p>
-                        </div>
-                        <div class="text-right space-y-1">
-                            <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold ${u.role === 'admin' ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-700'}">${u.role === 'admin' ? 'Admin' : 'Client'}</span><br>
-                            <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold ${u.is_active ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}">${u.is_active ? 'Actif' : 'Désactivé'}</span>
-                        </div>
-                    </div>
-                    <button type="button" data-uact="toggle" data-id="${esc(u.id)}" class="mt-3 text-sm font-semibold text-swiftblue cursor-pointer">${open ? 'Fermer' : 'Gérer ce compte'}</button>
-                    ${open ? userPanel(u) : ''}
-                </div>`;
-            }).join('') : '<p class="text-center text-gray-500 py-6">Aucun utilisateur trouvé.</p>';
-        }
-        $('a-usearch').addEventListener('input', renderAdminUsers);
-
-        function userPanel(u) {
-            const id = esc(u.id);
-            const d = adminUserDetail || { shipments: [], recharges: [] };
-            return `<div class="mt-3 border-t border-gray-100 pt-3 space-y-3">
-                <div class="bg-gray-50 rounded-xl p-3 space-y-2">
-                    <p class="text-xs font-bold text-gray-700">Rôle et accès</p>
-                    <select id="u-role-${id}" class="${IC}">
-                        <option value="user" ${u.role === 'user' ? 'selected' : ''}>Client</option>
-                        <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Administrateur</option>
-                    </select>
-                    <select id="u-active-${id}" class="${IC}">
-                        <option value="1" ${u.is_active ? 'selected' : ''}>Compte actif</option>
-                        <option value="0" ${!u.is_active ? 'selected' : ''}>Compte désactivé</option>
-                    </select>
-                    <button type="button" data-uact="save" data-id="${id}" class="w-full bg-swiftblue text-white font-semibold py-2.5 rounded-xl cursor-pointer">Appliquer</button>
-                </div>
-                <div class="bg-gray-50 rounded-xl p-3">
-                    <p class="text-xs font-bold text-gray-700 mb-1">Derniers envois</p>
-                    ${d.shipments.length ? d.shipments.map(s => `<p class="text-sm text-gray-700">${esc(s.tracking_code)} · ${esc(s.origin)} → ${esc(s.destination)} · ${esc((STATUS[s.status] || {}).label || s.status)}</p>`).join('') : '<p class="text-sm text-gray-500">Aucun envoi.</p>'}
-                </div>
-                <div class="bg-gray-50 rounded-xl p-3">
-                    <p class="text-xs font-bold text-gray-700 mb-1">Recharges</p>
-                    ${d.recharges.length ? d.recharges.map(r => `<p class="text-sm text-gray-700">${fmtMoney(r.amount)} · ${esc(METHODS[r.method] || r.method)} · ${esc((RSTATUS[r.status] || {}).label || r.status)}</p>`).join('') : '<p class="text-sm text-gray-500">Aucune recharge.</p>'}
-                </div>
-            </div>`;
-        }
-
-        $('admin-user-list').addEventListener('click', async (e) => {
-            const btn = e.target.closest('[data-uact]');
-            if (!btn) return;
-            const id = btn.dataset.id;
-            if (btn.dataset.uact === 'toggle') {
-                adminUserOpen = adminUserOpen === id ? null : id;
-                adminUserDetail = null;
-                if (adminUserOpen) {
-                    const [s, r] = await Promise.all([
-                        supabaseClient.from('sw_shipments').select('tracking_code,status,origin,destination')
-                            .eq('user_id', id).order('created_at', { ascending: false }).limit(20),
-                        supabaseClient.from('sw_recharges').select('amount,method,status')
-                            .eq('user_id', id).order('created_at', { ascending: false }).limit(20)
-                    ]);
-                    adminUserDetail = { shipments: s.data || [], recharges: r.data || [] };
-                }
-                renderAdminUsers();
-                return;
-            }
-            if (btn.dataset.uact === 'save') {
-                btn.disabled = true;
-                const { error } = await supabaseClient.rpc('sw_admin_set_user', {
-                    p_id: id,
-                    p_role: $('u-role-' + id).value,
-                    p_active: $('u-active-' + id).value === '1'
-                });
-                btn.disabled = false;
-                if (error) { toast('Erreur : ' + error.message, 'error'); return; }
-                toast('Compte mis à jour.');
-                adminLoadUsers();
-            }
-        });
-
         // =====================================================
-
         //                    DÉMARRAGE
         // =====================================================
         supabaseClient.auth.getSession().then(({ data }) => {
@@ -1204,5 +870,239 @@ function esc(v) {
             else showAuthView();
         });
     </script>
+
+<!-- ===== SWIFTWAY : CONSOLE ADMIN "CONTROL ROOM" =====
+     À coller dans index.html, juste AVANT </body> (après le <script> existant).
+     Ne touche ni au SQL, ni à l'interface client. -->
+<style>
+#admin-view{background:#06080b;color:#cfd8e3;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;min-height:100vh;
+  background-image:linear-gradient(#ffffff09 1px,transparent 1px),linear-gradient(90deg,#ffffff09 1px,transparent 1px);background-size:34px 34px}
+#admin-view *{box-sizing:border-box}
+.x-top{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:14px;height:52px;padding:0 14px;background:#06080bf2;border-bottom:1px solid #1b2530;backdrop-filter:blur(6px)}
+.x-logo{font-weight:900;letter-spacing:.14em;color:#c6ff3d;font-size:14px;white-space:nowrap}.x-logo i{color:#5b6b7c;font-style:normal}
+.x-clock{color:#5b6b7c;font-size:12px}.x-mail{margin-left:auto;color:#7d8da0;font-size:11px;max-width:32vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.x-btn{background:transparent;border:1px solid #2a3846;color:#cfd8e3;padding:6px 12px;font:inherit;font-size:11px;letter-spacing:.1em;cursor:pointer}
+.x-btn:hover{border-color:#c6ff3d;color:#c6ff3d}.x-btn.go{background:#c6ff3d;color:#06080b;border-color:#c6ff3d;font-weight:800}
+.x-btn.no{border-color:#ff5a5f;color:#ff5a5f}
+.x-rail{position:fixed;z-index:40;bottom:0;left:0;right:0;display:flex;background:#0a0e13;border-top:1px solid #1b2530;padding-bottom:env(safe-area-inset-bottom,0)}
+.x-rail button{flex:1;position:relative;background:none;border:0;color:#5b6b7c;padding:10px 0;font:inherit;font-size:10px;letter-spacing:.12em;cursor:pointer}
+.x-rail button b{display:block;font-size:20px;margin-bottom:2px}.x-rail button.on{color:#c6ff3d;box-shadow:inset 0 2px #c6ff3d}
+.x-rail .n{position:absolute;top:4px;right:18%;background:#ff5a5f;color:#fff;border-radius:9px;font-size:10px;padding:0 5px;display:none}
+@media(min-width:768px){.x-rail{top:52px;right:auto;width:84px;flex-direction:column;border-top:0;border-right:1px solid #1b2530}
+ .x-rail button{flex:none;padding:16px 0}.x-rail button.on{box-shadow:inset 2px 0 #c6ff3d}.x-rail .n{right:16%}#x-main{margin-left:84px}}
+#x-main{padding:18px 14px 96px;max-width:1500px}
+.x-h{font-size:11px;letter-spacing:.22em;color:#5b6b7c;margin:0 0 12px}.x-h b{color:#c6ff3d}
+.x-grid{display:grid;gap:10px;grid-template-columns:repeat(2,1fr)}@media(min-width:900px){.x-grid{grid-template-columns:repeat(5,1fr)}}
+.x-read{background:#0b1117;border:1px solid #1b2530;padding:14px;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.x-read:hover{border-color:#c6ff3d}.x-read small{display:block;color:#5b6b7c;font-size:10px;letter-spacing:.16em}
+.x-read strong{display:block;font-size:30px;margin-top:6px;color:#e9f1f8}.x-read.warn strong{color:#ff5a5f}.x-read.ok strong{color:#c6ff3d}.x-read em{font-style:normal;font-size:10px;color:#5b6b7c}
+.x-seg{display:flex;height:14px;background:#0b1117;border:1px solid #1b2530;margin:6px 0 10px}.x-seg span{display:block;height:100%}
+.x-leg{display:flex;flex-wrap:wrap;gap:12px;font-size:11px;color:#7d8da0}.x-leg i{display:inline-block;width:8px;height:8px;margin-right:6px}
+.x-panel{background:#0b1117;border:1px solid #1b2530;padding:14px;margin-top:10px}
+.x-row{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px dashed #1b2530;width:100%;background:none;border-left:0;border-right:0;border-top:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.x-board{display:flex;gap:10px;overflow-x:auto;padding-bottom:10px;align-items:flex-start}
+.x-col{flex:0 0 250px;background:#0a0f15;border:1px solid #1b2530;min-height:200px}.x-col.over{border-color:#c6ff3d;background:#0f1a12}
+.x-col h4{margin:0;padding:10px 12px;font-size:11px;letter-spacing:.16em;border-bottom:1px solid #1b2530;display:flex;justify-content:space-between}
+.x-card{margin:8px;padding:10px;background:#101820;border-left:3px solid var(--c,#5b6b7c);cursor:grab;font-size:12px}
+.x-card b{color:#e9f1f8;display:block}.x-card span{color:#7d8da0;display:block;font-size:11px}.x-card .late{color:#ff5a5f}
+.x-in{width:100%;background:#06080b;border:1px solid #2a3846;color:#e9f1f8;padding:9px 10px;font:inherit;font-size:13px;color-scheme:dark}
+.x-in:focus{outline:0;border-color:#c6ff3d}
+.x-chips{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}.x-chips .x-btn.on{border-color:#c6ff3d;color:#c6ff3d}
+.x-tag{display:inline-block;padding:2px 8px;border:1px solid currentColor;font-size:10px;letter-spacing:.1em}
+#x-veil{position:fixed;inset:0;background:#000a;z-index:50;display:none}
+#x-drawer{position:fixed;z-index:60;top:0;right:0;bottom:0;width:min(520px,100%);background:#f4f6f8;color:#111;overflow-y:auto;padding:18px;transform:translateX(100%);transition:transform .25s;font-family:system-ui,sans-serif}
+#x-drawer.open{transform:none}
+#x-drawer .x-in{background:#fff;color:#111;border-color:#c9d1d9;color-scheme:light}
+#x-drawer .x-btn{color:#111;border-color:#111}#x-drawer .x-btn.go{background:#111;color:#c6ff3d}
+</style>
+<script>
+(() => {
+  const A = $('admin-view');
+  A.className = 'hidden';
+  A.innerHTML = `
+  <header class="x-top"><span class="x-logo">SW<i>//</i>CONTROL</span><span class="x-clock" id="x-clock"></span>
+    <span class="x-mail" id="admin-email"></span><button class="x-btn" id="x-exit">QUITTER</button></header>
+  <nav class="x-rail">
+    <button data-v="radar"><b>◉</b>RADAR</button><button data-v="pipe"><b>▦</b>FLUX</button>
+    <button data-v="cash"><b>◈</b>CAISSE<span class="n" id="nav-rech-badge"></span></button><button data-v="acct"><b>☷</b>COMPTES</button>
+  </nav>
+  <main id="x-main"></main><div id="admin-home" class="hidden"></div>
+  <div id="x-veil"></div><aside id="x-drawer"></aside>`;
+  $('x-exit').onclick = doLogout;
+  setInterval(() => { const c = $('x-clock'); if (c) c.textContent = new Date().toLocaleTimeString('fr-FR'); }, 1000);
+
+  const S = { ship: [], users: [], rech: [], bal: {}, own: {}, v: 'radar', q: '', rf: 'pending', open: null, ev: [] };
+  const COL = { pending: '#7d8da0', picked_up: '#4da3ff', in_transit: '#a78bfa', out_for_delivery: '#ffb020', delivered: '#c6ff3d', cancelled: '#ff5a5f' };
+  const M = $('x-main');
+  const win = s => s.delivery_window_hours || 48;
+  const hrs = s => (Date.now() - new Date(s.created_at)) / 3600000;
+  const live = s => s.status !== 'delivered' && s.status !== 'cancelled';
+  const late = s => live(s) && hrs(s) > win(s);
+
+  async function loadAll() {
+    await supabaseClient.rpc('sw_advance_shipments');
+    const q = (t, f) => supabaseClient.from(t).select(f || '*');
+    const [sh, pr, rc, wl] = await Promise.all([
+      q('sw_shipments').order('created_at', { ascending: false }).limit(500),
+      q('sw_profiles').order('created_at', { ascending: false }),
+      q('sw_recharges').order('created_at', { ascending: false }).limit(300),
+      q('sw_wallets', 'user_id,balance')]);
+    if (sh.error) { toast('Erreur : ' + sh.error.message, 'error'); return; }
+    S.ship = sh.data; S.users = pr.data || []; S.rech = rc.data || []; S.bal = {}; S.own = {};
+    (wl.data || []).forEach(w => S.bal[w.user_id] = w.balance);
+    S.users.forEach(u => S.own[u.id] = u);
+    const n = S.rech.filter(r => r.status === 'pending').length, b = $('nav-rech-badge');
+    b.textContent = n; b.style.display = n ? 'block' : 'none';
+  }
+
+  window.updateRechBadge = () => loadAll().then(draw);
+  window.showSub = async (name) => {
+    S.v = name;
+    A.querySelectorAll('.x-rail [data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === name));
+    window.scrollTo(0, 0);
+    await loadAll(); draw();
+  };
+
+  function draw() {
+    ({ radar, pipe, cash, acct })[S.v]();
+    if (S.open) openDrawer(S.open, true);
+  }
+
+  function radar() {
+    const act = S.ship.filter(live), lt = S.ship.filter(late);
+    const pr = S.rech.filter(r => r.status === 'pending');
+    const tot = Object.values(S.bal).reduce((a, b) => a + Number(b), 0);
+    const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+    const rd = (g, l, v, e, c) => `<button class="x-read ${c || ''}" data-go="${g}"><small>${l}</small><strong>${v}</strong><em>${e}</em></button>`;
+    const seg = Object.keys(STATUS).map(k => [k, S.ship.filter(s => s.status === k).length]);
+    M.innerHTML = `<p class="x-h"><b>●</b> RADAR // ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</p>
+    <div class="x-grid">
+      ${rd('pipe', 'COLIS ACTIFS', act.length, S.ship.filter(s => new Date(s.created_at) >= t0).length + ' créés aujourd\'hui')}
+      ${rd('pipe', 'EN RETARD', lt.length, 'hors délai prévu', lt.length ? 'warn' : 'ok')}
+      ${rd('cash', 'RECHARGES', pr.length, fmtMoney(pr.reduce((a, r) => a + Number(r.amount), 0)), pr.length ? 'warn' : 'ok')}
+      ${rd('acct', 'COMPTES', S.users.length, S.users.filter(u => !u.is_active).length + ' désactivé(s)')}
+      ${rd('acct', 'FONDS CLIENTS', fmtMoney(tot), 'total portefeuilles')}
+    </div>
+    <div class="x-panel"><p class="x-h">PIPELINE (${S.ship.length})</p>
+      <div class="x-seg">${seg.map(([k, n]) => `<span style="width:${S.ship.length ? n / S.ship.length * 100 : 0}%;background:${COL[k]}"></span>`).join('')}</div>
+      <div class="x-leg">${seg.map(([k, n]) => `<span><i style="background:${COL[k]}"></i>${esc(STATUS[k].label)} ${n}</span>`).join('')}</div></div>
+    <div class="x-panel"><p class="x-h">ALERTES RETARD</p>${lt.length ? lt.slice(0, 8).map(s => `<button class="x-row" data-open="${esc(s.id)}"><span>${esc(s.tracking_code)} <span style="color:#7d8da0">${esc(s.origin)} → ${esc(s.destination)}</span></span><span style="color:#ff5a5f">+${hoursText(hrs(s) - win(s))}</span></button>`).join('') : '<span style="color:#c6ff3d">RAS : aucun retard.</span>'}</div>`;
+  }
+
+  function pipe() {
+    const q = S.q.toLowerCase();
+    const rows = S.ship.filter(s => !q || [s.tracking_code, s.receiver_name, s.sender_name, s.origin, s.destination, s.receiver_phone, (S.own[s.user_id] || {}).email].some(v => String(v || '').toLowerCase().includes(q)));
+    M.innerHTML = `<p class="x-h"><b>●</b> FLUX // glissez une carte pour changer son statut</p>
+    <input id="x-q" class="x-in" style="margin-bottom:12px" placeholder="> filtrer : code, nom, ville, téléphone" value="${esc(S.q)}">
+    <div class="x-board">${Object.keys(STATUS).map(k => {
+      const c = rows.filter(s => s.status === k);
+      return `<div class="x-col" data-drop="${k}"><h4 style="color:${COL[k]}"><span>${esc(STATUS[k].label.toUpperCase())}</span><span>${c.length}</span></h4>
+      ${c.map(s => `<div class="x-card" draggable="true" data-id="${esc(s.id)}" data-open="${esc(s.id)}" style="--c:${COL[k]}">
+        <b>${esc(s.tracking_code)}</b><span>${esc(s.origin)} → ${esc(s.destination)}</span><span>${esc(s.receiver_name)}</span>
+        ${late(s) ? `<span class="late">▲ retard ${hoursText(hrs(s) - win(s))}</span>` : ''}</div>`).join('')}</div>`;
+    }).join('')}</div>`;
+    const qi = $('x-q'); qi.oninput = () => { S.q = qi.value; const p = qi.selectionStart; pipe(); const n = $('x-q'); n.focus(); n.setSelectionRange(p, p); };
+  }
+
+  function cash() {
+    const rows = S.rech.filter(r => !S.rf || r.status === S.rf);
+    const col = { pending: '#ffb020', approved: '#c6ff3d', rejected: '#ff5a5f' };
+    M.innerHTML = `<p class="x-h"><b>●</b> CAISSE // demandes de recharge</p>
+    <div class="x-chips">${[['pending', 'EN ATTENTE'], ['', 'TOUTES'], ['approved', 'APPROUVÉES'], ['rejected', 'REJETÉES']].map(([v, l]) => `<button class="x-btn ${S.rf === v ? 'on' : ''}" data-rf="${v}">${l}</button>`).join('')}</div>
+    ${rows.length ? rows.map(r => { const u = S.own[r.user_id] || {}; return `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-size:20px;color:#e9f1f8">${fmtMoney(r.amount)}</strong><span class="x-tag" style="color:${col[r.status]}">${esc(RSTATUS[r.status].label.toUpperCase())}</span></div>
+      <p style="font-size:12px;color:#7d8da0;margin:6px 0">${esc(METHODS[r.method] || r.method)} · réf. ${esc(r.reference)}<br>${esc(u.email || '-')} ${u.phone ? '· ' + esc(u.phone) : ''}<br>${fmtDate(r.created_at)}${r.admin_note ? '<br>note : ' + esc(r.admin_note) : ''}</p>
+      ${r.status === 'pending' ? `<input id="rn-${esc(r.id)}" class="x-in" placeholder="note (facultatif)" style="margin-bottom:8px"><div style="display:flex;gap:8px">
+        <button class="x-btn go" data-rv="1" data-id="${esc(r.id)}">APPROUVER</button><button class="x-btn no" data-rv="0" data-id="${esc(r.id)}">REJETER</button></div>` : ''}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucune demande</p>'}`;
+  }
+
+  function acct() {
+    const q = (S.uq || '').toLowerCase();
+    const rows = S.users.filter(u => !q || [u.email, u.phone].some(v => String(v || '').toLowerCase().includes(q)));
+    const cnt = {}; S.ship.forEach(s => cnt[s.user_id] = (cnt[s.user_id] || 0) + 1);
+    M.innerHTML = `<p class="x-h"><b>●</b> COMPTES // ${S.users.length}</p>
+    <input id="x-uq" class="x-in" style="margin-bottom:12px" placeholder="> email ou téléphone" value="${esc(S.uq || '')}">
+    ${rows.map(u => `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
+      <strong style="color:#e9f1f8;word-break:break-all">${esc(u.email || '-')}</strong>
+      <p style="font-size:12px;color:#7d8da0;margin:4px 0 10px">${esc(u.phone || 'sans téléphone')} · ${fmtMoney(S.bal[u.id] || 0)} · ${cnt[u.id] || 0} colis</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px">
+        <select id="ur-${esc(u.id)}" class="x-in"><option value="user" ${u.role === 'user' ? 'selected' : ''}>CLIENT</option><option value="admin" ${u.role === 'admin' ? 'selected' : ''}>ADMIN</option></select>
+        <select id="ua-${esc(u.id)}" class="x-in"><option value="1" ${u.is_active ? 'selected' : ''}>ACTIF</option><option value="0" ${!u.is_active ? 'selected' : ''}>COUPÉ</option></select>
+        <button class="x-btn go" data-us="${esc(u.id)}">OK</button></div></div>`).join('')}`;
+    const qi = $('x-uq'); qi.oninput = () => { S.uq = qi.value; const p = qi.selectionStart; acct(); const n = $('x-uq'); n.focus(); n.setSelectionRange(p, p); };
+  }
+
+  async function openDrawer(id, keep) {
+    S.open = id;
+    const s = S.ship.find(x => x.id === id); if (!s) return closeDrawer();
+    if (!keep) { const { data } = await supabaseClient.from('sw_shipment_events').select('*').eq('shipment_id', id).order('created_at', { ascending: true }); S.ev = data || []; }
+    const st = document.activeElement && document.activeElement.closest && document.activeElement.closest('#x-drawer');
+    if (keep && st) return;
+    $('x-drawer').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><h3 style="font-weight:800;font-size:18px">${esc(s.tracking_code)}</h3><button class="x-btn" data-close="1">FERMER ✕</button></div>
+      <p style="font-size:12px;color:#555;margin-top:4px">Compte : ${esc((S.own[s.user_id] || {}).email || '-')}</p>
+      ${detailsHtml(s)}
+      <div style="margin-top:14px;padding:12px;background:#fff;border:1px solid #c9d1d9" class="space-y-2">
+        <p style="font-size:12px;font-weight:700">STATUT</p>
+        <select id="d-st" class="x-in">${Object.keys(STATUS).map(k => `<option value="${k}" ${k === s.status ? 'selected' : ''}>${esc(STATUS[k].label)}</option>`).join('')}</select>
+        <input id="d-note" class="x-in" placeholder="Note (ex : arrivé au hub de Douala)" style="margin-top:8px">
+        <button class="x-btn go" style="width:100%;margin-top:8px" data-save="${esc(s.id)}">ENREGISTRER</button>
+        <p style="font-size:11px;color:#666;margin-top:6px">Changer le statut coupe l'avancement automatique. Sans changement, la note est ajoutée au suivi.</p></div>
+      <div style="margin-top:10px;padding:12px;background:#fff;border:1px solid #c9d1d9">
+        <p style="font-size:12px;font-weight:700">AUTO : ${s.auto_progress ? 'ACTIVÉ' : 'DÉSACTIVÉ'} <button class="x-btn" style="margin-left:8px" data-auto="${s.auto_progress ? 0 : 1}" data-id="${esc(s.id)}">${s.auto_progress ? 'COUPER' : 'RÉACTIVER'}</button></p>
+        <div style="display:flex;gap:8px;margin-top:8px"><input id="d-win" type="number" min="1" max="720" class="x-in" value="${esc(win(s))}"><button class="x-btn go" data-win="${esc(s.id)}">DÉLAI (h)</button></div></div>
+      ${timeline(S.ev, s)}`;
+    $('x-drawer').classList.add('open'); $('x-veil').style.display = 'block';
+  }
+  function closeDrawer() { S.open = null; $('x-drawer').classList.remove('open'); $('x-veil').style.display = 'none'; }
+
+  async function rpc(fn, args, ok) {
+    const { error } = await supabaseClient.rpc(fn, args);
+    if (error) { toast('Erreur : ' + error.message, 'error'); return false; }
+    toast(ok || 'Enregistré.'); await loadAll();
+    if (S.open) { const { data } = await supabaseClient.from('sw_shipment_events').select('*').eq('shipment_id', S.open).order('created_at', { ascending: true }); S.ev = data || []; }
+    draw(); if (S.open) { $('x-drawer').blur(); openDrawerForce(); } return true;
+  }
+  function openDrawerForce() { const id = S.open; S.open = null; document.activeElement && document.activeElement.blur(); openDrawer(id, true); }
+
+  A.addEventListener('click', async (e) => {
+    const g = (a) => e.target.closest('[' + a + ']');
+    let el;
+    if (g('data-v')) return showSub(g('data-v').dataset.v);
+    if ((el = g('data-go'))) return showSub(el.dataset.go);
+    if (g('data-close') || e.target.id === 'x-veil') return closeDrawer();
+    if ((el = g('data-open'))) return openDrawer(el.dataset.open);
+    if ((el = g('data-rf'))) { S.rf = el.dataset.rf; return cash(); }
+    if ((el = g('data-rv'))) {
+      const ap = el.dataset.rv === '1';
+      if (!confirm(ap ? 'Approuver et créditer le portefeuille ?' : 'Rejeter cette demande ?')) return;
+      const n = $('rn-' + el.dataset.id);
+      return rpc('sw_admin_review_recharge', { p_id: el.dataset.id, p_approve: ap, p_note: n ? n.value.trim() : null }, ap ? 'Recharge approuvée, solde crédité.' : 'Recharge rejetée.');
+    }
+    if ((el = g('data-us'))) { const id = el.dataset.us;
+      return rpc('sw_admin_set_user', { p_id: id, p_role: $('ur-' + id).value, p_active: $('ua-' + id).value === '1' }, 'Compte mis à jour.'); }
+    if ((el = g('data-save'))) {
+      const id = el.dataset.save, s = S.ship.find(x => x.id === id), st = $('d-st').value, note = $('d-note').value.trim();
+      if (st === s.status) { if (!note) return toast('Choisissez un statut ou écrivez une note.', 'error'); return rpc('sw_admin_add_note', { p_id: id, p_note: note }); }
+      return rpc('sw_admin_update_status', { p_id: id, p_status: st, p_note: note || null });
+    }
+    if ((el = g('data-auto'))) return rpc('sw_admin_set_auto', { p_id: el.dataset.id, p_auto: el.dataset.auto === '1' });
+    if ((el = g('data-win'))) { const h = parseInt($('d-win').value, 10); if (!h || h < 1) return toast('Délai invalide.', 'error'); return rpc('sw_admin_set_window', { p_id: el.dataset.win, p_hours: h }); }
+  });
+
+  // Glisser-déposer des colis entre colonnes
+  let dragId = null;
+  A.addEventListener('dragstart', e => { const c = e.target.closest('.x-card'); if (c) dragId = c.dataset.id; });
+  A.addEventListener('dragover', e => { const c = e.target.closest('.x-col'); if (c) { e.preventDefault(); c.classList.add('over'); } });
+  A.addEventListener('dragleave', e => { const c = e.target.closest('.x-col'); if (c) c.classList.remove('over'); });
+  A.addEventListener('drop', e => {
+    const c = e.target.closest('.x-col'); if (!c || !dragId) return;
+    e.preventDefault(); c.classList.remove('over');
+    const s = S.ship.find(x => x.id === dragId), to = c.dataset.drop; dragId = null;
+    if (!s || s.status === to) return;
+    if (confirm('Passer ' + s.tracking_code + ' à « ' + STATUS[to].label + ' » ?')) rpc('sw_admin_update_status', { p_id: s.id, p_status: to, p_note: null }, 'Statut mis à jour.');
+  });
+})();
+</script>
+
 </body>
 </html>
