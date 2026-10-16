@@ -9,6 +9,16 @@
     <script>
         tailwind.config = { theme: { extend: { colors: { swiftblue: '#0047AB' } } } }
     </script>
+    <style>
+    @media print {
+        @page { size: 148mm 210mm; margin: 0; }
+        body { background: #fff !important; }
+        body > *:not(#receipt-overlay) { display: none !important; }
+        #receipt-overlay { position: static !important; background: #fff !important; overflow: visible !important; padding: 0 !important; display: block !important; }
+        .no-print { display: none !important; }
+        #receipt-sheet { box-shadow: none !important; margin: 0 !important; }
+    }
+    </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
 
@@ -242,6 +252,11 @@
 
                     <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
                         <div><h3 class="text-base font-bold text-gray-900">Livraison</h3></div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Agence / Transporteur</label>
+                            <input id="p-agency" required maxlength="80" placeholder="Ex: Agence Voyage Central, Express Carrier..." class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                            <p class="text-xs text-gray-400 mt-1">Ce nom apparaîtra sur le reçu comme émetteur du bordereau.</p>
+                        </div>
                         <div>
                             <label class="block text-xs font-semibold text-gray-700 mb-1">Type de service</label>
                             <select id="p-service" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
@@ -632,6 +647,7 @@ function esc(v) {
                 ${party('Expéditeur', s.sender_name, s.sender_phone, s.sender_email, s.sender_address, s.sender_district, s.origin, s.sender_region, s.sender_country)}
                 ${party('Destinataire', s.receiver_name, s.receiver_phone, s.receiver_email, s.receiver_address, s.receiver_district, s.destination, s.receiver_region, s.receiver_country)}
                 <div class="bg-gray-50 rounded-xl p-3"><p class="text-xs font-bold text-swiftblue mb-1">Colis</p>
+                    ${line('Agence', s.agency_name)}
                     ${line('Contenu', s.description)}${line('Type', s.package_type)}${line('Nombre', s.package_count)}
                     ${line('Poids', s.weight_kg ? s.weight_kg + ' kg' : '')}${line('Dimensions', dims)}
                     ${line('Valeur déclarée', s.declared_value ? s.declared_value + ' FCFA' : '')}
@@ -639,6 +655,102 @@ function esc(v) {
                     ${line('Paiement', s.payer === 'receiver' ? 'Le destinataire' : "L'expéditeur")}
                     ${s.is_fragile ? '<p class="text-sm font-semibold text-amber-700">Colis fragile</p>' : ''}
                     ${line('Instructions', s.delivery_instructions)}</div></div>`;
+        }
+
+        // =====================================================
+        //        REÇU A5 PAYANT (MARQUE BLANCHE)
+        // =====================================================
+        const RECEIPT_PRICE = 500; // affichage seulement : le vrai prix est fixé dans la fonction SQL sw_buy_receipt
+        let receiptSet = new Set();
+
+        async function loadReceiptSet() {
+            try {
+                const { data } = await supabaseClient.from('sw_receipts').select('shipment_id').eq('user_id', currentUser.id);
+                receiptSet = new Set((data || []).map(r => r.shipment_id));
+            } catch (err) { receiptSet = new Set(); }
+        }
+
+        function receiptHtml(s) {
+            const agency = (s.agency_name || '').trim();
+            const dims = (s.length_cm || s.width_cm || s.height_cm) ? [s.length_cm, s.width_cm, s.height_cm].map(v => v ?? '?').join(' x ') + ' cm' : '';
+            const row = (l, v) => v ? `<tr><td style="padding:2px 0;color:#666;width:34%;vertical-align:top">${l}</td><td style="padding:2px 0;font-weight:600">${esc(v)}</td></tr>` : '';
+            const box = (title, name, phone, addr, district, city, region, country) => `
+                <div style="flex:1;border:1px solid #222;padding:7px 9px;min-width:0">
+                    <div style="font-size:9px;letter-spacing:.12em;font-weight:800;margin-bottom:4px">${title}</div>
+                    <div style="font-weight:800;font-size:12px">${esc(name)}</div>
+                    <div>${esc(phone)}</div>
+                    <div>${esc([addr, district].filter(Boolean).join(', '))}</div>
+                    <div>${esc([city, region, country].filter(Boolean).join(', '))}</div>
+                </div>`;
+            return `<div id="receipt-sheet" style="width:148mm;height:210mm;box-sizing:border-box;padding:10mm;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.35;margin:0 auto;box-shadow:0 4px 24px #0006;display:flex;flex-direction:column;overflow:hidden">
+                <div style="text-align:center;border-bottom:2px solid #111;padding-bottom:8px">
+                    <div style="font-size:20px;font-weight:900;letter-spacing:.04em;text-transform:uppercase">${esc(agency || "Bordereau d'expédition")}</div>
+                    <div style="font-size:10px;letter-spacing:.2em;margin-top:2px">BORDEREAU D'EXPÉDITION</div>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:flex-end;margin:10px 0">
+                    <div><div style="font-size:9px;color:#666">N° DE SUIVI</div><div style="font-size:18px;font-weight:900;letter-spacing:.06em">${esc(s.tracking_code)}</div></div>
+                    <div style="text-align:right"><div style="font-size:9px;color:#666">DATE</div><div style="font-weight:700">${fmtDate(s.created_at)}</div></div>
+                </div>
+                <div style="display:flex;gap:8px">
+                    ${box('EXPÉDITEUR', s.sender_name, s.sender_phone, s.sender_address, s.sender_district, s.origin, s.sender_region, s.sender_country)}
+                    ${box('DESTINATAIRE', s.receiver_name, s.receiver_phone, s.receiver_address, s.receiver_district, s.destination, s.receiver_region, s.receiver_country)}
+                </div>
+                <div style="margin-top:10px;border:1px solid #222;padding:7px 9px">
+                    <div style="font-size:9px;letter-spacing:.12em;font-weight:800;margin-bottom:4px">DÉTAILS DU COLIS</div>
+                    <table style="width:100%;border-collapse:collapse;font-size:11px">
+                        ${row('Contenu', s.description)}${row('Type', s.package_type)}${row('Nombre de colis', s.package_count)}
+                        ${row('Poids total', s.weight_kg ? s.weight_kg + ' kg' : '')}${row('Dimensions', dims)}
+                        ${row('Valeur déclarée', s.declared_value ? Number(s.declared_value).toLocaleString('fr-FR') + ' FCFA' : '')}
+                        ${row('Service', s.service_type === 'express' ? 'Express (24 h)' : 'Standard (48 h)')}
+                        ${row('Livraison payée par', s.payer === 'receiver' ? 'Le destinataire' : "L'expéditeur")}
+                        ${row('Mention', s.is_fragile ? 'COLIS FRAGILE' : '')}
+                        ${row('Instructions', s.delivery_instructions)}
+                    </table>
+                </div>
+                <div style="margin-top:10px;display:flex;gap:8px;flex:1;min-height:0">
+                    <div style="flex:1;border:1px dashed #222;padding:7px 9px"><div style="font-size:9px;color:#666;margin-bottom:34px">SIGNATURE EXPÉDITEUR</div></div>
+                    <div style="flex:1;border:1px dashed #222;padding:7px 9px"><div style="font-size:9px;color:#666;margin-bottom:34px">SIGNATURE DESTINATAIRE</div></div>
+                </div>
+                <div style="margin-top:10px;border-top:2px solid #111;padding-top:6px;text-align:center;font-size:10px">
+                    <div style="font-weight:800;text-transform:uppercase;letter-spacing:.06em">${esc(agency || '')}</div>
+                    <div style="color:#666">Document émis le ${fmtDate(new Date())}</div>
+                </div>
+            </div>`;
+        }
+
+        function showReceipt(s) {
+            closeReceipt();
+            const ov = document.createElement('div');
+            ov.id = 'receipt-overlay';
+            ov.style.cssText = 'position:fixed;inset:0;z-index:80;background:#111c;overflow:auto;padding:16px 8px 40px';
+            ov.innerHTML = `<div class="no-print" style="max-width:148mm;margin:0 auto 12px;display:flex;gap:8px">
+                    <button type="button" id="rcpt-print" class="flex-1 bg-swiftblue text-white font-semibold py-3 rounded-xl cursor-pointer">Imprimer / Enregistrer en PDF</button>
+                    <button type="button" id="rcpt-close" class="bg-white text-gray-800 font-semibold px-5 py-3 rounded-xl cursor-pointer">Fermer</button>
+                </div>
+                <div style="overflow-x:auto"><div style="width:148mm;margin:0 auto">${receiptHtml(s)}</div></div>`;
+            document.body.appendChild(ov);
+            $('rcpt-close').addEventListener('click', closeReceipt);
+            $('rcpt-print').addEventListener('click', () => {
+                const old = document.title;
+                document.title = 'Recu-' + s.tracking_code;
+                window.print();
+                setTimeout(() => { document.title = old; }, 500);
+            });
+        }
+        function closeReceipt() { const o = $('receipt-overlay'); if (o) o.remove(); }
+
+        async function openReceipt(s, btn) {
+            if (!receiptSet.has(s.id)) {
+                if (!confirm('Générer le reçu A5 ?\n' + fmtMoney(RECEIPT_PRICE) + ' seront débités de votre portefeuille.')) return;
+                btn.disabled = true;
+                const { data, error } = await supabaseClient.rpc('sw_buy_receipt', { p_shipment_id: s.id });
+                btn.disabled = false;
+                if (error) { toast(error.message || 'Paiement refusé.', 'error'); return; }
+                receiptSet.add(s.id);
+                btn.textContent = 'Voir le reçu A5';
+                if (data && data.charged) toast('Reçu débloqué · ' + fmtMoney(data.price) + ' débités.');
+            }
+            showReceipt(s);
         }
 
         const TABS = ['list', 'new', 'track', 'wallet'];
@@ -674,6 +786,7 @@ function esc(v) {
                 $('go-new').addEventListener('click', () => showTab('new'));
                 return;
             }
+            await loadReceiptSet();
             const byId = {}; data.forEach(s => { byId[s.id] = s; });
             box.innerHTML = data.map(s => `
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3">
@@ -682,13 +795,21 @@ function esc(v) {
                             <p class="font-bold text-gray-900">${esc(s.tracking_code)}</p>
                             <p class="text-sm text-gray-500">${esc(s.origin)} → ${esc(s.destination)}</p>
                             <p class="text-xs text-gray-400 mt-1">Pour ${esc(s.receiver_name)} · ${fmtDate(s.created_at)}</p>
+                            ${s.agency_name ? `<p class="text-xs text-gray-400">Agence : ${esc(s.agency_name)}</p>` : ''}
                             ${s.estimated_delivery_at && s.status !== 'delivered' && s.status !== 'cancelled' ? `<p class="text-xs text-gray-500">Livraison estimée : ${fmtDate(s.estimated_delivery_at)}</p>` : ''}
                         </div>
                         ${badge(s.status)}
                     </div>
-                    <button type="button" data-id="${esc(s.id)}" class="details-btn mt-3 text-sm font-semibold text-swiftblue cursor-pointer">Voir le suivi</button>
+                    <div class="flex flex-wrap items-center gap-4 mt-3">
+                        <button type="button" data-id="${esc(s.id)}" class="details-btn text-sm font-semibold text-swiftblue cursor-pointer">Voir le suivi</button>
+                        <button type="button" data-id="${esc(s.id)}" class="receipt-btn text-sm font-semibold text-gray-700 border border-gray-200 rounded-full px-3 py-1 cursor-pointer">${receiptSet.has(s.id) ? 'Voir le reçu A5' : 'Reçu A5 · ' + fmtMoney(RECEIPT_PRICE)}</button>
+                    </div>
                     <div id="ev-${esc(s.id)}" class="hidden"></div>
                 </div>`).join('');
+
+            document.querySelectorAll('.receipt-btn').forEach(btn => {
+                btn.addEventListener('click', () => openReceipt(byId[btn.dataset.id], btn));
+            });
 
             document.querySelectorAll('.details-btn').forEach(btn => {
                 btn.addEventListener('click', async () => {
@@ -741,6 +862,7 @@ function esc(v) {
                 width_cm: num('p-width'),
                 height_cm: num('p-height'),
                 declared_value: num('p-value'),
+                agency_name: $('p-agency').value.trim(),
                 service_type: $('p-service').value,
                 payer: $('p-payer').value,
                 is_fragile: $('p-fragile').checked,
@@ -752,6 +874,7 @@ function esc(v) {
 
             if (error) { dShow("Erreur : " + error.message); return; }
             e.target.reset();
+            $('s-country').value = 'Cameroun'; $('r-country').value = 'Cameroun';
             showTab('list');
             dShow("Expédition créée ! Code de suivi : " + data.tracking_code + (data.estimated_delivery_at ? " · Livraison estimée : " + fmtDate(data.estimated_delivery_at) : ""), 'success');
         });
@@ -782,6 +905,7 @@ function esc(v) {
         const doLogout = async () => {
             await supabaseClient.auth.signOut();
             isAdmin = false; currentUser = null;
+            closeReceipt();
             const ov = $('x-drawer'); if (ov) ov.classList.remove('open');
             const vl = $('x-veil'); if (vl) vl.style.display = 'none';
             showAuthView();
@@ -813,7 +937,7 @@ function esc(v) {
         function toast(msg, type) {
             const t = $('toast');
             t.textContent = msg;
-            t.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 z-[70] w-[90%] max-w-sm px-4 py-3 rounded-xl text-sm font-semibold text-center shadow-lg ' +
+            t.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 z-[90] w-[90%] max-w-sm px-4 py-3 rounded-xl text-sm font-semibold text-center shadow-lg ' +
                 (type === 'error' ? 'bg-red-600 text-white' : 'bg-gray-900 text-white');
             clearTimeout(toast._t);
             toast._t = setTimeout(() => t.classList.add('hidden'), 3500);
@@ -871,9 +995,7 @@ function esc(v) {
         });
     </script>
 
-<!-- ===== SWIFTWAY : CONSOLE ADMIN "CONTROL ROOM" =====
-     À coller dans index.html, juste AVANT </body> (après le <script> existant).
-     Ne touche ni au SQL, ni à l'interface client. -->
+<!-- ===== SWIFTWAY : CONSOLE ADMIN "CONTROL ROOM" ===== -->
 <style>
 #admin-view{background:#06080b;color:#cfd8e3;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;min-height:100vh;
   background-image:linear-gradient(#ffffff09 1px,transparent 1px),linear-gradient(90deg,#ffffff09 1px,transparent 1px);background-size:34px 34px}
@@ -991,9 +1113,9 @@ function esc(v) {
 
   function pipe() {
     const q = S.q.toLowerCase();
-    const rows = S.ship.filter(s => !q || [s.tracking_code, s.receiver_name, s.sender_name, s.origin, s.destination, s.receiver_phone, (S.own[s.user_id] || {}).email].some(v => String(v || '').toLowerCase().includes(q)));
+    const rows = S.ship.filter(s => !q || [s.tracking_code, s.receiver_name, s.sender_name, s.origin, s.destination, s.receiver_phone, s.agency_name, (S.own[s.user_id] || {}).email].some(v => String(v || '').toLowerCase().includes(q)));
     M.innerHTML = `<p class="x-h"><b>●</b> FLUX // glissez une carte pour changer son statut</p>
-    <input id="x-q" class="x-in" style="margin-bottom:12px" placeholder="> filtrer : code, nom, ville, téléphone" value="${esc(S.q)}">
+    <input id="x-q" class="x-in" style="margin-bottom:12px" placeholder="> filtrer : code, nom, ville, téléphone, agence" value="${esc(S.q)}">
     <div class="x-board">${Object.keys(STATUS).map(k => {
       const c = rows.filter(s => s.status === k);
       return `<div class="x-col" data-drop="${k}"><h4 style="color:${COL[k]}"><span>${esc(STATUS[k].label.toUpperCase())}</span><span>${c.length}</span></h4>
