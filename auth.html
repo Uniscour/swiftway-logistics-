@@ -4,15 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Connexion / Inscription - SwiftWay Logistics</title>
-    <!-- Intégration de Tailwind CSS pour un design moderne -->
+    <!-- Intégration de Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Intégration de la bibliothèque officielle Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
 
     <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
         <h2 class="text-2xl font-bold text-center text-blue-600 mb-6">SwiftWay Logistics</h2>
 
-        <!-- Formulaire -->
+        <!-- Formulaire de Connexion -->
         <form id="authForm" class="space-y-4">
             <div>
                 <label class="block text-gray-700 font-medium mb-1">Email</label>
@@ -36,13 +38,19 @@
 
             <!-- Bouton de validation -->
             <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition duration-200">
-                Se connecter
+                Se connecter / S'inscrire
             </button>
         </form>
     </div>
 
-    <!-- Script JavaScript pour basculer la visibilité du mot de passe -->
+    <!-- Script JavaScript : Lien Supabase et logique de connexion -->
     <script>
+        // 1. Connexion au pont Supabase avec tes clés configurées
+        const SUPABASE_URL = 'https://cwgpxyiodzxcabkavdbk.supabase.co';
+        const SUPABASE_ANON_KEY = 'Sb_publishable_zXgU5Q2p2UL3--3no-spmA_noD8JRvF';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // 2. Fonction pour voir/masquer le mot de passe
         function togglePassword(fieldId, iconId) {
             const passwordField = document.getElementById(fieldId);
             if (passwordField.type === "password") {
@@ -51,6 +59,15 @@
                 passwordField.type = "password";
             }
         }
+
+        // 3. Gestion de la soumission du formulaire
+        document.getElementById('authForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            alert("Connexion en cours avec l'email : " + email);
+        });
     </script>
 
 </body>
