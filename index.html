@@ -36,15 +36,15 @@
     <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border border-gray-100 transition-all duration-300">
         
         <!-- En-tête Pro -->
-        <div class="text-center mb-8 pt-2">
+        <div class="text-center mb-6 pt-2">
             <h1 class="text-3xl font-extrabold text-swiftblue tracking-tight">SwiftWay Logistics</h1>
             <p id="t-subtitle" class="text-base text-gray-500 mt-2 font-medium">Gérez vos expéditions facilement</p>
         </div>
 
         <!-- Sélecteur d'onglets : Connexion / Inscription -->
         <div class="flex bg-gray-100 p-1 rounded-xl mb-6">
-            <button id="tab-login" type="button" class="flex-1 py-2.5 text-sm font-semibold rounded-lg bg-white text-swiftblue shadow-sm transition">Connexion</button>
-            <button id="tab-signup" type="button" class="flex-1 py-2.5 text-sm font-semibold rounded-lg text-gray-500 hover:text-gray-900 transition">S'inscrire</button>
+            <button id="tab-login" type="button" class="flex-1 py-2.5 text-sm font-semibold rounded-lg bg-white text-swiftblue shadow-sm transition cursor-pointer">Connexion</button>
+            <button id="tab-signup" type="button" class="flex-1 py-2.5 text-sm font-semibold rounded-lg text-gray-500 hover:text-gray-900 transition cursor-pointer">S'inscrire</button>
         </div>
 
         <!-- Message d'alerte -->
@@ -63,12 +63,12 @@
                 <div class="relative">
                     <input type="password" id="login-password" required placeholder="••••••••" 
                         class="w-full px-5 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
-                    <button type="button" class="toggle-password absolute right-4 top-3.5 text-gray-400 hover:text-swiftblue transition">👁️</button>
+                    <button type="button" class="toggle-password absolute right-4 top-3.5 text-gray-400 hover:text-swiftblue transition cursor-pointer">👁️</button>
                 </div>
             </div>
 
             <button type="submit" id="login-btn" 
-                class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition duration-200 shadow-md">
+                class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition duration-200 shadow-md cursor-pointer">
                 Se connecter
             </button>
         </form>
@@ -76,40 +76,49 @@
         <!-- FORMULAIRE D'INSCRIPTION (Caché par défaut) -->
         <form id="signup-form" class="space-y-4 hidden">
             <div>
-                <label id="t-signup-email" class="block text-sm font-semibold text-gray-700 mb-1">Email</label>
+                <label id="t-signup-email" class="block text-xs font-semibold text-gray-700 mb-1">Email</label>
                 <input type="email" id="signup-email" required placeholder="votre@email.com" 
                     class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
             </div>
 
             <div>
-                <label id="t-signup-phone" class="block text-sm font-semibold text-gray-700 mb-1">Numéro de téléphone</label>
+                <label id="t-signup-phone" class="block text-xs font-semibold text-gray-700 mb-1">Numéro de téléphone</label>
                 <input type="tel" id="signup-phone" required placeholder="Ex: +237 6XXXXXXXX" 
                     class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
             </div>
 
             <div>
-                <label id="t-signup-pass" class="block text-sm font-semibold text-gray-700 mb-1">Mot de passe</label>
+                <label id="t-signup-pass" class="block text-xs font-semibold text-gray-700 mb-1">Mot de passe</label>
                 <div class="relative">
                     <input type="password" id="signup-password" required placeholder="••••••••" 
                         class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
-                    <button type="button" class="toggle-password absolute right-4 top-3 text-gray-400 hover:text-swiftblue transition">👁️</button>
+                    <button type="button" class="toggle-password absolute right-4 top-3 text-gray-400 hover:text-swiftblue transition cursor-pointer">👁️</button>
+                </div>
+            </div>
+
+            <div>
+                <label id="t-signup-pass-confirm" class="block text-xs font-semibold text-gray-700 mb-1">Confirmer le mot de passe</label>
+                <div class="relative">
+                    <input type="password" id="signup-password-confirm" required placeholder="••••••••" 
+                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
+                    <button type="button" class="toggle-password absolute right-4 top-3 text-gray-400 hover:text-swiftblue transition cursor-pointer">👁️</button>
                 </div>
             </div>
 
             <button type="submit" id="signup-btn" 
-                class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition duration-200 shadow-md mt-2">
+                class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition duration-200 shadow-md mt-2 cursor-pointer">
                 S'inscrire
             </button>
         </form>
     </div>
 
     <script>
-        // *** CONFIGURATION SUPABASE (Intégrée avec tes clés) ***
+        // *** CONFIGURATION SUPABASE ***
         const SUPABASE_URL = 'https://cwgpxyiodzxcabkavdbk.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_zXgU5Q2p2UL3--3no-spmA_noD8JRvF';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // *** GESTION DES ONGLETS (Connexion / Inscription) ***
+        // *** GESTION DES ONGLETS ***
         const tabLogin = document.getElementById('tab-login');
         const tabSignup = document.getElementById('tab-signup');
         const loginForm = document.getElementById('login-form');
@@ -119,22 +128,22 @@
         function hideAlert() { alertBox.classList.add('hidden'); }
 
         tabLogin.addEventListener('click', () => {
-            tabLogin.className = "flex-1 py-2.5 text-sm font-semibold rounded-lg bg-white text-swiftblue shadow-sm transition";
-            tabSignup.className = "flex-1 py-2.5 text-sm font-semibold rounded-lg text-gray-500 hover:text-gray-900 transition";
+            tabLogin.className = "flex-1 py-2.5 text-sm font-semibold rounded-lg bg-white text-swiftblue shadow-sm transition cursor-pointer";
+            tabSignup.className = "flex-1 py-2.5 text-sm font-semibold rounded-lg text-gray-500 hover:text-gray-900 transition cursor-pointer";
             loginForm.classList.remove('hidden');
             signupForm.classList.add('hidden');
             hideAlert();
         });
 
         tabSignup.addEventListener('click', () => {
-            tabSignup.className = "flex-1 py-2.5 text-sm font-semibold rounded-lg bg-white text-swiftblue shadow-sm transition";
-            tabLogin.className = "flex-1 py-2.5 text-sm font-semibold rounded-lg text-gray-500 hover:text-gray-900 transition";
+            tabSignup.className = "flex-1 py-2.5 text-sm font-semibold rounded-lg bg-white text-swiftblue shadow-sm transition cursor-pointer";
+            tabLogin.className = "flex-1 py-2.5 text-sm font-semibold rounded-lg text-gray-500 hover:text-gray-900 transition cursor-pointer";
             signupForm.classList.remove('hidden');
             loginForm.classList.add('hidden');
             hideAlert();
         });
 
-        // *** GESTION DE LA TRADUCTION BILINGUE (FR / EN) ***
+        // *** TRADUCTION BILINGUE ***
         const translations = {
             fr: {
                 subtitle: "Gérez vos expéditions facilement",
@@ -142,6 +151,7 @@
                 signupTab: "S'inscrire",
                 email: "Email",
                 password: "Mot de passe",
+                confirmPassword: "Confirmer le mot de passe",
                 phone: "Numéro de téléphone",
                 loginBtn: "Se connecter",
                 signupBtn: "S'inscrire",
@@ -149,7 +159,7 @@
                 processing: "Traitement en cours...",
                 successLogin: "Connexion réussie ! Redirection...",
                 successSignup: "Compte créé avec succès ! Redirection...",
-                fillAll: "Veuillez remplir tous les champs."
+                passMismatch: "Les mots de passe ne correspondent pas."
             },
             en: {
                 subtitle: "Manage your shipments easily",
@@ -157,6 +167,7 @@
                 signupTab: "Sign up",
                 email: "Email",
                 password: "Password",
+                confirmPassword: "Confirm Password",
                 phone: "Phone Number",
                 loginBtn: "Login",
                 signupBtn: "Sign up",
@@ -164,7 +175,7 @@
                 processing: "Processing...",
                 successLogin: "Login successful! Redirecting...",
                 successSignup: "Account created successfully! Redirecting...",
-                fillAll: "Please fill in all fields."
+                passMismatch: "Passwords do not match."
             }
         };
 
@@ -184,6 +195,7 @@
             document.getElementById('t-signup-email').textContent = t.email;
             document.getElementById('t-signup-phone').textContent = t.phone;
             document.getElementById('t-signup-pass').textContent = t.password;
+            document.getElementById('t-signup-pass-confirm').textContent = t.confirmPassword;
             document.getElementById('signup-btn').textContent = t.signupBtn;
         }
 
@@ -208,7 +220,7 @@
             alertBox.classList.remove('hidden');
         }
 
-        // *** LOGIQUE DE CONNEXION ***
+        // *** CONNEXION ***
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('login-email').value.trim();
@@ -226,13 +238,19 @@
             }
         });
 
-        // *** LOGIQUE D'INSCRIPTION ***
+        // *** INSCRIPTION ***
         signupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('signup-email').value.trim();
             const phone = document.getElementById('signup-phone').value.trim();
             const password = document.getElementById('signup-password').value;
+            const passwordConfirm = document.getElementById('signup-password-confirm').value;
             const t = translations[currentLang];
+
+            if (password !== passwordConfirm) {
+                showAlert(t.passMismatch);
+                return;
+            }
 
             showAlert(t.processing, 'success');
 
