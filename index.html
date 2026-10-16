@@ -29,7 +29,11 @@
 <div id="pub-view" class="hidden min-h-screen">
   <div class="max-w-xl mx-auto px-4 py-8">
     <h1 class="text-2xl font-extrabold text-gray-900 text-center mb-6">Suivre mon colis</h1>
-    <div id="pub-body"></div>
+    <form id="pub-form" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-3">
+      <input id="pub-code" required autocomplete="off" placeholder="Entrez votre code de suivi" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50 uppercase">
+      <button type="submit" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition shadow-md cursor-pointer">Rechercher</button>
+    </form>
+    <div id="pub-body" class="mt-4"></div>
   </div>
 </div>
 
@@ -360,7 +364,7 @@ async function loadReceiptSet() {
     receiptSet = new Set((data || []).map(r => r.shipment_id));
   } catch (err) { receiptSet = new Set(); }
 }
-function trackUrl(code) { return location.origin + location.pathname + '?t=' + encodeURIComponent(code); }
+function trackUrl(code) { return location.origin + location.pathname + '?suivi=1'; }
 
 function receiptHtml(s) {
   const ag = (s.agency_name || '').trim(), cur = s.currency || 'XAF', m = v => fmtCur(v, cur), NAVY = '#0f2a4a';
@@ -386,7 +390,7 @@ function receiptHtml(s) {
         <div><div style="font-size:8.5px;color:#667">N° DE BORDEREAU / SUIVI</div><div style="font-size:17px;font-weight:900;letter-spacing:.06em;color:${NAVY}">${esc(s.tracking_code)}</div>
           <div style="font-size:9px;color:#667;margin-top:2px">Émis le ${fmtDate(s.created_at)}</div>
           <div style="display:inline-block;margin-top:3px;border:1px solid ${NAVY};color:${NAVY};font-size:8.5px;font-weight:800;padding:1px 7px;letter-spacing:.1em">${s.service_type === 'express' ? 'EXPRESS 24 H' : 'STANDARD 48 H'}</div></div>
-        <div style="text-align:center"><div style="width:22mm;height:22mm;border:1px solid ${NAVY};padding:1.5mm;background:#fff">${qrSvg}</div><div style="font-size:7.5px;color:#667;margin-top:1px">Scannez pour suivre</div></div>
+        <div style="text-align:center"><div style="width:22mm;height:22mm;border:1px solid ${NAVY};padding:1.5mm;background:#fff">${qrSvg}</div><div style="font-size:7.5px;color:#667;margin-top:1px">Scannez, puis entrez le code</div></div>
       </div>
       <div style="display:flex;gap:7px">
         ${box('EXPÉDITEUR', s.sender_name, s.sender_phone, s.sender_address, s.sender_district, s.origin, s.sender_region, s.sender_country)}
@@ -620,47 +624,54 @@ $('recharge-form').addEventListener('submit', async (e) => {
 });
 
 // ---------- PAGE PUBLIQUE DE SUIVI ----------
-let pubTimer = null;
-async function loadPublic(code) {
-  try {
-    let { data, error } = await supabaseClient.rpc('sw_public_track', { p_code: code });
-    if (error) {
-      console.error(error);
-      const r = await supabaseClient.rpc('sw_track_shipment', { p_code: code });
-      if (r.error) throw r.error;
-      data = r.data;
-      if (data && (data.status === 'delivered' || data.status === 'cancelled')) data = null;
-    }
-    if (!data) { $('pub-body').innerHTML = ''; return false; } // livré, supprimé, expiré ou inconnu : rien ne s'affiche
-    const evs = (data.events || []).filter(e => e.status === data.status);
-    const last = evs.length ? evs[evs.length - 1] : (data.events || []).slice(-1)[0];
-    const label = (STATUS[data.status] || { label: data.status }).label;
-    $('pub-body').innerHTML = `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-      <div class="bg-green-50 border border-green-100 rounded-xl p-4 mb-4">
-        <p class="text-xs font-semibold text-green-700">Situation actuelle</p>
-        <p class="text-lg font-extrabold text-green-800">${esc(label)}</p>
-        ${last ? `<p class="text-xs text-green-700 mt-1">Dernière mise à jour : ${fmtDate(last.created_at)}${last.note ? ' · ' + esc(last.note) : ''}</p>` : ''}
-      </div>
-      <div class="flex items-start justify-between gap-2">
-        <div><p class="font-bold text-gray-900">${esc(data.tracking_code)}</p><p class="text-sm text-gray-500">${esc(data.origin)} → ${esc(data.destination)}</p></div>${badge(data.status)}</div>${timeline(data.events, data)}</div>`;
-    return true;
-  } catch (e) {
-    console.error(e);
-    $('pub-body').innerHTML = '<p class="text-center text-sm text-gray-500">Chargement impossible pour le moment. Réessayez dans un instant.</p>';
-    return true;
-  }
+let pubTimer = null, pubCode = null;
+function pubRender(data) {
+  const evs = (data.events || []).filter(e => e.status === data.status);
+  const last = evs.length ? evs[evs.length - 1] : (data.events || []).slice(-1)[0];
+  const label = (STATUS[data.status] || { label: data.status }).label;
+  return `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+    <div class="bg-green-50 border border-green-100 rounded-xl p-4 mb-4">
+      <p class="text-xs font-semibold text-green-700">Situation actuelle</p>
+      <p class="text-lg font-extrabold text-green-800">${esc(label)}</p>
+      ${last ? `<p class="text-xs text-green-700 mt-1">Dernière mise à jour : ${fmtDate(last.created_at)}${last.note ? ' · ' + esc(last.note) : ''}</p>` : ''}
+    </div>
+    <div class="flex items-start justify-between gap-2">
+      <div><p class="font-bold text-gray-900">${esc(data.tracking_code)}</p><p class="text-sm text-gray-500">${esc(data.origin)} → ${esc(data.destination)}</p></div>${badge(data.status)}</div>${timeline(data.events, data)}</div>`;
 }
-async function startPublic(code) {
+async function fetchPublic(code) {
+  const r = await supabaseClient.rpc('sw_public_track', { p_code: code });
+  if (!r.error && r.data) return { data: r.data };
+  const f = await supabaseClient.rpc('sw_track_shipment', { p_code: code });
+  if (!f.error && f.data && f.data.status !== 'delivered' && f.data.status !== 'cancelled') return { data: f.data };
+  if (r.error && f.error) return { error: r.error };
+  return { data: null };
+}
+async function searchPublic(code, manual) {
+  code = (code || '').trim();
+  if (!code) return;
+  clearInterval(pubTimer); pubCode = null;
+  const body = $('pub-body');
+  if (manual) body.innerHTML = '<p class="text-center text-sm text-gray-400">Recherche...</p>';
+  const { data, error } = await fetchPublic(code);
+  if (error) { console.error(error); body.innerHTML = '<p class="text-center text-sm text-gray-500">Service momentanément indisponible. Réessayez dans un instant.<br><span class="text-xs text-gray-400">' + esc(error.message || '') + '</span></p>'; return; }
+  if (!data) { body.innerHTML = manual ? '<div class="bg-white rounded-2xl border border-gray-100 p-6 text-center text-gray-500">Aucun colis actif trouvé avec ce code. Vérifiez-le et réessayez.</div>' : ''; return; }
+  pubCode = code; body.innerHTML = pubRender(data);
+  pubTimer = setInterval(async () => {
+    const r = await fetchPublic(pubCode);
+    if (r.data) body.innerHTML = pubRender(r.data);
+    else if (r.data === null) { clearInterval(pubTimer); body.innerHTML = ''; } // livré, supprimé ou expiré
+  }, 15000);
+}
+function startPublic(code) {
   document.title = 'Suivre mon colis';
   $('loading').classList.add('hidden'); $('pub-view').classList.remove('hidden');
-  $('pub-body').innerHTML = '<p class="text-center text-sm text-gray-400">Chargement...</p>';
-  const ok = await loadPublic(code);
-  if (ok) pubTimer = setInterval(async () => { if (!(await loadPublic(code))) clearInterval(pubTimer); }, 15000);
+  $('pub-form').addEventListener('submit', (e) => { e.preventDefault(); searchPublic($('pub-code').value, true); });
+  if (code) { $('pub-code').value = code; searchPublic(code, false); }
 }
 
 // ---------- DÉMARRAGE ----------
-const PUB = new URLSearchParams(location.search).get('t');
-if (PUB) startPublic(PUB);
+const QS = new URLSearchParams(location.search);
+if (QS.has('t') || QS.has('suivi')) startPublic(QS.get('t') || '');
 else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) showDashView(data.session.user); else showAuthView(); });
 </script>
 
