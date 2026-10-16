@@ -16,6 +16,7 @@
   #receipt-overlay { position: static !important; background: #fff !important; overflow: visible !important; padding: 0 !important; display: block !important; }
   .no-print { display: none !important; }
   #receipt-sheet { box-shadow: none !important; margin: 0 !important; }
+  #receipt-zoom { zoom: 1 !important; }
   #receipt-sheet, #receipt-sheet * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 </style>
@@ -108,6 +109,7 @@
         <div><label class="block text-xs font-semibold text-gray-700 mb-1">Opérateur</label>
           <select id="rc-method" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
             <option value="mtn">MTN Money</option><option value="orange">Orange Money</option></select></div>
+        <div id="rc-numbers" class="space-y-2"></div>
         <div><label class="block text-xs font-semibold text-gray-700 mb-1">Montant (FCFA)</label>
           <input id="rc-amount" type="number" min="100" step="1" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50"></div>
         <div><label class="block text-xs font-semibold text-gray-700 mb-1">ID de la transaction</label>
@@ -373,10 +375,7 @@ function receiptHtml(s) {
     ${val ? `<tr><td style="padding:2px 8px">Valeur déclarée</td><td style="padding:2px 8px;text-align:right;font-weight:700">${m(val)}</td></tr>` : ''}
     ${fee ? `<tr><td style="padding:2px 8px">Frais de transport (${s.payer === 'receiver' ? 'payés par le destinataire' : "payés par l'expéditeur"})</td><td style="padding:2px 8px;text-align:right;font-weight:700">${m(fee)}</td></tr>` : ''}
     </table></div>` : '';
-  const stamp = `<svg viewBox="0 0 100 100" style="width:23mm;height:23mm;transform:rotate(-12deg)"><circle cx="50" cy="50" r="46" fill="none" stroke="#1d4ed8" stroke-width="3" opacity=".75"/><circle cx="50" cy="50" r="39" fill="none" stroke="#1d4ed8" stroke-width="1" opacity=".75"/>
-    <text x="50" y="44" text-anchor="middle" font-family="Arial" font-weight="900" font-size="9" fill="#1d4ed8" opacity=".8">${esc(ag.slice(0, 18).toUpperCase())}</text>
-    <text x="50" y="57" text-anchor="middle" font-family="Arial" font-size="7" fill="#1d4ed8" opacity=".8">REÇU LE</text>
-    <text x="50" y="67" text-anchor="middle" font-family="Arial" font-weight="700" font-size="7.5" fill="#1d4ed8" opacity=".8">${esc(new Date(s.created_at).toLocaleDateString('fr-FR'))}</text></svg>`;
+  const stamp = `<div style="transform:rotate(-8deg);border:2.5px solid #1d4ed8;color:#1d4ed8;opacity:.85;padding:4px 12px;text-align:center;border-radius:4px"><div style="font-size:15px;font-weight:900;letter-spacing:.18em">APPROUVÉ</div><div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-top:1px">par ${esc(ag)}</div></div>`;
   return `<div id="receipt-sheet" style="position:relative;width:148mm;height:210mm;box-sizing:border-box;padding:6mm;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;line-height:1.35;margin:0 auto;box-shadow:0 4px 24px #0006;overflow:hidden">
     <div style="position:absolute;inset:6mm;border:2px solid ${NAVY};outline:1px solid ${NAVY};outline-offset:-5px;pointer-events:none"></div>
     <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;overflow:hidden"><div style="transform:rotate(-30deg);font-size:34px;font-weight:900;color:${NAVY};opacity:.055;white-space:nowrap;text-transform:uppercase;letter-spacing:.1em">${esc(ag)}</div></div>
@@ -400,9 +399,8 @@ function receiptHtml(s) {
       ${fees}
       <div style="flex:1"></div>
       <div style="display:flex;gap:7px;align-items:stretch">
-        <div style="flex:1;border:1px dashed #556;padding:5px 8px;font-size:8.5px;color:#667">SIGNATURE EXPÉDITEUR</div>
-        <div style="flex:1;border:1px dashed #556;padding:5px 8px;font-size:8.5px;color:#667">SIGNATURE DESTINATAIRE</div>
-        <div style="flex:1.1;border:1px solid ${NAVY};padding:3px 6px;display:flex;flex-direction:column;align-items:center;justify-content:space-between"><div style="font-size:8.5px;color:#667">CACHET &amp; SIGNATURE AGENCE</div>${stamp}</div>
+        <div style="flex:1;border:1px dashed #556;padding:5px 8px;min-height:27mm;font-size:8.5px;color:#667">SIGNATURE EXPÉDITEUR</div>
+        <div style="flex:1;border:1px dashed #556;padding:5px 8px;min-height:27mm;font-size:8.5px;color:#667;display:flex;flex-direction:column"><div>SIGNATURE DE L'AGENCE</div><div style="flex:1;display:flex;align-items:center;justify-content:center">${stamp}</div></div>
       </div>
       <div style="margin-top:8px;border-top:2px solid ${NAVY};padding-top:4px;text-align:center;font-size:9.5px"><div style="font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:${NAVY}">${esc(ag)}</div><div style="color:#667">Document émis le ${fmtDate(new Date())}</div></div>
     </div></div>`;
@@ -415,7 +413,7 @@ function showReceipt(s) {
   ov.innerHTML = `<div class="no-print" style="max-width:148mm;margin:0 auto 12px;display:flex;gap:8px">
       <button type="button" id="rcpt-print" class="flex-1 bg-swiftblue text-white font-semibold py-3 rounded-xl cursor-pointer">Imprimer / Enregistrer en PDF</button>
       <button type="button" id="rcpt-close" class="bg-white text-gray-800 font-semibold px-5 py-3 rounded-xl cursor-pointer">Fermer</button></div>
-    <div style="overflow-x:auto"><div style="width:148mm;margin:0 auto">${receiptHtml(s)}</div></div>`;
+    <div style="overflow-x:auto"><div id="receipt-zoom" style="width:148mm;margin:0 auto;zoom:${Math.min(1,(window.innerWidth-16)/560).toFixed(3)}">${receiptHtml(s)}</div></div>`;
   document.body.appendChild(ov);
   $('rcpt-close').addEventListener('click', closeReceipt);
   $('rcpt-print').addEventListener('click', () => {
@@ -578,11 +576,13 @@ async function openProof(path) {
 }
 async function loadWallet() {
   const list = $('recharge-list'); list.innerHTML = LOADING;
-  const [w, r] = await Promise.all([
+  const [w, r, pn] = await Promise.all([
     supabaseClient.from('sw_wallets').select('balance').eq('user_id', currentUser.id).maybeSingle(),
-    supabaseClient.from('sw_recharges').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false })
+    supabaseClient.from('sw_recharges').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }),
+    supabaseClient.from('sw_pay_numbers').select('*').eq('is_active', true).order('created_at')
   ]);
   $('wallet-balance').textContent = fmtMoney(w.data ? w.data.balance : 0);
+  PAYNUMS = pn.data || []; renderPayNums();
   if (r.error) { list.innerHTML = ''; dShow('Erreur : ' + r.error.message); return; }
   if (!r.data.length) { list.innerHTML = '<p class="text-center text-sm text-gray-500">Aucune demande de recharge pour le moment.</p>'; return; }
   list.innerHTML = '<h3 class="text-sm font-bold text-gray-900 mb-2">Mes demandes de recharge</h3>' + r.data.map(rc => `
@@ -592,6 +592,17 @@ async function loadWallet() {
       <p class="text-xs text-gray-400 mt-1">${fmtDate(rc.created_at)}</p>
       ${rc.admin_note ? `<p class="text-xs text-gray-500 mt-1">Note : ${esc(rc.admin_note)}</p>` : ''}</div>${rbadge(rc.status)}</div></div>`).join('');
 }
+let PAYNUMS = [];
+function renderPayNums() {
+  const op = $('rc-method').value, box = $('rc-numbers'), rows = PAYNUMS.filter(p => p.operator === op);
+  box.innerHTML = rows.length
+    ? '<p class="text-xs font-semibold text-gray-700">Effectuez le dépôt sur ce numéro :</p>' + rows.map(p => `<div class="flex items-center justify-between gap-2 bg-blue-50 border border-blue-100 rounded-xl p-3"><div><p class="text-base font-bold text-gray-900">${esc(p.phone)}</p><p class="text-xs text-gray-600">${esc(p.holder_name)}</p></div><button type="button" data-copy="${esc(p.phone)}" class="copy-num text-sm font-semibold text-swiftblue border border-blue-200 bg-white rounded-full px-3 py-1 cursor-pointer">Copier</button></div>`).join('')
+    : '<p class="text-xs text-amber-700 bg-amber-50 rounded-xl p-3">Aucun numéro disponible pour cet opérateur pour le moment.</p>';
+  box.querySelectorAll('.copy-num').forEach(b => b.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(b.dataset.copy); toast('Numéro copié.'); } catch (e) { prompt('Copiez ce numéro :', b.dataset.copy); }
+  }));
+}
+$('rc-method').addEventListener('change', renderPayNums);
 $('recharge-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = $('rc-btn'), f = $('rc-file').files[0];
@@ -611,7 +622,13 @@ $('recharge-form').addEventListener('submit', async (e) => {
 // ---------- PAGE PUBLIQUE DE SUIVI ----------
 let pubTimer = null;
 async function loadPublic(code) {
-  const { data } = await supabaseClient.rpc('sw_public_track', { p_code: code });
+  let { data, error } = await supabaseClient.rpc('sw_public_track', { p_code: code });
+  if (error) { // repli si la fonction SQL n'est pas encore installée
+    console.error(error);
+    const r = await supabaseClient.rpc('sw_track_shipment', { p_code: code });
+    data = r.data;
+    if (data && (data.status === 'delivered' || data.status === 'cancelled')) data = null;
+  }
   if (!data) { $('pub-body').innerHTML = ''; return false; } // livré, supprimé, expiré ou inconnu : rien ne s'affiche
   $('pub-body').innerHTML = `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5"><div class="flex items-start justify-between gap-2">
     <div><p class="font-bold text-gray-900">${esc(data.tracking_code)}</p><p class="text-sm text-gray-500">${esc(data.origin)} → ${esc(data.destination)}</p></div>${badge(data.status)}</div>${timeline(data.events, data)}</div>`;
@@ -701,13 +718,13 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     await supabaseClient.rpc('sw_advance_shipments');
     await loadPrice();
     const q = (t, f) => supabaseClient.from(t).select(f || '*');
-    const [sh, pr, rc, wl] = await Promise.all([
+    const [sh, pr, rc, wl, pn] = await Promise.all([
       q('sw_shipments').order('created_at', { ascending: false }).limit(500),
       q('sw_profiles').order('created_at', { ascending: false }),
       q('sw_recharges').order('created_at', { ascending: false }).limit(300),
-      q('sw_wallets', 'user_id,balance')]);
+      q('sw_wallets', 'user_id,balance'), q('sw_pay_numbers').order('created_at')]);
     if (sh.error) { toast('Erreur : ' + sh.error.message, 'error'); return; }
-    S.ship = sh.data; S.users = pr.data || []; S.rech = rc.data || []; S.bal = {}; S.own = {};
+    S.pn = pn.data || []; S.ship = sh.data; S.users = pr.data || []; S.rech = rc.data || []; S.bal = {}; S.own = {};
     (wl.data || []).forEach(w => S.bal[w.user_id] = w.balance);
     S.users.forEach(u => S.own[u.id] = u);
     const n = S.rech.filter(r => r.status === 'pending').length, b = $('nav-rech-badge');
@@ -792,7 +809,14 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     M.innerHTML = `<p class="x-h"><b>●</b> PARAMÈTRES // TARIFICATION</p>
     <div class="x-panel" style="margin-top:0"><p class="x-h">PRIX DU REÇU A5 / CODE DE SUIVI (FCFA)</p>
       <p style="font-size:12px;color:#7d8da0;margin:0 0 10px">Montant débité du portefeuille du client à la première génération du reçu d'une expédition. Prix actuel : <span style="color:#c6ff3d">${fmtMoney(RECEIPT_PRICE)}</span></p>
-      <div style="display:flex;gap:8px"><input id="cfg-price" type="number" min="0" step="1" class="x-in" value="${esc(RECEIPT_PRICE)}"><button class="x-btn go" data-price="1">ENREGISTRER</button></div></div>`;
+      <div style="display:flex;gap:8px"><input id="cfg-price" type="number" min="0" step="1" class="x-in" value="${esc(RECEIPT_PRICE)}"><button class="x-btn go" data-price="1">ENREGISTRER</button></div></div>
+    <div class="x-panel"><p class="x-h">NUMÉROS DE RECHARGE (affichés aux clients)</p>
+      <div style="display:grid;gap:8px;margin-bottom:12px">
+        <select id="pn-op" class="x-in"><option value="mtn">MTN Money</option><option value="orange">Orange Money</option></select>
+        <input id="pn-phone" class="x-in" placeholder="Numéro (ex : 6XX XX XX XX)">
+        <input id="pn-name" class="x-in" placeholder="Nom du titulaire">
+        <button class="x-btn go" data-pnadd="1">AJOUTER</button></div>
+      ${(S.pn || []).map(p => `<div class="x-row" style="cursor:default"><span><span class="x-tag" style="color:${p.operator === 'mtn' ? '#ffb020' : '#ff7a1a'}">${p.operator === 'mtn' ? 'MTN' : 'ORANGE'}</span> ${esc(p.phone)} · ${esc(p.holder_name)}${p.is_active ? '' : ' <span style="color:#ff5a5f">(masqué)</span>'}</span><span><button class="x-btn" data-pntog="${esc(p.id)}" data-on="${p.is_active ? 0 : 1}">${p.is_active ? 'MASQUER' : 'AFFICHER'}</button> <button class="x-btn no" data-pndel="${esc(p.id)}">✕</button></span></div>`).join('') || '<p style="color:#5b6b7c">// aucun numéro</p>'}</div>`;
   }
 
   async function openDrawer(id, keep) {
@@ -840,6 +864,24 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       const p = Number($('cfg-price').value);
       if (isNaN(p) || p < 0) return toast('Prix invalide.', 'error');
       return rpc('sw_admin_set_price', { p_price: p }, 'Prix du reçu mis à jour.');
+    }
+    if (g('data-pnadd')) {
+      const ph = $('pn-phone').value.trim(), nm = $('pn-name').value.trim();
+      if (!ph || !nm) return toast('Numéro et nom requis.', 'error');
+      const { error } = await supabaseClient.from('sw_pay_numbers').insert({ operator: $('pn-op').value, phone: ph, holder_name: nm });
+      if (error) return toast('Erreur : ' + error.message, 'error');
+      toast('Numéro ajouté.'); await loadAll(); return draw();
+    }
+    if ((el = g('data-pntog'))) {
+      const { error } = await supabaseClient.from('sw_pay_numbers').update({ is_active: el.dataset.on === '1' }).eq('id', el.dataset.pntog);
+      if (error) return toast('Erreur : ' + error.message, 'error');
+      await loadAll(); return draw();
+    }
+    if ((el = g('data-pndel'))) {
+      if (!confirm('Supprimer ce numéro ?')) return;
+      const { error } = await supabaseClient.from('sw_pay_numbers').delete().eq('id', el.dataset.pndel);
+      if (error) return toast('Erreur : ' + error.message, 'error');
+      await loadAll(); return draw();
     }
     if ((el = g('data-rv'))) {
       const ap = el.dataset.rv === '1';
