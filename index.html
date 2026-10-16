@@ -157,7 +157,7 @@
                     </div>
                         <div>
                         <label class="block text-xs font-semibold text-gray-700 mb-1">Pays</label>
-                        <input id="s-country" required value="Cameroun"  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                        <select id="s-country" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50"></select>
                     </div>
                     </div>
                     </div>
@@ -195,7 +195,7 @@
                     </div>
                         <div>
                         <label class="block text-xs font-semibold text-gray-700 mb-1">Pays</label>
-                        <input id="r-country" required value="Cameroun"  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                        <select id="r-country" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50"></select>
                     </div>
                     </div>
                     </div>
@@ -453,7 +453,33 @@
 
         const dAlert = $('d-alert');
 
-        function esc(v) {
+        const COUNTRIES = [
+    "Afghanistan","Afrique du Sud","Albanie","Algérie","Allemagne","Andorre","Angola","Antigua-et-Barbuda","Arabie saoudite","Argentine","Arménie","Australie","Autriche","Azerbaïdjan",
+    "Bahamas","Bahreïn","Bangladesh","Barbade","Belgique","Belize","Bénin","Bhoutan","Biélorussie","Birmanie (Myanmar)","Bolivie","Bosnie-Herzégovine","Botswana","Brésil","Brunei","Bulgarie","Burkina Faso","Burundi",
+    "Cambodge","Cameroun","Canada","Cap-Vert","Chili","Chine","Chypre","Colombie","Comores","Congo","Corée du Nord","Corée du Sud","Costa Rica","Côte d'Ivoire","Croatie","Cuba",
+    "Danemark","Djibouti","Dominique","Égypte","Émirats arabes unis","Équateur","Érythrée","Espagne","Estonie","Eswatini","États-Unis","Éthiopie",
+    "Fidji","Finlande","France","Gabon","Gambie","Géorgie","Ghana","Grèce","Grenade","Guatemala","Guinée","Guinée-Bissau","Guinée équatoriale","Guyana",
+    "Haïti","Honduras","Hongrie","Îles Marshall","Îles Salomon","Inde","Indonésie","Irak","Iran","Irlande","Islande","Israël","Italie",
+    "Jamaïque","Japon","Jordanie","Kazakhstan","Kenya","Kirghizistan","Kiribati","Koweït",
+    "Laos","Lesotho","Lettonie","Liban","Libéria","Libye","Liechtenstein","Lituanie","Luxembourg",
+    "Macédoine du Nord","Madagascar","Malaisie","Malawi","Maldives","Mali","Malte","Maroc","Maurice","Mauritanie","Mexique","Micronésie","Moldavie","Monaco","Mongolie","Monténégro","Mozambique",
+    "Namibie","Nauru","Népal","Nicaragua","Niger","Nigéria","Norvège","Nouvelle-Zélande","Oman","Ouganda","Ouzbékistan",
+    "Pakistan","Palaos","Palestine","Panama","Papouasie-Nouvelle-Guinée","Paraguay","Pays-Bas","Pérou","Philippines","Pologne","Portugal","Qatar",
+    "République centrafricaine","République démocratique du Congo","République dominicaine","Roumanie","Royaume-Uni","Russie","Rwanda",
+    "Saint-Christophe-et-Niévès","Sainte-Lucie","Saint-Marin","Saint-Vincent-et-les-Grenadines","Salvador","Samoa","Sao Tomé-et-Principe","Sénégal","Serbie","Seychelles","Sierra Leone","Singapour","Slovaquie","Slovénie","Somalie","Soudan","Soudan du Sud","Sri Lanka","Suède","Suisse","Suriname","Syrie",
+    "Tadjikistan","Tanzanie","Tchad","Tchéquie","Thaïlande","Timor oriental","Togo","Tonga","Trinité-et-Tobago","Tunisie","Turkménistan","Turquie","Tuvalu",
+    "Ukraine","Uruguay","Vanuatu","Vatican (Saint-Siège)","Venezuela","Viêt Nam","Yémen","Zambie","Zimbabwe"
+];
+
+function fillCountries() {
+    // Cameroun en premier (sélectionné par défaut), puis les autres par ordre alphabétique
+    const others = COUNTRIES.filter(c => c !== "Cameroun").sort((a, b) => a.localeCompare(b, 'fr'));
+    const options = ["Cameroun", ...others].map(c => `<option value="${c}">${c}</option>`).join('');
+    ['s-country', 'r-country'].forEach(id => { $(id).innerHTML = options; });
+}
+fillCountries();
+
+function esc(v) {
             return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
         }
         function fmtDate(d) {
@@ -471,17 +497,57 @@
         }
         function dHide() { dAlert.classList.add('hidden'); }
 
-        function timeline(events) {
-            if (!events || !events.length) return '<p class="text-sm text-gray-500 mt-3">Aucune étape pour le moment.</p>';
-            return '<ol class="space-y-3 mt-3">' + events.map((e, i) => {
-                const s = STATUS[e.status] || { label: e.status };
-                const last = i === events.length - 1;
-                return `<li class="flex gap-3">
-                    <span class="mt-1.5 w-3 h-3 rounded-full ${last ? 'bg-swiftblue' : 'bg-gray-300'} shrink-0"></span>
-                    <div><p class="text-sm font-semibold text-gray-900">${esc(s.label)}</p>
-                    ${e.note ? `<p class="text-xs text-gray-500">${esc(e.note)}</p>` : ''}
-                    <p class="text-xs text-gray-400">${fmtDate(e.created_at)}</p></div></li>`;
+        // Étapes et jalons de la fenêtre de livraison (48 h standard / 24 h express)
+        // Jalons en part de la fenêtre : 0 %, 12,5 % (6 h), 25 % (12 h), 75 % (36 h), 100 % (48 h)
+        const STEPS = ['pending', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered'];
+        const STEP_FRAC = [0, 0.125, 0.25, 0.75, 1];
+
+        function timeline(events, ship) {
+            events = events || [];
+            const byStatus = {};
+            events.forEach(e => { if (!byStatus[e.status]) byStatus[e.status] = e; });
+
+            const win = (ship && ship.delivery_window_hours) || 48;
+            const start = ship ? new Date(ship.created_at).getTime() : null;
+            const cancelled = !!ship && ship.status === 'cancelled';
+            const idx = ship ? STEPS.indexOf(ship.status) : -1;
+            const pct = ship ? (ship.status === 'delivered' ? 100 : Math.max(0, idx) * 25) : 0;
+            const lastDone = STEPS.reduce((acc, st, i) => byStatus[st] ? i : acc, -1);
+
+            let html = '';
+            if (ship && !cancelled) {
+                const eta = ship.estimated_delivery_at || (start ? new Date(start + win * 3600000).toISOString() : null);
+                html += `<div class="mt-4">
+                    <div class="flex justify-between text-xs text-gray-500 mb-1">
+                        <span>${ship.status === 'delivered' ? 'Livré' : 'Livraison estimée'}</span>
+                        <span class="font-semibold text-gray-700">${eta ? fmtDate(eta) : ''}</span>
+                    </div>
+                    <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-2 bg-swiftblue rounded-full" style="width:${pct}%"></div></div>
+                    <p class="text-xs text-gray-400 mt-1">Délai prévu : ${win} h (${ship.service_type === 'express' ? 'Express' : 'Standard'})</p>
+                </div>`;
+            }
+
+            html += '<ol class="space-y-3 mt-4">' + STEPS.map((st, i) => {
+                const ev = byStatus[st];
+                const done = !!ev;
+                const current = done && i === lastDone && !cancelled;
+                const label = (STATUS[st] || { label: st }).label;
+                const planned = start ? new Date(start + STEP_FRAC[i] * win * 3600000) : null;
+                const dot = done ? (current ? 'bg-swiftblue ring-4 ring-blue-100' : 'bg-swiftblue') : 'bg-gray-200';
+                const when = done
+                    ? `<p class="text-xs text-gray-400">${fmtDate(ev.created_at)}</p>`
+                    : (planned && !cancelled ? `<p class="text-xs text-gray-400">Prévu : ${fmtDate(planned)}</p>` : '');
+                const note = done && ev.note ? `<p class="text-xs text-gray-500">${esc(ev.note)}</p>` : '';
+                return `<li class="flex gap-3 ${done ? '' : 'opacity-60'}">
+                    <span class="mt-1.5 w-3 h-3 rounded-full ${dot} shrink-0"></span>
+                    <div><p class="text-sm font-semibold ${done ? 'text-gray-900' : 'text-gray-500'}">${esc(label)}</p>${note}${when}</div></li>`;
             }).join('') + '</ol>';
+
+            if (cancelled) {
+                const ev = byStatus['cancelled'];
+                html += `<div class="mt-3 bg-red-50 text-red-700 rounded-xl p-3 text-sm font-semibold">Expédition annulée${ev ? ' · ' + fmtDate(ev.created_at) : ''}</div>`;
+            }
+            return html;
         }
 
         function line(label, v) { return v ? `<p class="text-sm text-gray-700"><span class="text-gray-400">${label} :</span> ${esc(v)}</p>` : ''; }
@@ -522,6 +588,7 @@
         async function loadShipments() {
             const box = $('list-container');
             box.innerHTML = '<p class="text-center text-gray-500 py-8">Chargement...</p>';
+            await supabaseClient.rpc('sw_advance_shipments');
             const { data, error } = await supabaseClient
                 .from('sw_shipments').select('*').order('created_at', { ascending: false });
 
@@ -545,6 +612,7 @@
                             <p class="font-bold text-gray-900">${esc(s.tracking_code)}</p>
                             <p class="text-sm text-gray-500">${esc(s.origin)} → ${esc(s.destination)}</p>
                             <p class="text-xs text-gray-400 mt-1">Pour ${esc(s.receiver_name)} · ${fmtDate(s.created_at)}</p>
+                            ${s.estimated_delivery_at && s.status !== 'delivered' && s.status !== 'cancelled' ? `<p class="text-xs text-gray-500">Livraison estimée : ${fmtDate(s.estimated_delivery_at)}</p>` : ''}
                         </div>
                         ${badge(s.status)}
                     </div>
@@ -563,7 +631,7 @@
                     const { data: events, error: err } = await supabaseClient
                         .from('sw_shipment_events').select('*')
                         .eq('shipment_id', btn.dataset.id).order('created_at', { ascending: true });
-                    holder.innerHTML = err ? '<p class="text-sm text-red-600 mt-3">Erreur de chargement.</p>' : detailsHtml(byId[btn.dataset.id]) + timeline(events);
+                    holder.innerHTML = err ? '<p class="text-sm text-red-600 mt-3">Erreur de chargement.</p>' : detailsHtml(byId[btn.dataset.id]) + timeline(events, byId[btn.dataset.id]);
                     holder.classList.remove('hidden');
                     btn.textContent = 'Masquer le suivi';
                 });
@@ -615,7 +683,7 @@
             if (error) { dShow("Erreur : " + error.message); return; }
             e.target.reset();
             showTab('list');
-            dShow("Expédition créée ! Code de suivi : " + data.tracking_code, 'success');
+            dShow("Expédition créée ! Code de suivi : " + data.tracking_code + (data.estimated_delivery_at ? " · Livraison estimée : " + fmtDate(data.estimated_delivery_at) : ""), 'success');
         });
 
         $('track-form').addEventListener('submit', async (e) => {
@@ -637,7 +705,7 @@
                     <p class="text-sm text-gray-500">${esc(data.origin)} → ${esc(data.destination)}</p></div>
                     ${badge(data.status)}
                 </div>
-                ${timeline(data.events)}
+                ${timeline(data.events, data)}
             </div>`;
         });
 
