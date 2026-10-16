@@ -27,7 +27,7 @@
 
     <!-- Bouton de changement de langue (Haut droite) -->
     <div class="absolute top-6 right-6">
-        <button id="lang-toggle" class="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition">
+        <button id="lang-toggle" type="button" class="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition cursor-pointer">
             🌐 <span id="current-lang-text">EN</span>
         </button>
     </div>
@@ -96,7 +96,7 @@
                 submitBtn: "Continuer",
                 noAccount: "Pas encore de compte ?",
                 registerLink: "S'inscrire",
-                langBtn: "EN",
+                langToggleDisplay: "EN", // Si on est en français, le bouton propose de passer en EN
                 processing: "Vérification en cours...",
                 successLogin: "Connexion réussie ! Redirection...",
                 successSignup: "Compte créé avec succès ! Redirection...",
@@ -110,7 +110,7 @@
                 submitBtn: "Continue",
                 noAccount: "Don't have an account?",
                 registerLink: "Sign up",
-                langBtn: "FR",
+                langToggleDisplay: "FR", // Si on est en anglais, le bouton propose de passer en FR
                 processing: "Processing...",
                 successLogin: "Login successful! Redirecting...",
                 successSignup: "Account created successfully! Redirecting...",
@@ -122,18 +122,22 @@
 
         function updateLanguage(lang) {
             currentLang = lang;
-            document.getElementById('current-lang-text').textContent = translations[lang].langBtn;
-            document.getElementById('t-subtitle').textContent = translations[lang].subtitle;
-            document.getElementById('t-welcome').textContent = translations[lang].welcome;
-            document.getElementById('t-email-label').textContent = translations[lang].emailLabel;
-            document.getElementById('t-pass-label').textContent = translations[lang].passLabel;
-            document.getElementById('submit-btn').textContent = translations[lang].submitBtn;
-            document.getElementById('t-no-account').textContent = translations[lang].noAccount;
-            document.getElementById('t-register-link').textContent = translations[lang].registerLink;
+            const t = translations[lang];
+
+            document.getElementById('current-lang-text').textContent = t.langToggleDisplay;
+            document.getElementById('t-subtitle').textContent = t.subtitle;
+            document.getElementById('t-welcome').textContent = t.welcome;
+            document.getElementById('t-email-label').textContent = t.emailLabel;
+            document.getElementById('t-pass-label').textContent = t.passLabel;
+            document.getElementById('submit-btn').textContent = t.submitBtn;
+            document.getElementById('t-no-account').textContent = t.noAccount;
+            document.getElementById('t-register-link').textContent = t.registerLink;
         }
 
-        document.getElementById('lang-toggle').addEventListener('click', () => {
-            updateLanguage(currentLang === 'fr' ? 'en' : 'fr');
+        document.getElementById('lang-toggle').addEventListener('click', (e) => {
+            e.preventDefault();
+            const nextLang = currentLang === 'fr' ? 'en' : 'fr';
+            updateLanguage(nextLang);
         });
 
         // *** GESTION DE L'ŒIL DU MOT DE PASSE ***
