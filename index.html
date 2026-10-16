@@ -12,6 +12,8 @@
 </head>
 <body class="bg-gray-50 min-h-screen">
 
+    <div id="toast" class="hidden"></div>
+
     <!-- Chargement -->
     <div id="loading" class="min-h-screen flex items-center justify-center text-gray-500 font-medium">Chargement...</div>
 
@@ -110,10 +112,12 @@
         </header>
 
         <main class="max-w-3xl mx-auto px-4 py-6">
-            <div class="flex bg-gray-100 p-1 rounded-xl mb-6">
-                <button data-tab="list" class="dtab flex-1 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Mes colis</button>
-                <button data-tab="new" class="dtab flex-1 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Nouvelle</button>
-                <button data-tab="track" class="dtab flex-1 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Suivre</button>
+            <div class="flex overflow-x-auto gap-1 bg-gray-100 p-1 rounded-xl mb-6">
+                <button data-tab="list" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Mes colis</button>
+                <button data-tab="new" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Nouvelle</button>
+                <button data-tab="track" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Suivre</button>
+                <button data-tab="wallet" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Portefeuille</button>
+                <button data-tab="admin" class="dtab hidden shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Admin</button>
             </div>
 
             <div id="d-alert" class="hidden mb-4 p-4 rounded-xl text-sm text-center font-medium"></div>
@@ -277,6 +281,69 @@
                 </form>
                 <div id="track-result"></div>
             </section>
+        
+            <!-- Portefeuille (client) -->
+            <section id="view-wallet" class="hidden space-y-4">
+                <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+                    <p class="text-xs font-semibold text-gray-500">Solde du portefeuille</p>
+                    <p id="wallet-balance" class="text-3xl font-extrabold text-swiftblue mt-1">0 FCFA</p>
+                </div>
+                <form id="recharge-form" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
+                    <h2 class="text-lg font-bold text-gray-900">Demander une recharge</h2>
+                    <p class="text-xs text-gray-500">Effectuez votre paiement, puis indiquez ici sa référence. Un administrateur vérifiera et créditera votre solde.</p>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Montant (FCFA)</label>
+                        <input id="rc-amount" type="number" min="100" step="1" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Moyen de paiement</label>
+                        <select id="rc-method" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                            <option value="mobile_money">Mobile Money</option>
+                            <option value="virement">Virement</option>
+                            <option value="especes">Espèces</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Référence ou preuve de paiement</label>
+                        <input id="rc-ref" required placeholder="Ex: numéro de transaction" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                    </div>
+                    <button type="submit" id="rc-btn" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition shadow-md cursor-pointer">Envoyer la demande</button>
+                </form>
+                <div id="recharge-list"></div>
+            </section>
+
+            <!-- Administration -->
+            <section id="view-admin" class="hidden space-y-4">
+                <div class="flex gap-2 overflow-x-auto">
+                    <button type="button" data-asub="ship" class="asub shrink-0 px-4 py-2 text-sm font-semibold rounded-full border cursor-pointer">Colis</button>
+                    <button type="button" data-asub="rech" class="asub shrink-0 px-4 py-2 text-sm font-semibold rounded-full border cursor-pointer">Recharges</button>
+                    <button type="button" data-asub="users" class="asub shrink-0 px-4 py-2 text-sm font-semibold rounded-full border cursor-pointer">Utilisateurs</button>
+                </div>
+
+                <div id="asub-ship" class="space-y-3">
+                    <div class="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
+                        <input id="a-search" placeholder="Rechercher : code SW..., nom, téléphone, ville" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+                        <select id="a-filter" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50"></select>
+                    </div>
+                    <p id="a-count" class="text-xs text-gray-500"></p>
+                    <div id="admin-ship-list"></div>
+                </div>
+
+                <div id="asub-rech" class="hidden space-y-3">
+                    <select id="a-rfilter" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-white">
+                        <option value="pending">Demandes en attente</option>
+                        <option value="">Toutes les demandes</option>
+                        <option value="approved">Approuvées</option>
+                        <option value="rejected">Rejetées</option>
+                    </select>
+                    <div id="admin-rech-list"></div>
+                </div>
+
+                <div id="asub-users" class="hidden space-y-3">
+                    <input id="a-usearch" placeholder="Rechercher : email ou téléphone" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-white">
+                    <div id="admin-user-list"></div>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -294,10 +361,24 @@
             $('auth-view').classList.remove('hidden');
         }
 
-        function showDashView(user) {
+        let currentUser = null, isAdmin = false;
+        async function showDashView(user) {
+            currentUser = user;
+            isAdmin = false;
+            try {
+                const { data: prof } = await supabaseClient.from('sw_profiles')
+                    .select('role,is_active').eq('id', user.id).maybeSingle();
+                if (prof && prof.is_active === false) {
+                    await supabaseClient.auth.signOut();
+                    showAuthView();
+                    showAlert('Ce compte est désactivé. Contactez SwiftWay Logistics.');
+                    return;
+                }
+                isAdmin = !!prof && prof.role === 'admin';
+            } catch (err) { isAdmin = false; }
             $('loading').classList.add('hidden');
             $('auth-view').classList.add('hidden');
-            $('user-email').textContent = (user && user.email) || '';
+            $('user-email').textContent = ((user && user.email) || '') + (isAdmin ? ' · Administrateur' : '');
             $('dash-view').classList.remove('hidden');
             showTab('list');
         }
@@ -505,7 +586,11 @@ function esc(v) {
         function timeline(events, ship) {
             events = events || [];
             const byStatus = {};
-            events.forEach(e => { if (!byStatus[e.status]) byStatus[e.status] = e; });
+            const extra = {};
+            events.forEach(e => {
+                if (!byStatus[e.status]) byStatus[e.status] = e;
+                else if (e.note) (extra[e.status] = extra[e.status] || []).push(e);
+            });
 
             const win = (ship && ship.delivery_window_hours) || 48;
             const start = ship ? new Date(ship.created_at).getTime() : null;
@@ -538,9 +623,10 @@ function esc(v) {
                     ? `<p class="text-xs text-gray-400">${fmtDate(ev.created_at)}</p>`
                     : (planned && !cancelled ? `<p class="text-xs text-gray-400">Prévu : ${fmtDate(planned)}</p>` : '');
                 const note = done && ev.note ? `<p class="text-xs text-gray-500">${esc(ev.note)}</p>` : '';
+                const extraNotes = (extra[st] || []).map(x => `<p class="text-xs text-gray-500">${esc(x.note)} <span class="text-gray-400">· ${fmtDate(x.created_at)}</span></p>`).join('');
                 return `<li class="flex gap-3 ${done ? '' : 'opacity-60'}">
                     <span class="mt-1.5 w-3 h-3 rounded-full ${dot} shrink-0"></span>
-                    <div><p class="text-sm font-semibold ${done ? 'text-gray-900' : 'text-gray-500'}">${esc(label)}</p>${note}${when}</div></li>`;
+                    <div><p class="text-sm font-semibold ${done ? 'text-gray-900' : 'text-gray-500'}">${esc(label)}</p>${note}${extraNotes}${when}</div></li>`;
             }).join('') + '</ol>';
 
             if (cancelled) {
@@ -573,15 +659,21 @@ function esc(v) {
                     ${line('Instructions', s.delivery_instructions)}</div></div>`;
         }
 
+        const TABS = ['list', 'new', 'track', 'wallet', 'admin'];
         function showTab(name) {
+            if (name === 'admin' && !isAdmin) name = 'list';
             dHide();
-            ['list', 'new', 'track'].forEach(t => $('view-' + t).classList.toggle('hidden', t !== name));
+            TABS.forEach(t => { const el = $('view-' + t); if (el) el.classList.toggle('hidden', t !== name); });
             document.querySelectorAll('.dtab').forEach(b => {
                 const active = b.dataset.tab === name;
-                b.className = 'dtab flex-1 py-2.5 text-sm font-semibold rounded-lg cursor-pointer transition ' +
+                const hide = b.dataset.tab === 'admin' && !isAdmin;
+                b.className = 'dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer transition ' +
+                    (hide ? 'hidden ' : '') +
                     (active ? 'bg-white text-swiftblue shadow-sm' : 'text-gray-500 hover:text-gray-900');
             });
             if (name === 'list') loadShipments();
+            if (name === 'wallet') loadWallet();
+            if (name === 'admin') loadAdmin();
         }
         document.querySelectorAll('.dtab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 
@@ -711,10 +803,400 @@ function esc(v) {
 
         $('logout-btn').addEventListener('click', async () => {
             await supabaseClient.auth.signOut();
+            isAdmin = false; currentUser = null;
+            adminShipments = []; adminUsers = []; adminOpenId = null; adminUserOpen = null;
             showAuthView();
         });
 
         // =====================================================
+        //        PORTEFEUILLE (client) + ADMINISTRATION
+        // =====================================================
+        const IC = "w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50";
+        const METHODS = { mobile_money: 'Mobile Money', virement: 'Virement', especes: 'Espèces' };
+        const RSTATUS = {
+            pending:  { label: 'En attente', color: 'bg-amber-50 text-amber-700' },
+            approved: { label: 'Approuvée',  color: 'bg-green-50 text-green-700' },
+            rejected: { label: 'Rejetée',    color: 'bg-red-50 text-red-700' }
+        };
+        const LOADING = '<p class="text-center text-gray-500 py-6">Chargement...</p>';
+
+        function fmtMoney(n) { return Number(n || 0).toLocaleString('fr-FR') + ' FCFA'; }
+        function rbadge(st) {
+            const s = RSTATUS[st] || { label: st, color: 'bg-gray-100 text-gray-700' };
+            return `<span class="inline-block px-3 py-1 rounded-full text-xs font-semibold ${s.color}">${esc(s.label)}</span>`;
+        }
+        function toast(msg, type) {
+            const t = $('toast');
+            t.textContent = msg;
+            t.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-sm px-4 py-3 rounded-xl text-sm font-semibold text-center shadow-lg ' +
+                (type === 'error' ? 'bg-red-600 text-white' : 'bg-gray-900 text-white');
+            clearTimeout(toast._t);
+            toast._t = setTimeout(() => t.classList.add('hidden'), 3500);
+        }
+
+        // ---------- Portefeuille (client) ----------
+        async function loadWallet() {
+            const list = $('recharge-list');
+            list.innerHTML = LOADING;
+            const [w, r] = await Promise.all([
+                supabaseClient.from('sw_wallets').select('balance').eq('user_id', currentUser.id).maybeSingle(),
+                supabaseClient.from('sw_recharges').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false })
+            ]);
+            $('wallet-balance').textContent = fmtMoney(w.data ? w.data.balance : 0);
+            if (r.error) { list.innerHTML = ''; dShow('Erreur : ' + r.error.message); return; }
+            if (!r.data.length) {
+                list.innerHTML = '<p class="text-center text-sm text-gray-500">Aucune demande de recharge pour le moment.</p>';
+                return;
+            }
+            list.innerHTML = '<h3 class="text-sm font-bold text-gray-900 mb-2">Mes demandes de recharge</h3>' + r.data.map(rc => `
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3">
+                    <div class="flex items-start justify-between gap-2">
+                        <div>
+                            <p class="font-bold text-gray-900">${fmtMoney(rc.amount)}</p>
+                            <p class="text-sm text-gray-500">${esc(METHODS[rc.method] || rc.method)} · ${esc(rc.reference)}</p>
+                            <p class="text-xs text-gray-400 mt-1">${fmtDate(rc.created_at)}</p>
+                            ${rc.admin_note ? `<p class="text-xs text-gray-500 mt-1">Note : ${esc(rc.admin_note)}</p>` : ''}
+                        </div>
+                        ${rbadge(rc.status)}
+                    </div>
+                </div>`).join('');
+        }
+
+        $('recharge-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = $('rc-btn');
+            btn.disabled = true;
+            const { error } = await supabaseClient.from('sw_recharges').insert({
+                amount: Number($('rc-amount').value),
+                method: $('rc-method').value,
+                reference: $('rc-ref').value.trim()
+            });
+            btn.disabled = false;
+            if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+            e.target.reset();
+            toast('Demande envoyée. Elle sera vérifiée par un administrateur.');
+            loadWallet();
+        });
+
+        // ---------- Administration : navigation ----------
+        let adminSub = 'ship';
+        function showSub(name) {
+            adminSub = name;
+            ['ship', 'rech', 'users'].forEach(s => $('asub-' + s).classList.toggle('hidden', s !== name));
+            document.querySelectorAll('.asub').forEach(b => {
+                const a = b.dataset.asub === name;
+                b.className = 'asub shrink-0 px-4 py-2 text-sm font-semibold rounded-full border cursor-pointer ' +
+                    (a ? 'bg-swiftblue text-white border-swiftblue' : 'bg-white text-gray-600 border-gray-200');
+            });
+            if (name === 'ship') adminLoadShipments();
+            if (name === 'rech') adminLoadRecharges();
+            if (name === 'users') adminLoadUsers();
+        }
+        function loadAdmin() { if (isAdmin) showSub(adminSub); }
+        document.querySelectorAll('.asub').forEach(b => b.addEventListener('click', () => showSub(b.dataset.asub)));
+
+        // ---------- Administration : colis ----------
+        let adminShipments = [], adminOwners = {}, adminOpenId = null, adminEvents = {};
+
+        $('a-filter').innerHTML = '<option value="">Tous les statuts</option>' +
+            Object.keys(STATUS).map(k => `<option value="${k}">${esc(STATUS[k].label)}</option>`).join('');
+
+        function hoursText(x) {
+            const total = Math.round(Math.abs(x) * 60);
+            const hh = Math.floor(total / 60);
+            const mm = total % 60;
+            return hh + ' h ' + String(mm).padStart(2, '0') + ' min';
+        }
+        function elapsedInfo(s) {
+            if (s.status === 'delivered' || s.status === 'cancelled') return { text: '', late: false };
+            const win = s.delivery_window_hours || 48;
+            const h = (Date.now() - new Date(s.created_at).getTime()) / 3600000;
+            const left = win - h;
+            return left >= 0
+                ? { text: `Écoulé : ${hoursText(h)} · Reste : ${hoursText(left)} (délai ${win} h)`, late: false }
+                : { text: `En retard de ${hoursText(-left)} (délai ${win} h)`, late: true };
+        }
+
+        async function adminLoadEvents(id) {
+            const { data } = await supabaseClient.from('sw_shipment_events').select('*')
+                .eq('shipment_id', id).order('created_at', { ascending: true });
+            adminEvents[id] = data || [];
+        }
+
+        async function adminLoadShipments() {
+            const list = $('admin-ship-list');
+            if (!adminShipments.length) list.innerHTML = LOADING;
+            await supabaseClient.rpc('sw_advance_shipments');
+            const [sh, pr] = await Promise.all([
+                supabaseClient.from('sw_shipments').select('*').order('created_at', { ascending: false }).limit(500),
+                supabaseClient.from('sw_profiles').select('id,email')
+            ]);
+            if (sh.error) { list.innerHTML = ''; toast('Erreur : ' + sh.error.message, 'error'); return; }
+            adminShipments = sh.data;
+            adminOwners = {};
+            (pr.data || []).forEach(p => { adminOwners[p.id] = p.email; });
+            if (adminOpenId) await adminLoadEvents(adminOpenId);
+            renderAdminShipments();
+        }
+
+        function renderAdminShipments() {
+            const q = $('a-search').value.trim().toLowerCase();
+            const f = $('a-filter').value;
+            const rows = adminShipments.filter(s => {
+                if (f && s.status !== f) return false;
+                if (!q) return true;
+                return [s.tracking_code, s.receiver_name, s.sender_name, s.receiver_phone, s.sender_phone,
+                        s.origin, s.destination, adminOwners[s.user_id]]
+                    .some(v => String(v || '').toLowerCase().includes(q));
+            });
+            $('a-count').textContent = rows.length + ' colis sur ' + adminShipments.length;
+            $('admin-ship-list').innerHTML = rows.length ? rows.map(adminCard).join('')
+                : '<p class="text-center text-gray-500 py-6">Aucun colis trouvé.</p>';
+        }
+        $('a-search').addEventListener('input', renderAdminShipments);
+        $('a-filter').addEventListener('change', renderAdminShipments);
+
+        function adminCard(s) {
+            const open = adminOpenId === s.id;
+            const info = elapsedInfo(s);
+            return `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3">
+                <div class="flex items-start justify-between gap-2">
+                    <div>
+                        <p class="font-bold text-gray-900">${esc(s.tracking_code)}</p>
+                        <p class="text-sm text-gray-500">${esc(s.origin)} → ${esc(s.destination)}</p>
+                        <p class="text-xs text-gray-400 mt-1">${esc(s.sender_name)} → ${esc(s.receiver_name)}</p>
+                        <p class="text-xs text-gray-400">Compte : ${esc(adminOwners[s.user_id] || '-')}</p>
+                    </div>
+                    ${badge(s.status)}
+                </div>
+                ${info.text ? `<p class="text-xs font-semibold mt-2 ${info.late ? 'text-red-600' : 'text-gray-600'}">${info.text}</p>` : ''}
+                <button type="button" data-act="toggle" data-id="${esc(s.id)}" class="mt-3 text-sm font-semibold text-swiftblue cursor-pointer">${open ? 'Fermer' : 'Gérer ce colis'}</button>
+                ${open ? adminPanel(s) : ''}
+            </div>`;
+        }
+
+        function adminPanel(s) {
+            const id = esc(s.id);
+            const opts = Object.keys(STATUS).map(k =>
+                `<option value="${k}" ${k === s.status ? 'selected' : ''}>${esc(STATUS[k].label)}</option>`).join('');
+            return `<div class="mt-3 border-t border-gray-100 pt-3 space-y-3">
+                ${detailsHtml(s)}
+                <div class="bg-blue-50 rounded-xl p-3 space-y-2">
+                    <p class="text-xs font-bold text-swiftblue">Mettre à jour le statut</p>
+                    <select id="a-status-${id}" class="${IC}">${opts}</select>
+                    <input id="a-note-${id}" placeholder="Note (ex: Colis arrivé au hub de Douala)" class="${IC}">
+                    <button type="button" data-act="save-status" data-id="${id}" class="w-full bg-swiftblue text-white font-semibold py-2.5 rounded-xl cursor-pointer">Enregistrer</button>
+                    <p class="text-xs text-gray-500">Si le statut change, l'avancement automatique est désactivé pour ce colis. Sans changement de statut, la note est ajoutée au suivi.</p>
+                </div>
+                <div class="bg-gray-50 rounded-xl p-3 space-y-2">
+                    <p class="text-xs font-bold text-gray-700">Délai et avancement automatique</p>
+                    <p class="text-xs text-gray-600">Avancement automatique : <strong>${s.auto_progress ? 'activé' : 'désactivé'}</strong></p>
+                    <button type="button" data-act="toggle-auto" data-id="${id}" data-value="${s.auto_progress ? '0' : '1'}" class="text-sm font-semibold text-swiftblue cursor-pointer">${s.auto_progress ? 'Désactiver' : 'Réactiver'}</button>
+                    <div class="flex gap-2">
+                        <input id="a-win-${id}" type="number" min="1" max="720" value="${esc(s.delivery_window_hours)}" class="${IC}">
+                        <button type="button" data-act="save-window" data-id="${id}" class="shrink-0 bg-gray-900 text-white text-sm font-semibold px-4 rounded-xl cursor-pointer">Appliquer (h)</button>
+                    </div>
+                </div>
+                ${timeline(adminEvents[s.id] || [], s)}
+            </div>`;
+        }
+
+        $('admin-ship-list').addEventListener('click', async (e) => {
+            const btn = e.target.closest('[data-act]');
+            if (!btn) return;
+            const id = btn.dataset.id, act = btn.dataset.act;
+            const s = adminShipments.find(x => x.id === id);
+
+            if (act === 'toggle') {
+                adminOpenId = adminOpenId === id ? null : id;
+                if (adminOpenId) await adminLoadEvents(id);
+                renderAdminShipments();
+                return;
+            }
+
+            let res;
+            btn.disabled = true;
+            if (act === 'save-status') {
+                const status = $('a-status-' + id).value;
+                const note = $('a-note-' + id).value.trim();
+                if (s && status === s.status) {
+                    if (!note) { toast('Choisissez un nouveau statut ou écrivez une note.', 'error'); btn.disabled = false; return; }
+                    res = await supabaseClient.rpc('sw_admin_add_note', { p_id: id, p_note: note });
+                } else {
+                    res = await supabaseClient.rpc('sw_admin_update_status', { p_id: id, p_status: status, p_note: note || null });
+                }
+            } else if (act === 'toggle-auto') {
+                res = await supabaseClient.rpc('sw_admin_set_auto', { p_id: id, p_auto: btn.dataset.value === '1' });
+            } else if (act === 'save-window') {
+                const h = parseInt($('a-win-' + id).value, 10);
+                if (!h || h < 1) { toast('Entrez un délai valide en heures.', 'error'); btn.disabled = false; return; }
+                res = await supabaseClient.rpc('sw_admin_set_window', { p_id: id, p_hours: h });
+            }
+            btn.disabled = false;
+            if (res && res.error) { toast('Erreur : ' + res.error.message, 'error'); return; }
+            toast('Modification enregistrée.');
+            await adminLoadShipments();
+        });
+
+        // ---------- Administration : recharges ----------
+        async function adminLoadRecharges() {
+            const list = $('admin-rech-list');
+            list.innerHTML = LOADING;
+            const f = $('a-rfilter').value;
+            let q = supabaseClient.from('sw_recharges').select('*').order('created_at', { ascending: false }).limit(200);
+            if (f) q = q.eq('status', f);
+            const [r, pr] = await Promise.all([q, supabaseClient.from('sw_profiles').select('id,email,phone')]);
+            if (r.error) { list.innerHTML = ''; toast('Erreur : ' + r.error.message, 'error'); return; }
+            const owners = {};
+            (pr.data || []).forEach(p => { owners[p.id] = p; });
+            if (!r.data.length) { list.innerHTML = '<p class="text-center text-gray-500 py-6">Aucune demande.</p>'; return; }
+            list.innerHTML = r.data.map(rc => {
+                const u = owners[rc.user_id] || {};
+                const pending = rc.status === 'pending';
+                return `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3">
+                    <div class="flex items-start justify-between gap-2">
+                        <div>
+                            <p class="font-bold text-gray-900">${fmtMoney(rc.amount)}</p>
+                            <p class="text-sm text-gray-500">${esc(METHODS[rc.method] || rc.method)}</p>
+                            <p class="text-sm text-gray-700 mt-1">Référence : ${esc(rc.reference)}</p>
+                            <p class="text-xs text-gray-400 mt-1">${esc(u.email || '-')}${u.phone ? ' · ' + esc(u.phone) : ''}</p>
+                            <p class="text-xs text-gray-400">${fmtDate(rc.created_at)}</p>
+                            ${rc.admin_note ? `<p class="text-xs text-gray-500 mt-1">Note : ${esc(rc.admin_note)}</p>` : ''}
+                        </div>
+                        ${rbadge(rc.status)}
+                    </div>
+                    ${pending ? `<div class="mt-3 space-y-2">
+                        <input id="rn-${esc(rc.id)}" placeholder="Note (facultatif)" class="${IC}">
+                        <div class="grid grid-cols-2 gap-2">
+                            <button type="button" data-ract="approve" data-id="${esc(rc.id)}" class="bg-green-600 text-white font-semibold py-2.5 rounded-xl cursor-pointer">Approuver</button>
+                            <button type="button" data-ract="reject" data-id="${esc(rc.id)}" class="bg-red-600 text-white font-semibold py-2.5 rounded-xl cursor-pointer">Rejeter</button>
+                        </div></div>` : ''}
+                </div>`;
+            }).join('');
+        }
+        $('a-rfilter').addEventListener('change', adminLoadRecharges);
+
+        $('admin-rech-list').addEventListener('click', async (e) => {
+            const btn = e.target.closest('[data-ract]');
+            if (!btn) return;
+            const approve = btn.dataset.ract === 'approve';
+            if (!confirm(approve ? 'Approuver cette recharge et créditer le portefeuille du client ?' : 'Rejeter cette demande de recharge ?')) return;
+            btn.disabled = true;
+            const noteEl = $('rn-' + btn.dataset.id);
+            const { error } = await supabaseClient.rpc('sw_admin_review_recharge', {
+                p_id: btn.dataset.id, p_approve: approve, p_note: noteEl ? noteEl.value.trim() : null
+            });
+            btn.disabled = false;
+            if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+            toast(approve ? 'Recharge approuvée, solde crédité.' : 'Recharge rejetée.');
+            adminLoadRecharges();
+        });
+
+        // ---------- Administration : utilisateurs ----------
+        let adminUsers = [], adminUserOpen = null, adminUserDetail = null;
+
+        async function adminLoadUsers() {
+            const list = $('admin-user-list');
+            if (!adminUsers.length) list.innerHTML = LOADING;
+            const [p, w, s] = await Promise.all([
+                supabaseClient.from('sw_profiles').select('*').order('created_at', { ascending: false }),
+                supabaseClient.from('sw_wallets').select('user_id,balance'),
+                supabaseClient.from('sw_shipments').select('user_id')
+            ]);
+            if (p.error) { list.innerHTML = ''; toast('Erreur : ' + p.error.message, 'error'); return; }
+            const bal = {}, cnt = {};
+            (w.data || []).forEach(x => { bal[x.user_id] = x.balance; });
+            (s.data || []).forEach(x => { cnt[x.user_id] = (cnt[x.user_id] || 0) + 1; });
+            adminUsers = p.data.map(u => ({ ...u, balance: bal[u.id] || 0, count: cnt[u.id] || 0 }));
+            renderAdminUsers();
+        }
+
+        function renderAdminUsers() {
+            const q = $('a-usearch').value.trim().toLowerCase();
+            const rows = adminUsers.filter(u => !q || [u.email, u.phone].some(v => String(v || '').toLowerCase().includes(q)));
+            $('admin-user-list').innerHTML = rows.length ? rows.map(u => {
+                const open = adminUserOpen === u.id;
+                return `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3">
+                    <div class="flex items-start justify-between gap-2">
+                        <div>
+                            <p class="font-bold text-gray-900 break-all">${esc(u.email || '-')}</p>
+                            <p class="text-sm text-gray-500">${esc(u.phone || 'Pas de téléphone')}</p>
+                            <p class="text-xs text-gray-400 mt-1">Solde : ${fmtMoney(u.balance)} · ${u.count} colis</p>
+                        </div>
+                        <div class="text-right space-y-1">
+                            <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold ${u.role === 'admin' ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-700'}">${u.role === 'admin' ? 'Admin' : 'Client'}</span><br>
+                            <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold ${u.is_active ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}">${u.is_active ? 'Actif' : 'Désactivé'}</span>
+                        </div>
+                    </div>
+                    <button type="button" data-uact="toggle" data-id="${esc(u.id)}" class="mt-3 text-sm font-semibold text-swiftblue cursor-pointer">${open ? 'Fermer' : 'Gérer ce compte'}</button>
+                    ${open ? userPanel(u) : ''}
+                </div>`;
+            }).join('') : '<p class="text-center text-gray-500 py-6">Aucun utilisateur trouvé.</p>';
+        }
+        $('a-usearch').addEventListener('input', renderAdminUsers);
+
+        function userPanel(u) {
+            const id = esc(u.id);
+            const d = adminUserDetail || { shipments: [], recharges: [] };
+            return `<div class="mt-3 border-t border-gray-100 pt-3 space-y-3">
+                <div class="bg-gray-50 rounded-xl p-3 space-y-2">
+                    <p class="text-xs font-bold text-gray-700">Rôle et accès</p>
+                    <select id="u-role-${id}" class="${IC}">
+                        <option value="user" ${u.role === 'user' ? 'selected' : ''}>Client</option>
+                        <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Administrateur</option>
+                    </select>
+                    <select id="u-active-${id}" class="${IC}">
+                        <option value="1" ${u.is_active ? 'selected' : ''}>Compte actif</option>
+                        <option value="0" ${!u.is_active ? 'selected' : ''}>Compte désactivé</option>
+                    </select>
+                    <button type="button" data-uact="save" data-id="${id}" class="w-full bg-swiftblue text-white font-semibold py-2.5 rounded-xl cursor-pointer">Appliquer</button>
+                </div>
+                <div class="bg-gray-50 rounded-xl p-3">
+                    <p class="text-xs font-bold text-gray-700 mb-1">Derniers envois</p>
+                    ${d.shipments.length ? d.shipments.map(s => `<p class="text-sm text-gray-700">${esc(s.tracking_code)} · ${esc(s.origin)} → ${esc(s.destination)} · ${esc((STATUS[s.status] || {}).label || s.status)}</p>`).join('') : '<p class="text-sm text-gray-500">Aucun envoi.</p>'}
+                </div>
+                <div class="bg-gray-50 rounded-xl p-3">
+                    <p class="text-xs font-bold text-gray-700 mb-1">Recharges</p>
+                    ${d.recharges.length ? d.recharges.map(r => `<p class="text-sm text-gray-700">${fmtMoney(r.amount)} · ${esc(METHODS[r.method] || r.method)} · ${esc((RSTATUS[r.status] || {}).label || r.status)}</p>`).join('') : '<p class="text-sm text-gray-500">Aucune recharge.</p>'}
+                </div>
+            </div>`;
+        }
+
+        $('admin-user-list').addEventListener('click', async (e) => {
+            const btn = e.target.closest('[data-uact]');
+            if (!btn) return;
+            const id = btn.dataset.id;
+            if (btn.dataset.uact === 'toggle') {
+                adminUserOpen = adminUserOpen === id ? null : id;
+                adminUserDetail = null;
+                if (adminUserOpen) {
+                    const [s, r] = await Promise.all([
+                        supabaseClient.from('sw_shipments').select('tracking_code,status,origin,destination')
+                            .eq('user_id', id).order('created_at', { ascending: false }).limit(20),
+                        supabaseClient.from('sw_recharges').select('amount,method,status')
+                            .eq('user_id', id).order('created_at', { ascending: false }).limit(20)
+                    ]);
+                    adminUserDetail = { shipments: s.data || [], recharges: r.data || [] };
+                }
+                renderAdminUsers();
+                return;
+            }
+            if (btn.dataset.uact === 'save') {
+                btn.disabled = true;
+                const { error } = await supabaseClient.rpc('sw_admin_set_user', {
+                    p_id: id,
+                    p_role: $('u-role-' + id).value,
+                    p_active: $('u-active-' + id).value === '1'
+                });
+                btn.disabled = false;
+                if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+                toast('Compte mis à jour.');
+                adminLoadUsers();
+            }
+        });
+
+        // =====================================================
+
         //                    DÉMARRAGE
         // =====================================================
         supabaseClient.auth.getSession().then(({ data }) => {
