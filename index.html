@@ -594,7 +594,7 @@ async function loadWallet() {
       <p class="font-bold text-gray-900">${rc.status === 'approved' && rc.approved_amount != null ? fmtMoney(rc.approved_amount) + (Number(rc.approved_amount) !== Number(rc.amount) ? ' <span class="text-xs font-normal text-gray-400">(demandé : ' + fmtMoney(rc.amount) + ')</span>' : '') : fmtMoney(rc.amount)}</p>
       <p class="text-sm text-gray-500">${esc(METHODS[rc.method] || rc.method)} · ID ${esc(rc.reference)}</p>
       <p class="text-xs text-gray-400 mt-1">${fmtDate(rc.created_at)}</p>
-      ${rc.admin_note ? `<p class="text-xs text-gray-500 mt-1">Note : ${esc(rc.admin_note)}</p>` : ''}</div>${rbadge(rc.status)}</div></div>`).join('');
+      ${rc.admin_note ? `<p class="text-xs text-gray-500 mt-1">${rc.status === 'rejected' ? 'Motif du refus' : 'Note'} : ${esc(rc.admin_note)}</p>` : ''}</div>${rbadge(rc.status)}</div></div>`).join('');
 }
 let PAYNUMS = [];
 function renderPayNums() {
@@ -610,6 +610,12 @@ $('rc-method').addEventListener('change', renderPayNums);
 $('recharge-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = $('rc-btn'), f = $('rc-file').files[0];
+  const amt = Number($('rc-amount').value), ref = $('rc-ref').value.trim();
+  if (!PAYNUMS.length) { toast('Aucun numéro de dépôt disponible pour le moment.', 'error'); return; }
+  if (!amt || amt < 100) { toast('Montant minimum : 100 FCFA.', 'error'); return; }
+  if (!ref) { toast("Indiquez l'ID de la transaction.", 'error'); return; }
+  if (!f) { toast("Ajoutez la capture d'écran de la preuve de paiement.", 'error'); return; }
+  if (!f.type.startsWith('image/')) { toast('Le fichier doit être une image.', 'error'); return; }
   if (!f) { toast('Ajoutez la capture d\'écran.', 'error'); return; }
   if (f.size > 5 * 1024 * 1024) { toast('Image trop lourde (5 Mo max).', 'error'); return; }
   btn.disabled = true; btn.textContent = 'Envoi...';
@@ -815,7 +821,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       ${r.proof_path ? `<button class="x-btn" style="margin-bottom:8px" data-proof="${esc(r.proof_path)}">VOIR LA CAPTURE</button>` : '<p style="font-size:11px;color:#ff5a5f;margin-bottom:8px">// aucune capture jointe</p>'}
       ${r.status === 'pending' ? `<label style="font-size:11px;color:#5b6b7c">MONTANT À CRÉDITER (FCFA) · demandé : ${fmtMoney(r.amount)}</label>
         <input id="ra-${esc(r.id)}" type="number" min="1" step="1" class="x-in" value="${esc(r.amount)}" style="margin:4px 0 8px">
-        <input id="rn-${esc(r.id)}" class="x-in" placeholder="note (facultatif)" style="margin-bottom:8px"><div style="display:flex;gap:8px">
+        <input id="rn-${esc(r.id)}" class="x-in" placeholder="motif / note (OBLIGATOIRE pour rejeter)" style="margin-bottom:8px"><div style="display:flex;gap:8px">
         <button class="x-btn go" data-rv="1" data-id="${esc(r.id)}">APPROUVER</button><button class="x-btn no" data-rv="0" data-id="${esc(r.id)}">REJETER</button></div>`
       : r.status === 'approved' ? `${adjH}<input id="aj-${esc(r.id)}" type="number" min="1" step="1" class="x-in" placeholder="montant à ajouter / retirer (FCFA)" style="margin:8px 0">
         <input id="an-${esc(r.id)}" class="x-in" placeholder="motif (facultatif)" style="margin-bottom:8px"><div style="display:flex;gap:8px">
@@ -941,6 +947,8 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       const ap = el.dataset.rv === '1';
       const am = $('ra-' + el.dataset.id), amount = ap && am ? Number(am.value) : null;
       if (ap && (!amount || amount <= 0)) return toast('Montant invalide.', 'error');
+      const nn = $('rn-' + el.dataset.id);
+      if (!ap && !(nn && nn.value.trim())) return toast('Indiquez le motif du refus avant de rejeter.', 'error');
       if (!confirm(ap ? 'Créditer ' + fmtMoney(amount) + ' au portefeuille ?' : 'Rejeter cette demande ?')) return;
       const n = $('rn-' + el.dataset.id);
       return rpc('sw_admin_review_recharge2', { p_id: el.dataset.id, p_approve: ap, p_note: n ? n.value.trim() || null : null, p_amount: amount }, ap ? 'Recharge approuvée, solde crédité.' : 'Recharge rejetée.');
