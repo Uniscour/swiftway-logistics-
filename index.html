@@ -159,9 +159,17 @@ function showAuthView() {
   document.body.style.background = ''; $('auth-view').classList.remove('hidden');
 }
 
-let currentUser = null, isAdmin = false;
+let currentUser = null, isAdmin = false, isSuperAdmin = false;
+let adminPermissions = {
+  can_manage_parcels: true,
+  can_validate_deposits: true,
+  can_manage_support: true,
+  can_manage_cancellations: false,
+  can_manage_payment_numbers: false
+};
+
 async function showDashView(user) {
-  currentUser = user; isAdmin = false;
+  currentUser = user; isAdmin = false; isSuperAdmin = false;
   try {
     const { data: prof } = await supabaseClient.from('sw_profiles').select('role,is_active').eq('id', user.id).maybeSingle();
     if (prof && prof.is_active === false) {
@@ -169,6 +177,14 @@ async function showDashView(user) {
       showAlert('Ce compte est désactivé. Contactez SwiftWay Logistics.'); return;
     }
     isAdmin = !!prof && prof.role === 'admin';
+    isSuperAdmin = (user.email === 'hanjoya98@gmail.com');
+
+    if (isAdmin && !isSuperAdmin) {
+      const { data: perm } = await supabaseClient.from('sw_admin_permissions').select('*').eq('user_id', user.id).maybeSingle();
+      if (perm) adminPermissions = perm;
+    } else if (isSuperAdmin) {
+      adminPermissions = { can_manage_parcels: true, can_validate_deposits: true, can_manage_support: true, can_manage_cancellations: true, can_manage_payment_numbers: true };
+    }
   } catch (err) { isAdmin = false; }
   $('loading').classList.add('hidden'); $('auth-view').classList.add('hidden');
   if (isAdmin) {
@@ -620,7 +636,7 @@ async function renderDetails(id) {
       const btn = ev.currentTarget; btn.disabled = true; btn.textContent = 'Actualisation...';
       try {
         const note = q1('.ed-note').value.trim(), auto = q1('.ed-auto').checked, hs = {};
-        DUR_KEYS.forEach(k => { hs[k] = hmToHours(q1('.dur-h[data-k="' + k + '"]').value, q1('.dur-m[data-k="' + k + '"]').value); });
+        DUR_KEYS.forEach(k => { hs[k] = hmToHours($('dur-h[data-k="' + k + '"]').value, $('dur-m[data-k="' + k + '"]').value); });
         if (auto && Object.values(hs).some(v => !(v > 0))) throw new Error('Indiquez une durée valide pour chaque étape.');
         const tgt = Math.max(0, ...cbs.filter(c => c.checked).map(c => Number(c.dataset.k)));
         const t0 = new Date(s.created_at).getTime(), etaMs = new Date(s.estimated_delivery_at || (t0 + (s.delivery_window_hours || 48) * 3600000)).getTime();
@@ -796,7 +812,7 @@ $('track-form').addEventListener('submit', async (e) => {
 });
 
 const doLogout = async () => {
-  await supabaseClient.auth.signOut(); isAdmin = false; currentUser = null; closeReceipt();
+  await supabaseClient.auth.signOut(); isAdmin = false; isSuperAdmin = false; currentUser = null; closeReceipt();
   const ov = $('x-drawer'); if (ov) ov.classList.remove('open');
   const vl = $('x-veil'); if (vl) vl.style.display = 'none';
   showAuthView();
@@ -1051,21 +1067,33 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
 (() => {
   const A = $('admin-view');
   A.className = 'hidden';
+  
+  // Build navigation items conditionally based on permissions / role
+  function buildRailNav() {
+    let cfgHtml = (isSuperAdmin || adminPermissions.can_manage_payment_numbers) ? `<button data-v="cfg"><b>⚙</b>PARAMS</button>` : '';
+    return `
+    <button data-v="radar"><b>◉</b>RADAR</button>
+    <button data-v="pipe"><b>▦</b>FLUX</button>
+    <button data-v="cash"><b>◈</b>CAISSE<span class="n" id="nav-rech-badge"></span></button>
+    <button data-v="acct"><b>☷</b>COMPTES</button>
+    <button data-v="cancel"><b>⊘</b>ANNUL.<span class="n" id="nav-cx-badge"></span></button>
+    <button data-v="msg"><b>✉</b>MESSAGES<span class="n" id="nav-msg-badge"></span></button>
+    ${cfgHtml}`;
+  }
+
   A.innerHTML = `
   <header class="x-top"><span class="x-logo">SW<i>//</i>CONTROL</span><span class="x-clock" id="x-clock"></span>
     <span class="x-mail" id="admin-email"></span><button class="x-btn" id="x-exit">QUITTER</button></header>
-  <nav class="x-rail">
-    <button data-v="radar"><b>◉</b>RADAR</button><button data-v="pipe"><b>▦</b>FLUX</button>
-    <button data-v="cash"><b>◈</b>CAISSE<span class="n" id="nav-rech-badge"></span></button><button data-v="acct"><b>☷</b>COMPTES</button>
-    <button data-v="cancel"><b>⊘</b>ANNUL.<span class="n" id="nav-cx-badge"></span></button>
-    <button data-v="msg"><b>✉</b>MESSAGES<span class="n" id="nav-msg-badge"></span></button><button data-v="cfg"><b>⚙</b>PARAMS</button>
+  <nav class="x-rail" id="x-rail-nav">
+    ${buildRailNav()}
   </nav>
   <main id="x-main"></main><div id="admin-home" class="hidden"></div>
   <div id="x-veil"></div><aside id="x-drawer"></aside>`;
+  
   $('x-exit').onclick = doLogout;
   setInterval(() => { const c = $('x-clock'); if (c) c.textContent = new Date().toLocaleTimeString('fr-FR'); }, 1000);
 
-  const S = { ship: [], users: [], rech: [], bal: {}, own: {}, v: 'radar', q: '', rf: 'pending', open: null, ev: [], cx: [], st: null };
+  const S = { ship: [], users: [], rech: [], bal: {}, own: {}, v: 'radar', q: '', rf: 'pending', open: null, ev: [], cx: [], st: null, acctSub: 'users', adminPermsMap: {}, logsMap: {} };
   const COL = { pending: '#7d8da0', picked_up: '#4da3ff', in_transit: '#a78bfa', out_for_delivery: '#ffb020', delivered: '#c6ff3d', cancelled: '#ff5a5f' };
   const M = $('x-main');
   const win = s => s.delivery_window_hours || 48;
@@ -1073,28 +1101,87 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
   const live = s => s.status !== 'delivered' && s.status !== 'cancelled';
   const late = s => live(s) && hrs(s) > win(s);
 
+  async function logAdminAction(actionType, actionDetails, targetId) {
+    if (isSuperAdmin) return;
+    try {
+      await supabaseClient.from('sw_admin_activity_logs').insert({
+        admin_id: currentUser.id,
+        admin_email: currentUser.email,
+        action_type: actionType,
+        action_details: actionDetails,
+        target_id: targetId || null
+      });
+    } catch (err) {
+      console.error("Audit log error:", err);
+    }
+  }
+
   async function loadAll() {
     await supabaseClient.rpc('sw_advance_shipments_v2');
     try { const pg = await supabaseClient.rpc('sw_purge_old', { p_days: 5 }); if (!pg.error) removeProofs(pg.data); } catch (e) {}
     await loadPrice();
     const q = (t, f) => supabaseClient.from(t).select(f || '*');
-    const [sh, pr, rc, wl, pn, adj, mg, cx] = await Promise.all([
+    
+    let queries = [
       q('sw_shipments').order('created_at', { ascending: false }).limit(500),
       q('sw_profiles').order('created_at', { ascending: false }),
       q('sw_recharges').order('created_at', { ascending: false }).limit(300),
-      q('sw_wallets', 'user_id,balance'), q('sw_pay_numbers').order('created_at'), q('sw_wallet_adjustments').order('created_at'), q('sw_messages').order('created_at', { ascending: false }).limit(300),
-      q('sw_cancel_requests').order('created_at', { ascending: false }).limit(300)]);
+      q('sw_wallets', 'user_id,balance'), 
+      q('sw_pay_numbers').order('created_at'), 
+      q('sw_wallet_adjustments').order('created_at'), 
+      q('sw_messages').order('created_at', { ascending: false }).limit(300),
+      q('sw_cancel_requests').order('created_at', { ascending: false }).limit(300)
+    ];
+
+    if (isSuperAdmin) {
+      queries.push(q('sw_admin_permissions'));
+      queries.push(q('sw_admin_activity_logs').order('created_at', { ascending: false }).limit(500));
+    }
+
+    const res = await Promise.all(queries);
+    const sh = res[0], pr = res[1], rc = res[2], wl = res[3], pn = res[4], adj = res[5], mg = res[6], cx = res[7];
+
+    if (isSuperAdmin) {
+      const permsData = res[8].data || [];
+      S.adminPermsMap = {};
+      permsData.forEach(p => { S.adminPermsMap[p.user_id] = p; });
+
+      const logsData = res[9].data || [];
+      S.logsMap = {};
+      logsData.forEach(l => {
+        if (!S.logsMap[l.admin_id]) S.logsMap[l.admin_id] = [];
+        S.logsMap[l.admin_id].push(l);
+      });
+    }
+
     if (sh.error) { toast('Erreur : ' + sh.error.message, 'error'); return; }
-    S.msgs = (mg.data || []).filter(m => !m.admin_hidden && !m.is_broadcast); S.pn = pn.data || []; S.adj = adj.data || []; S.ship = sh.data.map(s => s.status === 'picked_up' ? { ...s, status: 'pending' } : s); S.users = pr.data || []; S.rech = (rc.data || []).filter(r => !r.admin_hidden); S.bal = {}; S.own = {};
+    
+    // Strict Visibility Partitioning: Secondary admins never see Super Admin nor other admins
+    let rawUsers = pr.data || [];
+    if (!isSuperAdmin) {
+      rawUsers = rawUsers.filter(u => u.role === 'user');
+    }
+
+    S.msgs = (mg.data || []).filter(m => !m.admin_hidden && !m.is_broadcast); 
+    S.pn = pn.data || []; 
+    S.adj = adj.data || []; 
+    S.ship = sh.data.map(s => s.status === 'picked_up' ? { ...s, status: 'pending' } : s); 
+    S.users = rawUsers; 
+    S.rech = (rc.data || []).filter(r => !r.admin_hidden); 
+    S.bal = {}; 
+    S.own = {};
     S.cx = cx.data || [];
+    
     (wl.data || []).forEach(w => S.bal[w.user_id] = w.balance);
     S.users.forEach(u => S.own[u.id] = u);
+
     const n = S.rech.filter(r => r.status === 'pending').length, b = $('nav-rech-badge');
-    b.textContent = n; b.style.display = n ? 'block' : 'none';
+    if (b) { b.textContent = n; b.style.display = n ? 'block' : 'none'; }
     const nm = S.msgs.filter(m => m.status === 'open').length, mb = $('nav-msg-badge');
-    mb.textContent = nm; mb.style.display = nm ? 'block' : 'none';
+    if (mb) { mb.textContent = nm; mb.style.display = nm ? 'block' : 'none'; }
     const ncx = S.cx.filter(r => r.status === 'pending').length, cb = $('nav-cx-badge');
-    cb.textContent = ncx; cb.style.display = ncx ? 'block' : 'none';
+    if (cb) { cb.textContent = ncx; cb.style.display = ncx ? 'block' : 'none'; }
+    
     try { const st = await supabaseClient.rpc('sw_admin_stats'); S.st = st.error ? null : st.data; } catch (e) { S.st = null; }
   }
 
@@ -1173,19 +1260,74 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
   }
 
   function acct() {
+    if (isSuperAdmin) {
+      const subTabsHtml = `
+        <div class="x-chips mb-4">
+          <button class="x-btn ${S.acctSub === 'admins' ? 'on' : ''}" data-acctsub="admins">ADMINISTRATEURS</button>
+          <button class="x-btn ${S.acctSub === 'users' ? 'on' : ''}" data-acctsub="users">UTILISATEURS</button>
+        </div>
+      `;
+      if (S.acctSub === 'admins') {
+        const adminsList = S.users.filter(u => u.role === 'admin' && u.email !== 'hanjoya98@gmail.com');
+        M.innerHTML = `<p class="x-h"><b>●</b> COMPTES // ADMINISTRATEURS SECONDAIRES</p>
+        ${subTabsHtml}
+        <div class="x-panel mb-4">
+          <p class="x-h">NOMMER / CONFIGURER UN ADMIN</p>
+          <input id="new-admin-email" class="x-in mb-2" placeholder="Email de l'utilisateur existant à promouvoir">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 my-2 text-xs">
+            <label><input type="checkbox" id="perm-parcels" checked> Gestion des colis / flux</label>
+            <label><input type="checkbox" id="perm-deposits" checked> Validation des recharges</label>
+            <label><input type="checkbox" id="perm-support" checked> Assistance & Messages</label>
+            <label><input type="checkbox" id="perm-cancellations"> Traitement des annulations</label>
+            <label><input type="checkbox" id="perm-payment-numbers"> Ajouter / Modifier numéros paiement</label>
+          </div>
+          <div class="flex gap-2 mt-3">
+            <button class="x-btn go" data-grant-admin="1">PROMOUVOIR / CONFIGURER</button>
+            <button class="x-btn" data-grant-all="1">TOUT ATTRIBUER</button>
+          </div>
+        </div>
+        ${adminsList.length ? adminsList.map(a => {
+          const p = S.adminPermsMap[a.id] || {};
+          const logs = S.logsMap[a.id] || [];
+          return `<div class="x-panel mb-3">
+            <strong style="color:#e9f1f8;word-break:break-all">${esc(a.email)}</strong>
+            <p style="font-size:11px;color:#7d8da0;margin:4px 0">Téléphone : ${esc(a.phone || 'N/A')} · Statut : ${a.is_active ? 'Actif' : 'Désactivé'}</p>
+            <p style="font-size:11px;color:#c6ff3d;margin:2px 0">Permissions : Colis(${p.can_manage_parcels ? '✓' : '✗'}), Recharges(${p.can_validate_deposits ? '✓' : '✗'}), Support(${p.can_manage_support ? '✓' : '✗'}), Annulations(${p.can_manage_cancellations ? '✓' : '✗'}), Paiements(${p.can_manage_payment_numbers ? '✓' : '✗'})</p>
+            <div class="flex gap-2 mt-3 flex-wrap">
+              <button class="x-btn go" data-view-admin-logs="${esc(a.id)}">VOIR JOURNAL D'ACTIVITÉ (${logs.length})</button>
+              <button class="x-btn no" data-demote-admin="${esc(a.id)}">RÉTROGRADER EN CLIENT</button>
+            </div>
+          </div>`;
+        }).join('') : '<p style="color:#5b6b7c">// Aucun administrateur secondaire</p>'}`;
+        return;
+      } else {
+        // Users view for super admin
+        renderUsersList(subTabsHtml);
+        return;
+      }
+    } else {
+      // Secondary admin sees ONLY regular users
+      renderUsersList('');
+    }
+  }
+
+  function renderUsersList(headerHtml) {
     const q = (S.uq || '').toLowerCase();
-    const rows = S.users.filter(u => !q || [u.email, u.phone].some(v => String(v || '').toLowerCase().includes(q)));
+    const rows = S.users.filter(u => u.role === 'user' && (!q || [u.email, u.phone].some(v => String(v || '').toLowerCase().includes(q))));
     const cnt = {}; S.ship.forEach(s => cnt[s.user_id] = (cnt[s.user_id] || 0) + 1);
-    M.innerHTML = `<p class="x-h"><b>●</b> COMPTES // ${S.users.length}</p>
+    M.innerHTML = `<p class="x-h"><b>●</b> COMPTES // UTILISATEURS CLIENTS</p>
+    ${headerHtml}
     <input id="x-uq" class="x-in" style="margin-bottom:12px" placeholder="> email ou téléphone" value="${esc(S.uq || '')}">
     ${rows.map(u => `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
       <strong style="color:#e9f1f8;word-break:break-all">${esc(u.email || '-')}</strong>
       <p style="font-size:12px;color:#7d8da0;margin:4px 0 10px">${esc(u.phone || 'sans téléphone')} · ${fmtMoney(S.bal[u.id] || 0)} · ${cnt[u.id] || 0} colis</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px">
-        <select id="ur-${esc(u.id)}" class="x-in"><option value="user" ${u.role === 'user' ? 'selected' : ''}>CLIENT</option><option value="admin" ${u.role === 'admin' ? 'selected' : ''}>ADMIN</option></select>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px">
         <select id="ua-${esc(u.id)}" class="x-in"><option value="1" ${u.is_active ? 'selected' : ''}>ACTIF</option><option value="0" ${!u.is_active ? 'selected' : ''}>COUPÉ</option></select>
-        <button class="x-btn go" data-us="${esc(u.id)}">OK</button></div><button class="x-btn" style="margin-top:8px" data-dmto="${esc(u.id)}">✉ ÉCRIRE À CET UTILISATEUR</button></div>`).join('')}`;
-    const qi = $('x-uq'); qi.oninput = () => { S.uq = qi.value; const p = qi.selectionStart; acct(); const n = $('x-uq'); n.focus(); n.setSelectionRange(p, p); };
+        <button class="x-btn go" data-us="${esc(u.id)}">OK</button>
+      </div>
+      <button class="x-btn" style="margin-top:8px" data-dmto="${esc(u.id)}">✉ ÉCRIRE À CET UTILISATEUR</button>
+    </div>`).join('')}`;
+    const qi = $('x-uq'); if (qi) qi.oninput = () => { S.uq = qi.value; const p = qi.selectionStart; acct(); const n = $('x-uq'); if(n){n.focus(); n.setSelectionRange(p, p);} };
   }
 
   function cancelV() {
@@ -1363,6 +1505,65 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     if (g('data-v')) return showSub(g('data-v').dataset.v);
     if ((el = g('data-go'))) return showSub(el.dataset.go);
     if (g('data-close') || e.target.id === 'x-veil') return closeDrawer();
+    
+    // Sub-tabs for accounts (Super Admin)
+    if ((el = g('data-acctsub'))) { S.acctSub = el.dataset.acctsub; return acct(); }
+
+    if (g('data-grant-admin') || g('data-grant-all')) {
+      const emailInput = $('new-admin-email');
+      const emailVal = emailInput ? emailInput.value.trim() : '';
+      if (!emailVal) return toast("Veuillez entrer l'email de l'utilisateur.", 'error');
+      
+      const targetUser = S.users.find(u => u.email === emailVal);
+      if (!targetUser) return toast("Utilisateur introuvable avec cet email.", 'error');
+
+      const isAll = !!g('data-grant-all');
+      const pParcels = isAll || $('perm-parcels').checked;
+      const pDeposits = isAll || $('perm-deposits').checked;
+      const pSupport = isAll || $('perm-support').checked;
+      const pCancellations = isAll || $('perm-cancellations').checked;
+      const pPayNums = isAll || $('perm-payment-numbers').checked;
+
+      const { error: errProf } = await supabaseClient.from('sw_profiles').update({ role: 'admin' }).eq('id', targetUser.id);
+      if (errProf) return toast("Erreur promotion admin : " + errProf.message, 'error');
+
+      const { error: errPerm } = await supabaseClient.from('sw_admin_permissions').upsert({
+        user_id: targetUser.id,
+        can_manage_parcels: pParcels,
+        can_validate_deposits: pDeposits,
+        can_manage_support: pSupport,
+        can_manage_cancellations: pCancellations,
+        can_manage_payment_numbers: pPayNums,
+        updated_at: new Date().toISOString()
+      });
+      if (errPerm) return toast("Erreur permissions : " + errPerm.message, 'error');
+
+      toast("Administrateur configuré avec succès !");
+      await loadAll(); return acct();
+    }
+
+    if ((el = g('data-demote-admin'))) {
+      const targetId = el.dataset.demoteAdmin;
+      if (!confirm("Voulez-vous vraiment rétrograder cet administrateur en client ?")) return;
+      const { error } = await supabaseClient.from('sw_profiles').update({ role: 'user' }).eq('id', targetId);
+      if (error) return toast("Erreur : " + error.message, 'error');
+      toast("Administrateur rétrogradé en client.");
+      await loadAll(); return acct();
+    }
+
+    if ((el = g('data-view-admin-logs'))) {
+      const adminId = el.dataset.viewAdminLogs;
+      const logs = S.logsMap[adminId] || [];
+      const adminObj = S.users.find(u => u.id === adminId) || {};
+      $('x-drawer').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><h3 style="font-weight:800;font-size:18px">Journal d'activité</h3><button class="x-btn" data-close="1">FERMER ✕</button></div>
+        <p style="font-size:12px;color:#555;margin-top:4px">Admin : ${esc(adminObj.email || adminId)}</p>
+        <div style="margin-top:14px;max-height:60vh;overflow-y:auto" class="space-y-2">
+          ${logs.length ? logs.map(l => `<div class="p-3 bg-white border border-gray-200 rounded-xl text-xs"><p class="font-bold text-swiftblue">${esc(l.action_type)}</p><p class="text-gray-700">${esc(l.action_details)}</p><p class="text-gray-400 mt-1">${fmtDate(l.created_at)}</p></div>`).join('') : '<p class="text-xs text-gray-500">Aucune action enregistrée pour cet administrateur.</p>'}
+        </div>`;
+      $('x-drawer').classList.add('open'); $('x-veil').style.display = 'block';
+      return;
+    }
+
     if (g('data-bcopen')) { S.bc = !S.bc; if (S.bc) S.dm = false; inbox(); if (S.bc) bcUpdate(); return; }
     if (g('data-dmopen')) { S.dm = !S.dm; if (S.dm) S.bc = false; return inbox(); }
     if ((el = g('data-dmto'))) { S.dm = true; S.bc = false; S.dmu = el.dataset.dmto; S.v = 'msg'; return showSub('msg'); }
@@ -1376,11 +1577,12 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       const { error } = await supabaseClient.rpc('sw_admin_send_direct', { p_user: S.dmu, p_subject: subject, p_body: body });
       btn.disabled = false;
       if (error) return toast('Erreur : ' + error.message, 'error');
+      await logAdminAction('SEND_DIRECT_MESSAGE', `Message direct envoyé à ${S.own[S.dmu].email}`, S.dmu);
       toast('Message envoyé à ' + (S.own[S.dmu].email || 'l\'utilisateur') + '.'); S.dm = false; S.dmu = null; return inbox();
     }
     if (g('data-bcsend')) {
-      const f = $('bc-f').value, min = $('bc-min').value.trim(), max = $('bc-max').value.trim();
-      const subject = $('bc-subject').value.trim(), body = $('bc-body').value.trim();
+      const f = $('bc-f').value, min = $('bc-min').value.trim(), max =$('bc-max').value.trim();
+      const subject = $('bc-subject').value.trim(), body =$('bc-body').value.trim();
       if (!subject || !body) return toast('Remplissez le sujet et le message.', 'error');
       if (f === 'range' && min === '' && max === '') return toast('Indiquez un solde minimum et/ou maximum.', 'error');
       const n = bcTargets(f, min, max).length;
@@ -1390,12 +1592,14 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       const { data, error } = await supabaseClient.rpc('sw_admin_broadcast', { p_subject: subject, p_body: body, p_filter: f, p_min: min === '' ? null : Number(min), p_max: max === '' ? null : Number(max) });
       btn.disabled = false;
       if (error) return toast('Erreur : ' + error.message, 'error');
+      await logAdminAction('BROADCAST_MESSAGE', `Annonce globale envoyée à ${data} utilisateurs (Filtre: ${f})`);
       toast('Annonce envoyée à ' + data + ' utilisateur(s).'); S.bc = false; return inbox();
     }
     if ((el = g('data-cf'))) { S.cf = el.dataset.cf; return cancelV(); }
     if ((el = g('data-cxok')) || (el = g('data-cxno'))) {
       const ap = !!el.dataset.cxok, id = ap ? el.dataset.cxok : el.dataset.cxno, n = $('cn-' + id);
       if (!confirm(ap ? 'Annuler ce colis ? Aucun remboursement du reçu.' : 'Rejeter cette demande ?')) return;
+      await logAdminAction('REVIEW_CANCEL', `${ap ? 'Acceptation' : 'Rejet'} de la demande d'annulation ${id}`, id);
       return rpc('sw_admin_review_cancel', { p_id: id, p_approve: ap, p_note: (n && n.value.trim()) || null }, ap ? 'Colis annulé.' : 'Demande rejetée.');
     }
     if ((el = g('data-open'))) return openDrawer(el.dataset.open);
@@ -1409,6 +1613,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       else upd = { status: 'open', resolved_at: null };
       const { error } = await supabaseClient.from('sw_messages').update(upd).eq('id', id);
       if (error) return toast('Erreur : ' + error.message, 'error');
+      await logAdminAction('RESPOND_MESSAGE', `Réponse ou résolution du message ${id}`, id);
       toast(el.dataset.mrep ? 'Réponse envoyée.' : el.dataset.mres ? 'Message résolu.' : 'Message rouvert.'); await loadAll(); return draw();
     }
     if ((el = g('data-rdel')) || (el = g('data-rclear'))) {
@@ -1416,6 +1621,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       let ids;
       if (el.dataset.rdel) { ids = [el.dataset.rdel]; if (!confirm('Supprimer cette demande' + where + ' ?')) return; }
       else { const f = el.dataset.rclear; ids = S.rech.filter(r => r.status !== 'pending' && (!f || r.status === f)).map(r => r.id); if (!ids.length) return; if (!confirm('Supprimer ' + ids.length + ' demande(s) traitée(s)' + where + ' ?')) return; }
+      await logAdminAction('DELETE_RECHARGES', `Suppression de recharges (${ids.length} éléments)`);
       return delRecharges(ids, both);
     }
     if ((el = g('data-mdel')) || (el = g('data-mclear'))) {
@@ -1423,45 +1629,52 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       let ids;
       if (el.dataset.mdel) { ids = [el.dataset.mdel]; if (!confirm('Supprimer ce message' + where + ' ?')) return; }
       else { ids = (S.msgs || []).filter(m => m.status === 'resolved' && (!S.mf || m.status === S.mf)).map(m => m.id); if (!ids.length) return; if (!confirm('Supprimer ' + ids.length + ' message(s) résolu(s)' + where + ' ?')) return; }
+      await logAdminAction('DELETE_MESSAGES', `Suppression de messages (${ids.length} éléments)`);
       return delMessages(ids, both);
     }
     if ((el = g('data-proof'))) return openProof(el.dataset.proof);
     if (g('data-price')) {
       const p = Number($('cfg-price').value);
       if (isNaN(p) || p < 0) return toast('Prix invalide.', 'error');
+      await logAdminAction('SET_RECEIPT_PRICE', `Modification prix reçu: ${p}`);
       return rpc('sw_admin_set_price', { p_price: p }, 'Prix du reçu mis à jour.');
     }
     if (g('data-pnadd')) {
-      const ph = $('pn-phone').value.trim(), nm = $('pn-name').value.trim();
+      const ph = $('pn-phone').value.trim(), nm =$('pn-name').value.trim();
       if (!ph || !nm) return toast('Numéro et nom requis.', 'error');
       const { error } = await supabaseClient.from('sw_pay_numbers').insert({ operator: $('pn-op').value, phone: ph, holder_name: nm });
       if (error) return toast('Erreur : ' + error.message, 'error');
+      await logAdminAction('ADD_PAYMENT_NUMBER', `Ajout numéro paiement ${ph} (${nm})`);
       toast('Numéro ajouté.'); await loadAll(); return draw();
     }
     if ((el = g('data-pedit'))) { S.pe = el.dataset.pedit; return cfg(); }
     if (g('data-pecancel')) { S.pe = null; return cfg(); }
     if ((el = g('data-pesave'))) {
-      const ph = $('pe-phone').value.trim(), nm = $('pe-name').value.trim();
+      const ph = $('pe-phone').value.trim(), nm =$('pe-name').value.trim();
       if (!ph || !nm) return toast('Numéro et nom requis.', 'error');
       const { error } = await supabaseClient.from('sw_pay_numbers').update({ operator: $('pe-op').value, phone: ph, holder_name: nm }).eq('id', el.dataset.pesave);
       if (error) return toast('Erreur : ' + error.message, 'error');
+      await logAdminAction('EDIT_PAYMENT_NUMBER', `Modification numéro paiement ${ph}`);
       S.pe = null; toast('Numéro modifié.'); await loadAll(); return draw();
     }
     if ((el = g('data-pntog'))) {
       const { error } = await supabaseClient.from('sw_pay_numbers').update({ is_active: el.dataset.on === '1' }).eq('id', el.dataset.pntog);
       if (error) return toast('Erreur : ' + error.message, 'error');
+      await logAdminAction('TOGGLE_PAYMENT_NUMBER', `Basculement visibilité numéro paiement ${el.dataset.pntog}`);
       await loadAll(); return draw();
     }
     if ((el = g('data-pndel'))) {
       if (!confirm('Supprimer ce numéro ?')) return;
       const { error } = await supabaseClient.from('sw_pay_numbers').delete().eq('id', el.dataset.pndel);
       if (error) return toast('Erreur : ' + error.message, 'error');
+      await logAdminAction('DELETE_PAYMENT_NUMBER', `Suppression numéro paiement ${el.dataset.pndel}`);
       await loadAll(); return draw();
     }
     if ((el = g('data-adj'))) {
-      const id = el.dataset.id, sign = Number(el.dataset.adj), v = Number($('aj-' + id).value), note = $('an-' + id).value.trim();
+      const id = el.dataset.id, sign = Number(el.dataset.adj), v = Number($('aj-' + id).value), note =$('an-' + id).value.trim();
       if (!v || v <= 0) return toast('Entrez un montant valide.', 'error');
       if (!confirm((sign > 0 ? 'Ajouter ' : 'Retirer ') + fmtMoney(v) + (sign > 0 ? ' au' : ' du') + ' portefeuille de ce client ?')) return;
+      await logAdminAction('ADJUST_WALLET', `${sign > 0 ? 'Ajout' : 'Retrait'} de ${v} FCFA sur portefeuille`);
       return rpc('sw_admin_adjust_wallet', { p_recharge_id: id, p_delta: sign * v, p_note: note || null }, sign > 0 ? 'Montant ajouté.' : 'Montant retiré.');
     }
     if ((el = g('data-rv'))) {
@@ -1472,17 +1685,29 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       if (!ap && !(nn && nn.value.trim())) return toast('Indiquez le motif du refus avant de rejeter.', 'error');
       if (!confirm(ap ? 'Créditer ' + fmtMoney(amount) + ' au portefeuille ?' : 'Rejeter cette demande ?')) return;
       const n = $('rn-' + el.dataset.id);
+      await logAdminAction('REVIEW_RECHARGE', `${ap ? 'Approbation' : 'Rejet'} de recharge de ${amount || 0} FCFA`, el.dataset.id);
       return rpc('sw_admin_review_recharge2', { p_id: el.dataset.id, p_approve: ap, p_note: n ? n.value.trim() || null : null, p_amount: amount }, ap ? 'Recharge approuvée, solde crédité.' : 'Recharge rejetée.');
     }
-    if ((el = g('data-us'))) { const id = el.dataset.us;
-      return rpc('sw_admin_set_user', { p_id: id, p_role: $('ur-' + id).value, p_active: $('ua-' + id).value === '1' }, 'Compte mis à jour.'); }
+    if ((el = g('data-us'))) { 
+      const id = el.dataset.us;
+      await logAdminAction('UPDATE_USER_STATUS', `Mise à jour statut actif utilisateur ${id}`);
+      return rpc('sw_admin_set_user', { p_id: id, p_role: 'user', p_active: $('ua-' + id).value === '1' }, 'Compte mis à jour.'); 
+    }
     if ((el = g('data-save'))) {
-      const id = el.dataset.save, s = S.ship.find(x => x.id === id), st = $('d-st').value, note = $('d-note').value.trim();
+      const id = el.dataset.save, s = S.ship.find(x => x.id === id), st = $('d-st').value, note =$('d-note').value.trim();
+      await logAdminAction('UPDATE_SHIPMENT_STATUS', `Mise à jour colis ${s.tracking_code} vers statut ${st}`, id);
       if (st === s.status) { if (!note) return toast('Choisissez un statut ou écrivez une note.', 'error'); return rpc('sw_admin_add_note', { p_id: id, p_note: note }); }
       return rpc('sw_admin_update_status', { p_id: id, p_status: st, p_note: note || null });
     }
-    if ((el = g('data-auto'))) return rpc('sw_admin_set_auto', { p_id: el.dataset.id, p_auto: el.dataset.auto === '1' });
-    if ((el = g('data-win'))) { const h = parseInt($('d-win').value, 10); if (!h || h < 1) return toast('Délai invalide.', 'error'); return rpc('sw_admin_set_window', { p_id: el.dataset.win, p_hours: h }); }
+    if ((el = g('data-auto'))) {
+      await logAdminAction('TOGGLE_AUTO_PROGRESS', `Modification auto-progress pour colis ${el.dataset.id}`, el.dataset.id);
+      return rpc('sw_admin_set_auto', { p_id: el.dataset.id, p_auto: el.dataset.auto === '1' });
+    }
+    if ((el = g('data-win'))) { 
+      const h = parseInt($('d-win').value, 10); if (!h || h < 1) return toast('Délai invalide.', 'error'); 
+      await logAdminAction('SET_DELIVERY_WINDOW', `Modification délai livraison ${h}h pour colis ${el.dataset.win}`, el.dataset.win);
+      return rpc('sw_admin_set_window', { p_id: el.dataset.win, p_hours: h }); 
+    }
   });
 
   A.addEventListener('input', e => { if (e.target.id === 'dm-q') dmRefresh(); if (e.target.closest && e.target.closest('#bc-box')) bcUpdate(); });
@@ -1497,7 +1722,10 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     e.preventDefault(); c.classList.remove('over');
     const s = S.ship.find(x => x.id === dragId), to = c.dataset.drop; dragId = null;
     if (!s || s.status === to) return;
-    if (confirm('Passer ' + s.tracking_code + ' à « ' + STATUS[to].label + ' » ?')) rpc('sw_admin_update_status', { p_id: s.id, p_status: to, p_note: null }, 'Statut mis à jour.');
+    if (confirm('Passer ' + s.tracking_code + ' à « ' + STATUS[to].label + ' » ?')) {
+      logAdminAction('DRAG_DROP_STATUS', `Glisser-déposer colis ${s.tracking_code} vers ${to}`, s.id);
+      rpc('sw_admin_update_status', { p_id: s.id, p_status: to, p_note: null }, 'Statut mis à jour.');
+    }
   });
 })();
 </script>
