@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>tailwind.config = { theme: { extend: { colors: { swiftblue: '#0047AB' } } } }</script>
 <style>
 @media print {
@@ -496,8 +497,10 @@ async function shareReceipt(s, btn) {
     host.style.cssText = 'position:fixed;left:-10000px;top:0;width:148mm';
     host.innerHTML = receiptHtml(s); document.body.appendChild(host);
     const canvas = await html2canvas(host.firstElementChild, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
-    const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
-    const file = new File([blob], 'Recu-' + s.tracking_code + '.png', { type: 'image/png' });
+    const pdf = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: [148, 210] });
+    pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 148, 210);
+    const blob = pdf.output('blob');
+    const file = new File([blob], 'Recu-' + s.tracking_code + '.pdf', { type: 'application/pdf' });
     const text = "Reçu d'expédition " + s.tracking_code;
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({ files: [file], title: text, text });
@@ -505,7 +508,7 @@ async function shareReceipt(s, btn) {
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name;
       document.body.appendChild(a); a.click(); a.remove();
       window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
-      toast("Image du reçu enregistrée : joignez-la dans WhatsApp.");
+      toast("PDF du reçu enregistré : joignez-le dans WhatsApp.");
     }
   } catch (err) {
     if (!err || err.name !== 'AbortError') toast('Partage impossible : ' + ((err && err.message) || err), 'error');
