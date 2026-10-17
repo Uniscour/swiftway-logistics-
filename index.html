@@ -892,11 +892,19 @@ function pubRender(data) {
       <div><p class="font-bold text-gray-900">${esc(data.tracking_code)}</p><p class="text-sm text-gray-500">${esc(data.origin)} → ${esc(data.destination)}</p></div>${badge(data.status)}</div>${pubParties(data)}${timeline(data.events, data)}</div>`;
 }
 async function fetchPublic(code) {
-  const r = await supabaseClient.rpc('sw_public_track2', { p_code: code });
-  if (!r.error && r.data) return { data: r.data };
-  const f = await supabaseClient.rpc('sw_track_shipment2', { p_code: code });
-  if (!f.error && f.data && f.data.status !== 'delivered' && f.data.status !== 'cancelled') return { data: f.data };
-  if (r.error && f.error) return { error: r.error };
+  const raw = String(code || '').trim(), up = raw.toUpperCase().replace(/\s+/g, '');
+  const variants = [...new Set([up, raw])].filter(Boolean);
+  const norm = (d) => Array.isArray(d) ? (d[0] || null) : d;
+  let lastErr = null;
+  for (const fn of ['sw_public_track2', 'sw_track_shipment2']) {
+    for (const c of variants) {
+      const r = await supabaseClient.rpc(fn, { p_code: c });
+      if (r.error) { lastErr = r.error; console.warn(fn, r.error); continue; }
+      const d = norm(r.data);
+      if (d && d.tracking_code) return { data: d };
+    }
+  }
+  if (lastErr) return { error: lastErr };
   return { data: null };
 }
 async function searchPublic(code, manual) {
@@ -907,7 +915,7 @@ async function searchPublic(code, manual) {
   if (manual) body.innerHTML = '<p class="text-center text-sm text-gray-400">Recherche...</p>';
   const { data, error } = await fetchPublic(code);
   if (error) { console.error(error); body.innerHTML = '<p class="text-center text-sm text-gray-500">Service momentanément indisponible. Réessayez dans un instant.<br><span class="text-xs text-gray-400">' + esc(error.message || '') + '</span></p>'; return; }
-  if (!data) { body.innerHTML = manual ? '<div class="bg-white rounded-2xl border border-gray-100 p-6 text-center text-gray-500">Aucun colis actif trouvé avec ce code. Vérifiez-le et réessayez.</div>' : ''; return; }
+  if (!data) { body.innerHTML = manual ? '<div class="bg-white rounded-2xl border border-gray-100 p-6 text-center text-gray-500">Aucun colis trouvé avec ce code. Vérifiez-le et réessayez.</div>' : ''; return; }
   pubCode = code; body.innerHTML = pubRender(data);
   pubTimer = setInterval(async () => {
     const r = await fetchPublic(pubCode);
