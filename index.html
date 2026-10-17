@@ -477,7 +477,7 @@ function showReceipt(s) {
   ov.id = 'receipt-overlay';
   ov.style.cssText = 'position:fixed;inset:0;z-index:80;background:#111c;overflow:auto;padding:16px 8px 40px';
   ov.innerHTML = `<div class="no-print" style="max-width:148mm;margin:0 auto 12px;display:flex;flex-wrap:wrap;gap:8px">
-      <button type="button" id="rcpt-wa" style="flex:1 1 100%;background:#25D366" class="text-white font-semibold py-3 rounded-xl cursor-pointer">Partager sur WhatsApp</button>
+      <button type="button" id="rcpt-wa" style="flex:1 1 100%" class="bg-gray-900 text-white font-semibold py-3 rounded-xl cursor-pointer">Partager</button>
       <button type="button" id="rcpt-print" class="flex-1 bg-swiftblue text-white font-semibold py-3 rounded-xl cursor-pointer">Imprimer / Enregistrer en PDF</button>
       <button type="button" id="rcpt-close" class="bg-white text-gray-800 font-semibold px-5 py-3 rounded-xl cursor-pointer">Fermer</button></div>
     <div style="overflow-x:auto"><div id="receipt-zoom" style="width:148mm;margin:0 auto;zoom:${Math.min(1,(window.innerWidth-16)/560).toFixed(3)}">${receiptHtml(s)}</div></div>`;
@@ -507,8 +507,7 @@ async function shareReceipt(s, btn) {
     } else {
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name;
       document.body.appendChild(a); a.click(); a.remove();
-      window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
-      toast("PDF du reçu enregistré : joignez-le dans WhatsApp.");
+      toast("PDF du reçu enregistré sur votre appareil.");
     }
   } catch (err) {
     if (!err || err.name !== 'AbortError') toast('Partage impossible : ' + ((err && err.message) || err), 'error');
