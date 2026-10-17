@@ -370,7 +370,7 @@ function agencyBlock(name) {
   if (!n) return '';
   return `<div class="mt-4 flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50/60 p-3">
     <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-swiftblue text-white"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/><path d="M9 10h.01M12 10h.01M15 10h.01"/></svg></span>
-    <div class="min-w-0"><p class="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Agence / Transporteur</p><p class="truncate text-base font-extrabold text-gray-900">${esc(n)}</p></div></div>`;
+    <div class="min-w-0"><p class="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Envoyé via</p><p class="truncate text-base font-extrabold text-gray-900">${esc(n)}</p></div></div>`;
 }
 
 // Frise IDENTIQUE pour l'expéditeur et le destinataire :
@@ -765,7 +765,7 @@ $('track-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const out = $('track-result'), code = $('track-code').value.trim();
   out.innerHTML = '<p class="text-center text-gray-500">Recherche...</p>';
-  const { data, error } = await supabaseClient.rpc('sw_track_shipment2', { p_code: code });
+  const { data, error } = await fetchPublic(code);
   if (error) { out.innerHTML = ''; dShow("Erreur : " + error.message); return; }
   dHide();
   if (!data) { out.innerHTML = '<div class="bg-white rounded-2xl border border-gray-100 p-6 text-center text-gray-500">Aucun colis trouvé avec ce code. Vérifiez-le et réessayez.</div>'; return; }
@@ -905,7 +905,7 @@ async function fetchPublic(code) {
   const variants = [...new Set([up, raw])].filter(Boolean);
   const norm = (d) => Array.isArray(d) ? (d[0] || null) : d;
   let lastErr = null;
-  for (const fn of ['sw_public_track2', 'sw_track_shipment2']) {
+  for (const fn of ['sw_public_track3', 'sw_public_track2', 'sw_track_shipment2']) {
     for (const c of variants) {
       const r = await supabaseClient.rpc(fn, { p_code: c });
       if (r.error) { lastErr = r.error; console.warn(fn, r.error); continue; }
