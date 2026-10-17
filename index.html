@@ -364,6 +364,15 @@ function stepDur(ship, st) {
   const v = Number(h[st]); return v > 0 ? v : d[st];
 }
 
+// Encadré « Agence / Transporteur » (identique chez l'expéditeur et le destinataire)
+function agencyBlock(name) {
+  const n = String(name || '').trim();
+  if (!n) return '';
+  return `<div class="mt-4 flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50/60 p-3">
+    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-swiftblue text-white"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/><path d="M9 10h.01M12 10h.01M15 10h.01"/></svg></span>
+    <div class="min-w-0"><p class="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Agence / Transporteur</p><p class="truncate text-base font-extrabold text-gray-900">${esc(n)}</p></div></div>`;
+}
+
 // Frise IDENTIQUE pour l'expéditeur et le destinataire :
 // - dates seulement (jamais d'heures), aucune date/heure prévue, aucun compte à rebours.
 // - la date de la 1re étape ("En attente") = date de création du colis, figée.
@@ -594,7 +603,7 @@ let SH = {}, lastOpenId = null;
 async function renderDetails(id) {
   const holder = $('ev-' + id), s = SH[id]; if (!holder || !s) return;
   const { data: events, error } = await supabaseClient.from('sw_shipment_events').select('*').eq('shipment_id', id).order('created_at', { ascending: true });
-  holder.innerHTML = error ? '<p class="text-sm text-red-600 mt-3">Erreur de chargement.</p>' : detailsHtml(s) + editCtl(s, events) + timeline(events, s);
+  holder.innerHTML = error ? '<p class="text-sm text-red-600 mt-3">Erreur de chargement.</p>' : agencyBlock(s.agency_name) + detailsHtml(s) + editCtl(s, events) + timeline(events, s);
   holder.classList.remove('hidden'); lastOpenId = id;
   const q1 = (c) => holder.querySelector(c);
   const cbs = [...holder.querySelectorAll('.ed-cb')];
@@ -889,7 +898,7 @@ function pubRender(data) {
       
     </div>
     <div class="flex items-start justify-between gap-2">
-      <div><p class="font-bold text-gray-900">${esc(data.tracking_code)}</p><p class="text-sm text-gray-500">${esc(data.origin)} → ${esc(data.destination)}</p></div>${badge(data.status)}</div>${pubParties(data)}${timeline(data.events, data)}</div>`;
+      <div><p class="font-bold text-gray-900">${esc(data.tracking_code)}</p><p class="text-sm text-gray-500">${esc(data.origin)} → ${esc(data.destination)}</p></div>${badge(data.status)}</div>${agencyBlock(data.agency_name)}${pubParties(data)}${timeline(data.events, data)}</div>`;
 }
 async function fetchPublic(code) {
   const raw = String(code || '').trim(), up = raw.toUpperCase().replace(/\s+/g, '');
