@@ -101,7 +101,7 @@
     <section id="view-track" class="hidden space-y-4">
       <form id="track-form" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
         <h2 class="text-lg font-bold text-gray-900">Suivre un colis</h2>
-        <input id="track-code" required placeholder="Code de suivi, ex: SW1A2B3C4D" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50 uppercase">
+        <input id="track-code" required placeholder="Collez votre code de suivi" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50 uppercase">
         <button type="submit" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition shadow-md cursor-pointer">Rechercher</button>
       </form>
       <div id="track-result"></div>
@@ -277,6 +277,12 @@ function dShow(msg, type = 'error') {
   dAlert.className = `mb-4 p-4 rounded-xl text-sm text-center font-medium ${type === 'error' ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-green-50 text-green-700 border border-green-100'}`;
 }
 function dHide() { dAlert.classList.add('hidden'); }
+// Codes de suivi longs (SW + 20 caractères aléatoires) : affichage groupé SW-XXXXX-XXXXX-XXXXX-XXXXX.
+// Les anciens codes courts restent affichés tels quels.
+function fmtCode(c) {
+  const v = String(c || '');
+  return /^SW[A-Z0-9]{20}$/.test(v) ? v.slice(0, 2) + '-' + v.slice(2, 7) + '-' + v.slice(7, 12) + '-' + v.slice(12, 17) + '-' + v.slice(17, 22) : v;
+}
 
 // ---------- FORMULAIRE NOUVELLE EXPÉDITION (généré) ----------
 const IC = 'w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50';
@@ -511,7 +517,7 @@ function receiptHtml(s) {
       <div style="background:${NAVY};color:#fff;padding:9px 10px;text-align:center"><div style="font-size:19px;font-weight:900;letter-spacing:.05em;text-transform:uppercase">${esc(ag || "Bordereau d'expédition")}</div>
         <div style="font-size:9px;letter-spacing:.3em;margin-top:2px;opacity:.85">BORDEREAU D'EXPÉDITION</div></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0">
-        <div><div style="font-size:8.5px;color:#667">N° DE BORDEREAU / SUIVI</div><div style="font-size:17px;font-weight:900;letter-spacing:.06em;color:${NAVY}">${esc(s.tracking_code)}</div>
+        <div><div style="font-size:8.5px;color:#667">N° DE BORDEREAU / SUIVI</div><div style="font-size:${String(s.tracking_code || '').length > 12 ? '12.5px' : '17px'};font-weight:900;letter-spacing:.04em;color:${NAVY};word-break:break-all;max-width:88mm">${esc(fmtCode(s.tracking_code))}</div>
           <div style="font-size:9px;color:#667;margin-top:2px">Émis le ${fmtDay(s.created_at)}</div>
           <div style="display:inline-block;margin-top:3px;border:1px solid ${NAVY};color:${NAVY};font-size:8.5px;font-weight:800;padding:1px 7px;letter-spacing:.1em">${s.service_type === 'express' ? 'EXPRESS' : 'STANDARD'} ${s.delivery_window_hours || (s.service_type === 'express' ? 24 : 48)} H</div></div>
         <div style="text-align:center"><div style="width:22mm;height:22mm;border:1px solid ${NAVY};padding:1.5mm;background:#fff">${qrSvg}</div><div style="font-size:7.5px;color:#667;margin-top:1px">Scannez pour suivre le colis</div></div>
@@ -709,7 +715,7 @@ async function loadShipments(openId) {
     return `
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3">
       <div class="flex items-start justify-between gap-2"><div>
-        <p class="font-bold text-gray-900">${esc(s.tracking_code)}</p>
+        <p class="font-bold text-gray-900 break-all">${esc(fmtCode(s.tracking_code))}</p>
         <p class="text-sm text-gray-500">${esc(s.origin)} → ${esc(s.destination)}</p>
         <p class="text-xs text-gray-400 mt-1">Pour ${esc(s.receiver_name)} · ${fmtDay(s.created_at)}</p>
         ${s.agency_name ? `<p class="text-xs text-gray-400">Agence : ${esc(s.agency_name)}</p>` : ''}
@@ -790,7 +796,7 @@ $('new-form').addEventListener('submit', async (e) => {
   btn.disabled = false; setNewLabel();
   receiptSet.add(data.id);
   e.target.reset(); $('auto-box').classList.remove('hidden'); syncEta(); clearSig('sig-s'); clearSig('sig-a'); showTab('list');
-  dShow("Paiement confirmé ! Expédition créée · Code de suivi : " + data.tracking_code, 'success');
+  dShow("Paiement confirmé ! Expédition créée · Code de suivi : " + fmtCode(data.tracking_code), 'success');
   showReceipt(data);
 });
 
@@ -954,10 +960,10 @@ function pubRender(data) {
       
     </div>
     <div class="flex items-start justify-between gap-2">
-      <div><p class="font-bold text-gray-900">${esc(data.tracking_code)}</p><p class="text-sm text-gray-500">${esc(data.origin)} → ${esc(data.destination)}</p></div>${badge(data.status)}</div>${agencyBlock(data.agency_name)}${pubParties(data)}${timeline(data.events, data)}</div>`;
+      <div class="min-w-0"><p class="font-bold text-gray-900 break-all">${esc(fmtCode(data.tracking_code))}</p><p class="text-sm text-gray-500">${esc(data.origin)} → ${esc(data.destination)}</p></div>${badge(data.status)}</div>${agencyBlock(data.agency_name)}${pubParties(data)}${timeline(data.events, data)}</div>`;
 }
 async function fetchPublic(code) {
-  const raw = String(code || '').trim(), up = raw.toUpperCase().replace(/\s+/g, '');
+  const raw = String(code || '').trim(), up = raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
   const variants = [...new Set([up, raw])].filter(Boolean);
   const norm = (d) => Array.isArray(d) ? (d[0] || null) : d;
   let lastErr = null;
@@ -1218,19 +1224,19 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     <div class="x-panel"><p class="x-h">PIPELINE (${S.ship.length})</p>
       <div class="x-seg">${seg.map(([k, n]) => `<span style="width:${S.ship.length ? n / S.ship.length * 100 : 0}%;background:${COL[k]}"></span>`).join('')}</div>
       <div class="x-leg">${seg.map(([k, n]) => `<span><i style="background:${COL[k]}"></i>${esc(STATUS[k].label)} ${n}</span>`).join('')}</div></div>
-    <div class="x-panel"><p class="x-h">ALERTES RETARD (+${48} h)</p>${lt.length ? lt.slice(0, 8).map(s => `<button class="x-row" data-open="${esc(s.id)}"><span>${esc(s.tracking_code)} <span style="color:#7d8da0">${esc(s.origin)} → ${esc(s.destination)}</span></span><span style="color:#ff5a5f">+${hoursText(hrs(s) - win(s))}</span></button>`).join('') : '<span style="color:#c6ff3d">RAS : aucun retard.</span>'}</div>`;
+    <div class="x-panel"><p class="x-h">ALERTES RETARD (+${48} h)</p>${lt.length ? lt.slice(0, 8).map(s => `<button class="x-row" data-open="${esc(s.id)}"><span style="word-break:break-all">${esc(fmtCode(s.tracking_code))} <span style="color:#7d8da0">${esc(s.origin)} → ${esc(s.destination)}</span></span><span style="color:#ff5a5f">+${hoursText(hrs(s) - win(s))}</span></button>`).join('') : '<span style="color:#c6ff3d">RAS : aucun retard.</span>'}</div>`;
   }
 
   function pipe() {
     const q = S.q.toLowerCase();
-    const rows = S.ship.filter(s => !q || [s.tracking_code, s.receiver_name, s.sender_name, s.origin, s.destination, s.receiver_phone, s.agency_name, (S.own[s.user_id] || {}).email].some(v => String(v || '').toLowerCase().includes(q)));
+    const rows = S.ship.filter(s => !q || [s.tracking_code, s.receiver_name, s.sender_name, s.origin, s.destination, s.receiver_phone, s.agency_name, (S.own[s.user_id] || {}).email].some(v => String(v || '').toLowerCase().includes(q)) || String(s.tracking_code || '').toLowerCase().includes(q.replace(/-/g, '')));
     M.innerHTML = `<p class="x-h"><b>●</b> FLUX // glissez une carte pour changer son statut</p>
     <input id="x-q" class="x-in" style="margin-bottom:12px" placeholder="> filtrer : code, nom, ville, téléphone, agence" value="${esc(S.q)}">
     <div class="x-board">${Object.keys(STATUS).map(k => {
       const c = rows.filter(s => s.status === k);
       return `<div class="x-col" data-drop="${k}"><h4 style="color:${COL[k]}"><span>${esc(STATUS[k].label.toUpperCase())}</span><span>${c.length}</span></h4>
       ${c.map(s => `<div class="x-card" draggable="true" data-id="${esc(s.id)}" data-open="${esc(s.id)}" style="--c:${COL[k]}">
-        <b>${esc(s.tracking_code)}</b><span>${esc(s.origin)} → ${esc(s.destination)}</span><span>${esc(s.receiver_name)}</span>
+        <b style="word-break:break-all">${esc(fmtCode(s.tracking_code))}</b><span>${esc(s.origin)} → ${esc(s.destination)}</span><span>${esc(s.receiver_name)}</span>
         ${late(s) ? `<span class="late">▲ retard ${hoursText(hrs(s) - win(s))}</span>` : ''}</div>`).join('')}</div>`;
     }).join('')}</div>`;
     const qi = $('x-q'); qi.oninput = () => { S.q = qi.value; const p = qi.selectionStart; pipe(); const n = $('x-q'); n.focus(); n.setSelectionRange(p, p); };
@@ -1323,7 +1329,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     M.innerHTML = `<p class="x-h"><b>●</b> ANNULATIONS // demandes des clients</p>
     <div class="x-chips">${[['pending', 'EN ATTENTE'], ['', 'TOUTES'], ['approved', 'ACCEPTÉES'], ['rejected', 'REJETÉES']].map(([v, l]) => `<button class="x-btn ${S.cf === v ? 'on' : ''}" data-cf="${v}">${l}</button>`).join('')}</div>
     ${rows.length ? rows.map(r => { const s = S.ship.find(x => x.id === r.shipment_id) || {}, u = S.own[r.user_id] || {}; return `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="color:#e9f1f8">${esc(s.tracking_code || '-')}</strong><span class="x-tag" style="color:${col[r.status]}">${lab[r.status] || esc(r.status)}</span></div>
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="color:#e9f1f8;word-break:break-all">${esc(s.tracking_code ? fmtCode(s.tracking_code) : '-')}</strong><span class="x-tag" style="color:${col[r.status]}">${lab[r.status] || esc(r.status)}</span></div>
       <p style="font-size:12px;color:#7d8da0;margin:6px 0">${esc(s.origin || '')} → ${esc(s.destination || '')} · ${esc(u.email || '-')}<br>${fmtDate(r.created_at)}</p>
       <p style="font-size:13px;color:#e9f1f8;white-space:pre-wrap;margin:6px 0">${r.reason ? 'Motif : ' + esc(r.reason) : '// aucun motif'}</p>
       ${r.admin_note ? `<p style="font-size:11px;color:#7d8da0">note : ${esc(r.admin_note)}</p>` : ''}
@@ -1454,7 +1460,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       <div style="margin-top:10px;padding:12px;background:#fff;border:1px solid #c9d1d9">
         <p style="font-size:12px;font-weight:700">AUTO : ${s.auto_progress ? 'ACTIVÉ' : 'DÉSACTIVÉ'} <button class="x-btn" style="margin-left:8px" data-auto="${s.auto_progress ? 0 : 1}" data-id="${esc(s.id)}">${s.auto_progress ? 'COUPER' : 'RÉACTIVER'}</button></p>
         <div style="display:flex;gap:8px;margin-top:8px"><input id="d-win" type="number" min="1" max="720" class="x-in" value="${esc(win(s))}"><button class="x-btn go" data-win="${esc(s.id)}">DÉLAI (h)</button></div></div>` : '';
-    $('x-drawer').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><h3 style="font-weight:800;font-size:18px">${esc(s.tracking_code)}</h3><button class="x-btn" data-close="1">FERMER ✕</button></div>
+    $('x-drawer').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><h3 style="font-weight:800;font-size:16px;word-break:break-all">${esc(fmtCode(s.tracking_code))}</h3><button class="x-btn" data-close="1">FERMER ✕</button></div>
       <p style="font-size:12px;color:#555;margin-top:4px">Compte : ${esc((S.own[s.user_id] || {}).email || '-')}</p>
       ${detailsHtml(s)}
       ${ctl}
