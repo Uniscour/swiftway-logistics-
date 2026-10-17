@@ -154,6 +154,9 @@ const SUPABASE_ANON_KEY = 'sb_publishable_zXgU5Q2p2UL3--3no-spmA_noD8JRvF';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = (id) => document.getElementById(id);
 
+// Site de suivi SÉPARÉ (aucune connexion, aucun lien vers l'application) : liens et codes QR pointent ici.
+const TRACK_BASE = 'https://suivremoncolis.pages.dev/';
+
 function showAuthView() {
   $('loading').classList.add('hidden'); $('dash-view').classList.add('hidden'); $('admin-view').classList.add('hidden');
   document.body.style.background = ''; $('auth-view').classList.remove('hidden');
@@ -487,10 +490,10 @@ async function loadReceiptSet() {
     receiptSet = new Set((data || []).map(r => r.shipment_id));
   } catch (err) { receiptSet = new Set(); }
 }
-// Lien texte partagé : page de suivi de base (le code est saisi à la main)
-function trackUrl(code) { return location.origin + location.pathname + '?suivi=1'; }
-// QR code du reçu : page de suivi avec le code déjà injecté (recherche automatique)
-function qrUrl(code) { return location.origin + location.pathname + '?suivi=1&t=' + encodeURIComponent(code); }
+// Lien texte partagé : site de suivi séparé (le code est saisi à la main)
+function trackUrl(code) { return TRACK_BASE; }
+// QR code du reçu : site de suivi avec le code déjà injecté (recherche automatique)
+function qrUrl(code) { return TRACK_BASE + '?t=' + encodeURIComponent(code); }
 
 function receiptHtml(s) {
   const ag = (s.agency_name || '').trim(), cur = s.currency || 'XAF', m = v => fmtCur(v, cur), NAVY = '#0f2a4a';
@@ -1017,9 +1020,12 @@ setInterval(() => {
 }, 1000);
 
 // ---------- DÉMARRAGE ----------
+// Anciens liens / anciens QR codes (?suivi=1&t=CODE) : redirigés vers le site de suivi séparé.
 const QS = new URLSearchParams(location.search);
-if (QS.has('t') || QS.has('suivi')) startPublic(QS.get('t') || '');
-else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) showDashView(data.session.user); else showAuthView(); });
+if (QS.has('t') || QS.has('suivi')) {
+  const oldCode = QS.get('t') || '';
+  location.replace(TRACK_BASE + (oldCode ? '?t=' + encodeURIComponent(oldCode) : ''));
+} else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) showDashView(data.session.user); else showAuthView(); });
 </script>
 
 <!-- ===== CONSOLE ADMIN "CONTROL ROOM" ===== -->
