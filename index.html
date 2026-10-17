@@ -511,7 +511,9 @@ function showTab(name) {
   if (name === 'list') loadShipments();
   if (name === 'wallet') loadWallet();
   if (name === 'help') loadHelp();
+  if (name === 'new') loadPrice().then(setNewLabel);
 }
+function setNewLabel() { const b = $('new-btn'); if (b && !b.disabled) b.textContent = 'Payer ' + fmtMoney(RECEIPT_PRICE) + " et créer l'expédition"; }
 document.querySelectorAll('.dtab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 
 let SH = {};
@@ -617,7 +619,13 @@ async function loadShipments(openId) {
 
 $('new-form').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const btn = $('new-btn'); btn.disabled = true; btn.textContent = 'Création...';
+  const btn = $('new-btn');
+  await loadPrice();
+  const wb = await supabaseClient.from('sw_wallets').select('balance').eq('user_id', currentUser.id).maybeSingle();
+  const bal = Number(wb.data ? wb.data.balance : 0);
+  if (bal < RECEIPT_PRICE) { dShow('Solde insuffisant : ' + fmtMoney(RECEIPT_PRICE) + ' requis, vous avez ' + fmtMoney(bal) + ". Rechargez votre portefeuille. Aucune expédition n'a été créée."); window.scrollTo(0, 0); return; }
+  if (!confirm("Confirmer le paiement ?\n" + fmtMoney(RECEIPT_PRICE) + " seront débités de votre portefeuille pour générer le reçu et le code de suivi.")) return;
+  btn.disabled = true; btn.textContent = 'Paiement...';
   const txt = (id) => $(id).value.trim() || null, val = (id) => $(id).value.trim();
   const num = (id) => { const v = $(id).value; return v === '' ? null : Number(v); };
   const row = { description: val('p-desc'), package_type: $('p-type').value, package_count: num('p-count') || 1, weight_kg: num('p-weight'),
@@ -631,10 +639,18 @@ $('new-form').addEventListener('submit', async (e) => {
     row[pre + 'region'] = val(p + '-region'); row[pre + 'country'] = val(p + '-country');
   });
   const { data, error } = await supabaseClient.from('sw_shipments').insert(row).select().single();
-  btn.disabled = false; btn.textContent = "Créer l'expédition";
-  if (error) { dShow("Erreur : " + error.message); return; }
+  if (error) { btn.disabled = false; setNewLabel(); dShow("Erreur : " + error.message); window.scrollTo(0, 0); return; }
+  const pay = await supabaseClient.rpc('sw_buy_receipt', { p_shipment_id: data.id });
+  if (pay.error) {
+    await supabaseClient.from('sw_shipments').delete().eq('id', data.id);
+    btn.disabled = false; setNewLabel();
+    dShow('Paiement refusé : ' + (pay.error.message || 'erreur') + ". Aucune expédition n'a été créée."); window.scrollTo(0, 0); return;
+  }
+  btn.disabled = false; setNewLabel();
+  receiptSet.add(data.id);
   e.target.reset(); clearSig('sig-s'); clearSig('sig-a'); showTab('list');
-  dShow("Expédition créée ! Payez le reçu A5 pour débloquer le code de suivi, le suivi et les modifications.", 'success');
+  dShow("Paiement confirmé ! Expédition créée · Code de suivi : " + data.tracking_code, 'success');
+  showReceipt(data);
 });
 
 $('track-form').addEventListener('submit', async (e) => {
