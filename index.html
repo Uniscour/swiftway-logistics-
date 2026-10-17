@@ -1028,6 +1028,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
 
   async function loadAll() {
     await supabaseClient.rpc('sw_advance_shipments_v2');
+    try { const pg = await supabaseClient.rpc('sw_purge_old', { p_days: 5 }); if (!pg.error) removeProofs(pg.data); } catch (e) {}
     await loadPrice();
     const q = (t, f) => supabaseClient.from(t).select(f || '*');
     const [sh, pr, rc, wl, pn, adj, mg] = await Promise.all([
@@ -1093,8 +1094,11 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
   function cash() {
     const rows = S.rech.filter(r => !S.rf || r.status === S.rf);
     const col = { pending: '#ffb020', approved: '#c6ff3d', rejected: '#ff5a5f' };
+    const clr = rows.filter(r => r.status !== 'pending');
+    const clrBar = clr.length ? `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-4px 0 12px"><button class="x-btn no" data-rclear="${S.rf}">VIDER (${clr.length})</button><span style="font-size:11px;color:#5b6b7c">Suppression automatique 5 jours après le traitement</span></div>` : '';
     M.innerHTML = `<p class="x-h"><b>●</b> CAISSE // demandes de recharge</p>
     <div class="x-chips">${[['pending', 'EN ATTENTE'], ['', 'TOUTES'], ['approved', 'APPROUVÉES'], ['rejected', 'REJETÉES']].map(([v, l]) => `<button class="x-btn ${S.rf === v ? 'on' : ''}" data-rf="${v}">${l}</button>`).join('')}</div>
+    ${clrBar}
     ${rows.length ? rows.map(r => { const u = S.own[r.user_id] || {}; const adjH = (S.adj || []).filter(a => a.recharge_id === r.id).map(a => `<p style="font-size:11px;margin:2px 0;color:${a.delta > 0 ? '#c6ff3d' : '#ff5a5f'}">${a.delta > 0 ? '+' : ''}${fmtMoney(a.delta)} · ${fmtDate(a.created_at)}${a.note ? ' · ' + esc(a.note) : ''}</p>`).join(''); return `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-size:20px;color:#e9f1f8">${fmtMoney(r.status === 'approved' && r.approved_amount != null ? r.approved_amount : r.amount)}${r.status === 'approved' && r.approved_amount != null && Number(r.approved_amount) !== Number(r.amount) ? ` <span style="font-size:11px;font-weight:400;color:#5b6b7c">(demandé : ${fmtMoney(r.amount)})</span>` : ''}</strong><span class="x-tag" style="color:${col[r.status]}">${esc(RSTATUS[r.status].label.toUpperCase())}</span></div>
       <p style="font-size:12px;color:#7d8da0;margin:6px 0">${esc(METHODS[r.method] || r.method)} · ID transaction : <span style="color:#e9f1f8">${esc(r.reference)}</span><br>${esc(u.email || '-')} ${u.phone ? '· ' + esc(u.phone) : ''}<br>${fmtDate(r.created_at)}${r.admin_note ? '<br>note : ' + esc(r.admin_note) : ''}</p>
@@ -1105,7 +1109,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
         <button class="x-btn go" data-rv="1" data-id="${esc(r.id)}">APPROUVER</button><button class="x-btn no" data-rv="0" data-id="${esc(r.id)}">REJETER</button></div>`
       : r.status === 'approved' ? `${adjH}<input id="aj-${esc(r.id)}" type="number" min="1" step="1" class="x-in" placeholder="montant à ajouter / retirer (FCFA)" style="margin:8px 0">
         <input id="an-${esc(r.id)}" class="x-in" placeholder="motif (facultatif)" style="margin-bottom:8px"><div style="display:flex;gap:8px">
-        <button class="x-btn go" data-adj="1" data-id="${esc(r.id)}">AJOUTER</button><button class="x-btn no" data-adj="-1" data-id="${esc(r.id)}">RETIRER</button></div>` : ''}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucune demande</p>'}`;
+        <button class="x-btn go" data-adj="1" data-id="${esc(r.id)}">AJOUTER</button><button class="x-btn no" data-adj="-1" data-id="${esc(r.id)}">RETIRER</button></div>` : ''}${r.status !== 'pending' ? `<div style="margin-top:10px"><button class="x-btn no" data-rdel="${esc(r.id)}">SUPPRIMER</button></div>` : ''}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucune demande</p>'}`;
   }
 
   function acct() {
@@ -1128,8 +1132,11 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     if (S.mf === undefined) S.mf = 'open';
     const rows = (S.msgs || []).filter(m => !S.mf || m.status === S.mf);
     const cnt = {}; S.ship.forEach(s => cnt[s.user_id] = (cnt[s.user_id] || 0) + 1);
+    const rsv = rows.filter(m => m.status === 'resolved');
+    const mBar = rsv.length ? `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-4px 0 12px"><button class="x-btn no" data-mclear="1">VIDER LES RÉSOLUS (${rsv.length})</button><span style="font-size:11px;color:#5b6b7c">Suppression automatique 5 jours après la résolution</span></div>` : '';
     M.innerHTML = `<p class="x-h"><b>●</b> BOÎTE DE RÉCEPTION // messages des clients</p>
     <div class="x-chips">${[['open', 'OUVERTS'], ['', 'TOUS'], ['resolved', 'RÉSOLUS']].map(([v, l]) => `<button class="x-btn ${S.mf === v ? 'on' : ''}" data-mf="${v}">${l}</button>`).join('')}</div>
+    ${mBar}
     ${rows.length ? rows.map(m => { const u = S.own[m.user_id] || {}, op = m.status === 'open'; return `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-size:16px;color:#e9f1f8">${esc(m.subject)}</strong><span class="x-tag" style="color:${op ? '#ffb020' : '#c6ff3d'}">${op ? 'OUVERT' : 'RÉSOLU'}</span></div>
       <p style="font-size:11px;color:#5b6b7c;margin:4px 0">${esc(MCAT[m.category] || m.category)} · ${fmtDate(m.created_at)}</p>
@@ -1137,7 +1144,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       <div style="font-size:11px;color:#7d8da0;border-top:1px dashed #1b2530;padding-top:8px;margin-bottom:8px">EXPÉDITEUR<br><span style="color:#e9f1f8;word-break:break-all">${esc(u.email || '-')}</span><br>${esc(u.phone || 'sans téléphone')}<br>Solde ${fmtMoney(S.bal[m.user_id] || 0)} · ${cnt[m.user_id] || 0} colis · compte ${u.is_active === false ? 'coupé' : 'actif'}</div>
       ${op ? `<textarea id="mr-${esc(m.id)}" rows="3" class="x-in" placeholder="réponse au client (facultatif)" style="margin-bottom:8px">${esc(m.admin_reply || '')}</textarea>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="x-btn" data-mrep="${esc(m.id)}">ENVOYER LA RÉPONSE</button><button class="x-btn go" data-mres="${esc(m.id)}">MARQUER RÉSOLU</button></div>`
-      : `${m.admin_reply ? `<p style="font-size:12px;color:#7d8da0;white-space:pre-wrap">réponse : ${esc(m.admin_reply)}</p>` : ''}<button class="x-btn" style="margin-top:8px" data-mre="${esc(m.id)}">ROUVRIR</button>`}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucun message</p>'}`;
+      : `${m.admin_reply ? `<p style="font-size:12px;color:#7d8da0;white-space:pre-wrap">réponse : ${esc(m.admin_reply)}</p>` : ''}<button class="x-btn" style="margin-top:8px" data-mre="${esc(m.id)}">ROUVRIR</button> <button class="x-btn no" style="margin-top:8px" data-mdel="${esc(m.id)}">SUPPRIMER</button>`}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucun message</p>'}`;
   }
 
   function cfg() {
@@ -1183,6 +1190,22 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
   }
   function closeDrawer() { S.open = null; $('x-drawer').classList.remove('open'); $('x-veil').style.display = 'none'; }
 
+  async function removeProofs(paths) {
+    const p = (paths || []).filter(Boolean);
+    if (!p.length) return;
+    try { await supabaseClient.storage.from('sw-proofs').remove(p); } catch (e) {}
+  }
+  async function delRecharges(ids) {
+    const { data, error } = await supabaseClient.rpc('sw_admin_delete_recharges', { p_ids: ids.map(String) });
+    if (error) return toast('Erreur : ' + error.message, 'error');
+    await removeProofs(data); toast('Supprimé de la base.'); await loadAll(); draw();
+  }
+  async function delMessages(ids) {
+    const { error } = await supabaseClient.rpc('sw_admin_delete_messages', { p_ids: ids.map(String) });
+    if (error) return toast('Erreur : ' + error.message, 'error');
+    toast('Supprimé de la base.'); await loadAll(); draw();
+  }
+
   async function rpc(fn, args, ok) {
     const { error } = await supabaseClient.rpc(fn, args);
     if (error) { toast('Erreur : ' + error.message, 'error'); return false; }
@@ -1210,6 +1233,18 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       const { error } = await supabaseClient.from('sw_messages').update(upd).eq('id', id);
       if (error) return toast('Erreur : ' + error.message, 'error');
       toast(el.dataset.mrep ? 'Réponse envoyée.' : el.dataset.mres ? 'Message résolu.' : 'Message rouvert.'); await loadAll(); return draw();
+    }
+    if ((el = g('data-rdel')) || (el = g('data-rclear'))) {
+      let ids;
+      if (el.dataset.rdel) { ids = [el.dataset.rdel]; if (!confirm('Supprimer définitivement cette demande et sa capture ?')) return; }
+      else { const f = el.dataset.rclear; ids = S.rech.filter(r => r.status !== 'pending' && (!f || r.status === f)).map(r => r.id); if (!ids.length) return; if (!confirm('Supprimer définitivement ' + ids.length + ' demande(s) traitée(s) et leurs captures ?')) return; }
+      return delRecharges(ids);
+    }
+    if ((el = g('data-mdel')) || (el = g('data-mclear'))) {
+      let ids;
+      if (el.dataset.mdel) { ids = [el.dataset.mdel]; if (!confirm('Supprimer définitivement ce message ?')) return; }
+      else { ids = (S.msgs || []).filter(m => m.status === 'resolved' && (!S.mf || m.status === S.mf)).map(m => m.id); if (!ids.length) return; if (!confirm('Supprimer définitivement ' + ids.length + ' message(s) résolu(s) ?')) return; }
+      return delMessages(ids);
     }
     if ((el = g('data-proof'))) return openProof(el.dataset.proof);
     if (g('data-price')) {
