@@ -239,7 +239,7 @@ const STATUS = {
   in_transit: { label: 'En transit', color: 'bg-indigo-50 text-indigo-700' },
   out_for_delivery: { label: 'En cours de livraison', color: 'bg-amber-50 text-amber-700' },
   delivered: { label: 'Livré', color: 'bg-green-50 text-green-700' },
-  cancelled: { label: 'Annulé', color: 'bg-red-50 text-red-700' }
+  cancelled: { label: 'Colis annulé', color: 'bg-red-50 text-red-700' }
 };
 const dAlert = $('d-alert');
 const COUNTRIES = ["Afghanistan","Afrique du Sud","Albanie","Algérie","Allemagne","Andorre","Angola","Antigua-et-Barbuda","Arabie saoudite","Argentine","Arménie","Australie","Autriche","Azerbaïdjan","Bahamas","Bahreïn","Bangladesh","Barbade","Belgique","Belize","Bénin","Bhoutan","Biélorussie","Birmanie (Myanmar)","Bolivie","Bosnie-Herzégovine","Botswana","Brésil","Brunei","Bulgarie","Burkina Faso","Burundi","Cambodge","Cameroun","Canada","Cap-Vert","Chili","Chine","Chypre","Colombie","Comores","Congo","Corée du Nord","Corée du Sud","Costa Rica","Côte d'Ivoire","Croatie","Cuba","Danemark","Djibouti","Dominique","Égypte","Émirats arabes unis","Équateur","Érythrée","Espagne","Estonie","Eswatini","États-Unis","Éthiopie","Fidji","Finlande","France","Gabon","Gambie","Géorgie","Ghana","Grèce","Grenade","Guatemala","Guinée","Guinée-Bissau","Guinée équatoriale","Guyana","Haïti","Honduras","Hongrie","Îles Marshall","Îles Salomon","Inde","Indonésie","Irak","Iran","Irlande","Islande","Israël","Italie","Jamaïque","Japon","Jordanie","Kazakhstan","Kenya","Kirghizistan","Kiribati","Koweït","Laos","Lesotho","Lettonie","Liban","Libéria","Libye","Liechtenstein","Lituanie","Luxembourg","Macédoine du Nord","Madagascar","Malaisie","Malawi","Maldives","Mali","Malte","Maroc","Maurice","Mauritanie","Mexique","Micronésie","Moldavie","Monaco","Mongolie","Monténégro","Mozambique","Namibie","Nauru","Népal","Nicaragua","Niger","Nigéria","Norvège","Nouvelle-Zélande","Oman","Ouganda","Ouzbékistan","Pakistan","Palaos","Palestine","Panama","Papouasie-Nouvelle-Guinée","Paraguay","Pays-Bas","Pérou","Philippines","Pologne","Portugal","Qatar","République centrafricaine","République démocratique du Congo","République dominicaine","Roumanie","Royaume-Uni","Russie","Rwanda","Saint-Christophe-et-Niévès","Sainte-Lucie","Saint-Marin","Saint-Vincent-et-les-Grenadines","Salvador","Samoa","Sao Tomé-et-Principe","Sénégal","Serbie","Seychelles","Sierra Leone","Singapour","Slovaquie","Slovénie","Somalie","Soudan","Soudan du Sud","Sri Lanka","Suède","Suisse","Suriname","Syrie","Tadjikistan","Tanzanie","Tchad","Tchéquie","Thaïlande","Timor oriental","Togo","Tonga","Trinité-et-Tobago","Tunisie","Turkménistan","Turquie","Tuvalu","Ukraine","Uruguay","Vanuatu","Vatican (Saint-Siège)","Venezuela","Viêt Nam","Yémen","Zambie","Zimbabwe"];
@@ -409,7 +409,7 @@ function timeline(events, ship, showNotes) {
   }).join('') + '</ol>';
   if (cancelled) {
     const ev = byStatus['cancelled'];
-    html += `<div class="mt-3 bg-red-50 text-red-700 rounded-xl p-3 text-sm font-semibold">Expédition annulée</div>`;
+    html += `<div class="mt-3 bg-red-50 text-red-700 rounded-xl p-3 text-sm font-semibold">Colis annulé</div>`;
   }
   return html;
 }
@@ -655,6 +655,20 @@ async function renderDetails(id) {
   }
 }
 
+// ---------- DEMANDE D'ANNULATION (client -> admin) ----------
+let CANC = {};
+async function loadCancelSet() {
+  try {
+    const { data } = await supabaseClient.from('sw_cancel_requests').select('shipment_id,status').eq('user_id', currentUser.id).eq('status', 'pending');
+    CANC = {}; (data || []).forEach(r => { CANC[r.shipment_id] = 'pending'; });
+  } catch (e) { CANC = {}; }
+}
+function cancelBtn(s) {
+  if (s.status === 'cancelled' || s.status === 'delivered') return '';
+  if (CANC[s.id]) return '<span class="text-sm font-semibold text-amber-700 bg-amber-50 rounded-full px-3 py-1">Annulation demandée</span>';
+  return `<button type="button" data-id="${esc(s.id)}" class="cancel-btn text-sm font-semibold text-amber-700 border border-amber-200 rounded-full px-3 py-1 cursor-pointer">Demander l'annulation du colis</button>`;
+}
+
 async function loadShipments(openId) {
   const box = $('list-container');
   if (!openId) box.innerHTML = '<p class="text-center text-gray-500 py-8">Chargement...</p>';
@@ -667,6 +681,7 @@ async function loadShipments(openId) {
     $('go-new').addEventListener('click', () => showTab('new')); return;
   }
   await loadReceiptSet();
+  await loadCancelSet();
   data.forEach(s => { if (s.status === 'picked_up') s.status = 'pending'; });
   SH = {}; data.forEach(s => { SH[s.id] = s; });
   box.innerHTML = data.map(s => {
@@ -694,6 +709,7 @@ async function loadShipments(openId) {
         <button type="button" data-id="${esc(s.id)}" class="details-btn text-sm font-semibold text-swiftblue cursor-pointer">${openId === s.id ? 'Masquer le suivi' : 'Voir le suivi'}</button>
         <button type="button" data-id="${esc(s.id)}" class="receipt-btn text-sm font-semibold text-gray-700 border border-gray-200 rounded-full px-3 py-1 cursor-pointer">Voir le reçu A5</button>
         <button type="button" data-id="${esc(s.id)}" class="copy-btn text-sm font-semibold text-gray-700 border border-gray-200 rounded-full px-3 py-1 cursor-pointer">Copier le lien de suivi</button>
+        ${cancelBtn(s)}
         <button type="button" data-id="${esc(s.id)}" class="del-btn text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button>
       </div>
       <div id="ev-${esc(s.id)}" class="hidden"></div></div>`;
@@ -702,6 +718,13 @@ async function loadShipments(openId) {
   box.querySelectorAll('.copy-btn').forEach(b => b.addEventListener('click', async () => {
     const u = trackUrl(SH[b.dataset.id].tracking_code);
     try { await navigator.clipboard.writeText(u); toast('Lien de suivi copié.'); } catch (e) { prompt('Copiez ce lien :', u); }
+  }));
+  box.querySelectorAll('.cancel-btn').forEach(b => b.addEventListener('click', async () => {
+    if (!confirm("Envoyer une demande d'annulation à l'administrateur ?\nAucun remboursement du reçu n'est prévu.")) return;
+    const reason = prompt('Motif (facultatif) :') || '';
+    const { error: er } = await supabaseClient.rpc('sw_request_cancel', { p_id: b.dataset.id, p_reason: reason.trim() || null });
+    if (er) { toast('Erreur : ' + er.message, 'error'); return; }
+    toast("Demande envoyée à l'administrateur."); loadShipments(lastOpenId || undefined);
   }));
   box.querySelectorAll('.del-btn').forEach(b => b.addEventListener('click', async () => {
     const s = SH[b.dataset.id];
@@ -856,13 +879,19 @@ $('recharge-form').addEventListener('submit', async (e) => {
 
 // ---------- ASSISTANCE (client -> admin) ----------
 const MCAT = { technical: 'Problème technique', payment: 'Paiement / recharge', shipment: 'Colis / expédition', other: 'Autre' };
+// Message supprimé par le client mais avec une réponse de l'admin : on n'affiche que la réponse.
+function replyOnlyCard(m) {
+  return `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3"><div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
+    <p class="text-xs font-bold text-swiftblue mb-1">Réponse de l'assistant</p><p class="text-sm text-gray-800 whitespace-pre-wrap">${esc(m.admin_reply)}</p></div>
+    <button type="button" data-udel="${esc(m.id)}" class="u-mdel mt-3 text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button></div>`;
+}
 async function loadHelp() {
   const list = $('help-list'); list.innerHTML = LOADING;
   const { data, error } = await supabaseClient.from('sw_messages').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
   if (error) { list.innerHTML = ''; dShow('Erreur : ' + error.message); return; }
-  const msgs = data.filter(x => !x.user_hidden);
+  const msgs = data.filter(x => !x.user_hidden || (x.admin_reply && x.reply_visible));
   if (!msgs.length) { list.innerHTML = '<p class="text-center text-sm text-gray-500">Aucun message envoyé pour le moment.</p>'; return; }
-  list.innerHTML = '<div class="flex items-center justify-between mb-2"><h3 class="text-sm font-bold text-gray-900">Mes messages</h3><button type="button" id="u-mclear" class="text-xs font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Vider mes messages</button></div>' + msgs.map(m => `
+  list.innerHTML = '<div class="flex items-center justify-between mb-2"><h3 class="text-sm font-bold text-gray-900">Mes messages</h3><button type="button" id="u-mclear" class="text-xs font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Vider mes messages</button></div>' + msgs.map(m => m.user_hidden ? replyOnlyCard(m) : `
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3"><div class="flex items-start justify-between gap-2"><div>
       <p class="font-bold text-gray-900">${esc(m.subject)}</p>
       <p class="text-xs text-gray-400">${esc(MCAT[m.category] || m.category)} · ${fmtDate(m.created_at)}</p></div>
@@ -899,10 +928,11 @@ function pubRender(data) {
   const evs = (data.events || []).filter(e => e.status === data.status);
   const last = evs.length ? evs[evs.length - 1] : (data.events || []).slice(-1)[0];
   const label = (STATUS[data.status] || { label: data.status }).label;
+  const cx = data.status === 'cancelled';
   return `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-    <div class="bg-green-50 border border-green-100 rounded-xl p-4 mb-4">
-      <p class="text-xs font-semibold text-green-700">Situation actuelle</p>
-      <p class="text-lg font-extrabold text-green-800">${esc(label)}</p>
+    <div class="${cx ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'} border rounded-xl p-4 mb-4">
+      <p class="text-xs font-semibold ${cx ? 'text-red-700' : 'text-green-700'}">Situation actuelle</p>
+      <p class="text-lg font-extrabold ${cx ? 'text-red-800' : 'text-green-800'}">${esc(label)}</p>
       
     </div>
     <div class="flex items-start justify-between gap-2">
@@ -1019,6 +1049,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
   <nav class="x-rail">
     <button data-v="radar"><b>◉</b>RADAR</button><button data-v="pipe"><b>▦</b>FLUX</button>
     <button data-v="cash"><b>◈</b>CAISSE<span class="n" id="nav-rech-badge"></span></button><button data-v="acct"><b>☷</b>COMPTES</button>
+    <button data-v="cancel"><b>⊘</b>ANNUL.<span class="n" id="nav-cx-badge"></span></button>
     <button data-v="msg"><b>✉</b>MESSAGES<span class="n" id="nav-msg-badge"></span></button><button data-v="cfg"><b>⚙</b>PARAMS</button>
   </nav>
   <main id="x-main"></main><div id="admin-home" class="hidden"></div>
@@ -1026,7 +1057,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
   $('x-exit').onclick = doLogout;
   setInterval(() => { const c = $('x-clock'); if (c) c.textContent = new Date().toLocaleTimeString('fr-FR'); }, 1000);
 
-  const S = { ship: [], users: [], rech: [], bal: {}, own: {}, v: 'radar', q: '', rf: 'pending', open: null, ev: [] };
+  const S = { ship: [], users: [], rech: [], bal: {}, own: {}, v: 'radar', q: '', rf: 'pending', open: null, ev: [], cx: [], st: null };
   const COL = { pending: '#7d8da0', picked_up: '#4da3ff', in_transit: '#a78bfa', out_for_delivery: '#ffb020', delivered: '#c6ff3d', cancelled: '#ff5a5f' };
   const M = $('x-main');
   const win = s => s.delivery_window_hours || 48;
@@ -1039,19 +1070,24 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     try { const pg = await supabaseClient.rpc('sw_purge_old', { p_days: 5 }); if (!pg.error) removeProofs(pg.data); } catch (e) {}
     await loadPrice();
     const q = (t, f) => supabaseClient.from(t).select(f || '*');
-    const [sh, pr, rc, wl, pn, adj, mg] = await Promise.all([
+    const [sh, pr, rc, wl, pn, adj, mg, cx] = await Promise.all([
       q('sw_shipments').order('created_at', { ascending: false }).limit(500),
       q('sw_profiles').order('created_at', { ascending: false }),
       q('sw_recharges').order('created_at', { ascending: false }).limit(300),
-      q('sw_wallets', 'user_id,balance'), q('sw_pay_numbers').order('created_at'), q('sw_wallet_adjustments').order('created_at'), q('sw_messages').order('created_at', { ascending: false }).limit(300)]);
+      q('sw_wallets', 'user_id,balance'), q('sw_pay_numbers').order('created_at'), q('sw_wallet_adjustments').order('created_at'), q('sw_messages').order('created_at', { ascending: false }).limit(300),
+      q('sw_cancel_requests').order('created_at', { ascending: false }).limit(300)]);
     if (sh.error) { toast('Erreur : ' + sh.error.message, 'error'); return; }
     S.msgs = (mg.data || []).filter(m => !m.admin_hidden); S.pn = pn.data || []; S.adj = adj.data || []; S.ship = sh.data.map(s => s.status === 'picked_up' ? { ...s, status: 'pending' } : s); S.users = pr.data || []; S.rech = (rc.data || []).filter(r => !r.admin_hidden); S.bal = {}; S.own = {};
+    S.cx = cx.data || [];
     (wl.data || []).forEach(w => S.bal[w.user_id] = w.balance);
     S.users.forEach(u => S.own[u.id] = u);
     const n = S.rech.filter(r => r.status === 'pending').length, b = $('nav-rech-badge');
     b.textContent = n; b.style.display = n ? 'block' : 'none';
     const nm = S.msgs.filter(m => m.status === 'open').length, mb = $('nav-msg-badge');
     mb.textContent = nm; mb.style.display = nm ? 'block' : 'none';
+    const ncx = S.cx.filter(r => r.status === 'pending').length, cb = $('nav-cx-badge');
+    cb.textContent = ncx; cb.style.display = ncx ? 'block' : 'none';
+    try { const st = await supabaseClient.rpc('sw_admin_stats'); S.st = st.error ? null : st.data; } catch (e) { S.st = null; }
   }
 
   window.updateRechBadge = () => loadAll().then(draw);
@@ -1061,7 +1097,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     window.scrollTo(0, 0);
     await loadAll(); draw();
   };
-  function draw() { ({ radar, pipe, cash, acct, cfg, msg: inbox })[S.v](); if (S.open) openDrawer(S.open, true); }
+  function draw() { ({ radar, pipe, cash, acct, cfg, msg: inbox, cancel: cancelV })[S.v](); if (S.open) openDrawer(S.open, true); }
 
   function radar() {
     const act = S.ship.filter(live), lt = S.ship.filter(late);
@@ -1070,6 +1106,13 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     const t0 = new Date(); t0.setHours(0, 0, 0, 0);
     const rd = (g, l, v, e, c) => `<button class="x-read ${c || ''}" data-go="${g}"><small>${l}</small><strong>${v}</strong><em>${e}</em></button>`;
     const seg = Object.keys(STATUS).map(k => [k, S.ship.filter(s => s.status === k).length]);
+    const fin = S.st ? `
+    <div class="x-panel"><p class="x-h">GAINS ADMIN (FCFA)</p><div class="x-grid">
+      ${rd('cash', "AUJOURD'HUI", fmtMoney(S.st.today), 'recharges + reçus', 'ok')}${rd('cash', '7 DERNIERS JOURS', fmtMoney(S.st.week), 'cette semaine', 'ok')}
+      ${rd('cash', 'CE MOIS', fmtMoney(S.st.month), 'mois en cours', 'ok')}${rd('cash', 'TOTAL HISTORIQUE', fmtMoney(S.st.total), 'cumul global', 'ok')}</div></div>
+    <div class="x-panel"><p class="x-h">TRÉSORERIE (FCFA)</p><div class="x-grid">
+      ${rd('acct', 'FONDS CLIENTS', fmtMoney(S.st.funds), 'en circulation')}${rd('cash', 'RECHARGES APPROUVÉES', fmtMoney(S.st.recharges_total), 'cumul validé')}
+      ${rd('cash', 'EN ATTENTE', fmtMoney(S.st.pending_total), 'à traiter', Number(S.st.pending_total) > 0 ? 'warn' : 'ok')}</div></div>` : '';
     M.innerHTML = `<p class="x-h"><b>●</b> RADAR // ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</p>
     <div class="x-grid">
       ${rd('pipe', 'COLIS ACTIFS', act.length, S.ship.filter(s => new Date(s.created_at) >= t0).length + ' créés aujourd\'hui')}
@@ -1078,6 +1121,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       ${rd('acct', 'COMPTES', S.users.length, S.users.filter(u => !u.is_active).length + ' désactivé(s)')}
       ${rd('acct', 'FONDS CLIENTS', fmtMoney(tot), 'total portefeuilles')}
     </div>
+    ${fin}
     <div class="x-panel"><p class="x-h">PIPELINE (${S.ship.length})</p>
       <div class="x-seg">${seg.map(([k, n]) => `<span style="width:${S.ship.length ? n / S.ship.length * 100 : 0}%;background:${COL[k]}"></span>`).join('')}</div>
       <div class="x-leg">${seg.map(([k, n]) => `<span><i style="background:${COL[k]}"></i>${esc(STATUS[k].label)} ${n}</span>`).join('')}</div></div>
@@ -1136,6 +1180,22 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     const qi = $('x-uq'); qi.oninput = () => { S.uq = qi.value; const p = qi.selectionStart; acct(); const n = $('x-uq'); n.focus(); n.setSelectionRange(p, p); };
   }
 
+  function cancelV() {
+    if (S.cf === undefined) S.cf = 'pending';
+    const rows = (S.cx || []).filter(r => !S.cf || r.status === S.cf);
+    const col = { pending: '#ffb020', approved: '#c6ff3d', rejected: '#ff5a5f' }, lab = { pending: 'EN ATTENTE', approved: 'ACCEPTÉE', rejected: 'REJETÉE' };
+    M.innerHTML = `<p class="x-h"><b>●</b> ANNULATIONS // demandes des clients</p>
+    <div class="x-chips">${[['pending', 'EN ATTENTE'], ['', 'TOUTES'], ['approved', 'ACCEPTÉES'], ['rejected', 'REJETÉES']].map(([v, l]) => `<button class="x-btn ${S.cf === v ? 'on' : ''}" data-cf="${v}">${l}</button>`).join('')}</div>
+    ${rows.length ? rows.map(r => { const s = S.ship.find(x => x.id === r.shipment_id) || {}, u = S.own[r.user_id] || {}; return `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="color:#e9f1f8">${esc(s.tracking_code || '-')}</strong><span class="x-tag" style="color:${col[r.status]}">${lab[r.status] || esc(r.status)}</span></div>
+      <p style="font-size:12px;color:#7d8da0;margin:6px 0">${esc(s.origin || '')} → ${esc(s.destination || '')} · ${esc(u.email || '-')}<br>${fmtDate(r.created_at)}</p>
+      <p style="font-size:13px;color:#e9f1f8;white-space:pre-wrap;margin:6px 0">${r.reason ? 'Motif : ' + esc(r.reason) : '// aucun motif'}</p>
+      ${r.admin_note ? `<p style="font-size:11px;color:#7d8da0">note : ${esc(r.admin_note)}</p>` : ''}
+      ${r.status === 'pending' ? `<input id="cn-${esc(r.id)}" class="x-in" placeholder="note (facultatif)" style="margin:8px 0"><div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="x-btn go" data-cxok="${esc(r.id)}">ACCEPTER</button><button class="x-btn no" data-cxno="${esc(r.id)}">REJETER</button>
+        ${s.id ? `<button class="x-btn" data-open="${esc(s.id)}">VOIR LE COLIS</button>` : ''}</div>` : ''}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucune demande</p>'}`;
+  }
+
   function inbox() {
     if (S.mf === undefined) S.mf = 'open';
     const rows = (S.msgs || []).filter(m => !S.mf || m.status === S.mf);
@@ -1147,7 +1207,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     ${mBar}
     ${rows.length ? rows.map(m => { const u = S.own[m.user_id] || {}, op = m.status === 'open'; return `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-size:16px;color:#e9f1f8">${esc(m.subject)}</strong><span class="x-tag" style="color:${op ? '#ffb020' : '#c6ff3d'}">${op ? 'OUVERT' : 'RÉSOLU'}</span></div>
-      <p style="font-size:11px;color:#5b6b7c;margin:4px 0">${esc(MCAT[m.category] || m.category)} · ${fmtDate(m.created_at)}</p>
+      <p style="font-size:11px;color:#5b6b7c;margin:4px 0">${esc(MCAT[m.category] || m.category)} · ${fmtDate(m.created_at)}${m.user_hidden ? ' · <span style="color:#ffb020">supprimé par le client</span>' : ''}</p>
       <p style="white-space:pre-wrap;color:#e9f1f8;font-size:13px;margin:8px 0">${esc(m.body)}</p>
       <div style="font-size:11px;color:#7d8da0;border-top:1px dashed #1b2530;padding-top:8px;margin-bottom:8px">EXPÉDITEUR<br><span style="color:#e9f1f8;word-break:break-all">${esc(u.email || '-')}</span><br>${esc(u.phone || 'sans téléphone')}<br>Solde ${fmtMoney(S.bal[m.user_id] || 0)} · ${cnt[m.user_id] || 0} colis · compte ${u.is_active === false ? 'coupé' : 'actif'}</div>
       ${op ? `<textarea id="mr-${esc(m.id)}" rows="3" class="x-in" placeholder="réponse au client (facultatif)" style="margin-bottom:8px">${esc(m.admin_reply || '')}</textarea>
@@ -1229,6 +1289,12 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     if (g('data-v')) return showSub(g('data-v').dataset.v);
     if ((el = g('data-go'))) return showSub(el.dataset.go);
     if (g('data-close') || e.target.id === 'x-veil') return closeDrawer();
+    if ((el = g('data-cf'))) { S.cf = el.dataset.cf; return cancelV(); }
+    if ((el = g('data-cxok')) || (el = g('data-cxno'))) {
+      const ap = !!el.dataset.cxok, id = ap ? el.dataset.cxok : el.dataset.cxno, n = $('cn-' + id);
+      if (!confirm(ap ? 'Annuler ce colis ? Aucun remboursement du reçu.' : 'Rejeter cette demande ?')) return;
+      return rpc('sw_admin_review_cancel', { p_id: id, p_approve: ap, p_note: (n && n.value.trim()) || null }, ap ? 'Colis annulé.' : 'Demande rejetée.');
+    }
     if ((el = g('data-open'))) return openDrawer(el.dataset.open);
     if ((el = g('data-rf'))) { S.rf = el.dataset.rf; return cash(); }
     if ((el = g('data-mf'))) { S.mf = el.dataset.mf; return inbox(); }
