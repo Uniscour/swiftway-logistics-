@@ -90,6 +90,7 @@
       <button data-tab="new" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Nouvelle</button>
       <button data-tab="track" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Suivre</button>
       <button data-tab="wallet" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Portefeuille</button>
+      <button data-tab="help" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Assistance</button>
     </div>
     <div id="d-alert" class="hidden mb-4 p-4 rounded-xl text-sm text-center font-medium"></div>
     <section id="view-list"><div id="list-container"></div></section>
@@ -123,6 +124,21 @@
         <button type="submit" id="rc-btn" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition shadow-md cursor-pointer">Envoyer la demande</button>
       </form>
       <div id="recharge-list"></div>
+    </section>
+    <section id="view-help" class="hidden space-y-4">
+      <form id="help-form" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
+        <h2 class="text-lg font-bold text-gray-900">Contacter l'assistant</h2>
+        <p class="text-xs text-gray-500">Un souci, une question ? Écrivez-nous : votre message arrive directement chez l'administrateur avec les informations de votre compte.</p>
+        <div><label class="block text-xs font-semibold text-gray-700 mb-1">Sujet</label>
+          <select id="hp-cat" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
+            <option value="technical">Problème technique</option><option value="payment">Paiement / recharge</option><option value="shipment">Colis / expédition</option><option value="other">Autre</option></select></div>
+        <div><label class="block text-xs font-semibold text-gray-700 mb-1">Titre</label>
+          <input id="hp-subject" required maxlength="120" placeholder="Ex: Ma recharge n'est pas créditée" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50"></div>
+        <div><label class="block text-xs font-semibold text-gray-700 mb-1">Votre message</label>
+          <textarea id="hp-body" required rows="5" maxlength="2000" placeholder="Décrivez votre problème (code de suivi, montant, ce qui s'est passé...)" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50"></textarea></div>
+        <button type="submit" id="hp-btn" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition shadow-md cursor-pointer">Envoyer le message</button>
+      </form>
+      <div id="help-list"></div>
     </section>
   </main>
 </div>
@@ -470,7 +486,7 @@ async function openReceipt(s, btn) {
 }
 
 // ---------- ONGLETS & LISTE ----------
-const TABS = ['list', 'new', 'track', 'wallet'];
+const TABS = ['list', 'new', 'track', 'wallet', 'help'];
 function showTab(name) {
   dHide();
   TABS.forEach(t => { const el = $('view-' + t); if (el) el.classList.toggle('hidden', t !== name); });
@@ -480,6 +496,7 @@ function showTab(name) {
   });
   if (name === 'list') loadShipments();
   if (name === 'wallet') loadWallet();
+  if (name === 'help') loadHelp();
 }
 document.querySelectorAll('.dtab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 
@@ -659,6 +676,33 @@ $('recharge-form').addEventListener('submit', async (e) => {
   e.target.reset(); toast('Demande envoyée. Elle sera vérifiée par un administrateur.'); loadWallet();
 });
 
+// ---------- ASSISTANCE (client -> admin) ----------
+const MCAT = { technical: 'Problème technique', payment: 'Paiement / recharge', shipment: 'Colis / expédition', other: 'Autre' };
+async function loadHelp() {
+  const list = $('help-list'); list.innerHTML = LOADING;
+  const { data, error } = await supabaseClient.from('sw_messages').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+  if (error) { list.innerHTML = ''; dShow('Erreur : ' + error.message); return; }
+  if (!data.length) { list.innerHTML = '<p class="text-center text-sm text-gray-500">Aucun message envoyé pour le moment.</p>'; return; }
+  list.innerHTML = '<h3 class="text-sm font-bold text-gray-900 mb-2">Mes messages</h3>' + data.map(m => `
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3"><div class="flex items-start justify-between gap-2"><div>
+      <p class="font-bold text-gray-900">${esc(m.subject)}</p>
+      <p class="text-xs text-gray-400">${esc(MCAT[m.category] || m.category)} · ${fmtDate(m.created_at)}</p></div>
+      <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold ${m.status === 'resolved' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}">${m.status === 'resolved' ? 'Résolu' : 'En cours'}</span></div>
+      <p class="text-sm text-gray-700 mt-2 whitespace-pre-wrap">${esc(m.body)}</p>
+      ${m.admin_reply ? `<div class="mt-3 bg-blue-50 border border-blue-100 rounded-xl p-3"><p class="text-xs font-bold text-swiftblue mb-1">Réponse de l'assistant</p><p class="text-sm text-gray-800 whitespace-pre-wrap">${esc(m.admin_reply)}</p></div>` : ''}</div>`).join('');
+}
+$('help-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = $('hp-btn'), subject = $('hp-subject').value.trim(), body = $('hp-body').value.trim();
+  if (!subject || !body) { toast('Remplissez le titre et le message.', 'error'); return; }
+  btn.disabled = true; btn.textContent = 'Envoi...';
+  const { error } = await supabaseClient.from('sw_messages').insert({ category: $('hp-cat').value, subject, body });
+  btn.disabled = false; btn.textContent = 'Envoyer le message';
+  if (error) { toast('Erreur : ' + error.message, 'error'); return; }
+  e.target.reset(); toast("Message envoyé. L'assistant vous répondra ici.");
+  loadHelp();
+});
+
 // ---------- PAGE PUBLIQUE DE SUIVI ----------
 let pubTimer = null, pubCode = null;
 function pubRender(data) {
@@ -763,7 +807,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
   <nav class="x-rail">
     <button data-v="radar"><b>◉</b>RADAR</button><button data-v="pipe"><b>▦</b>FLUX</button>
     <button data-v="cash"><b>◈</b>CAISSE<span class="n" id="nav-rech-badge"></span></button><button data-v="acct"><b>☷</b>COMPTES</button>
-    <button data-v="cfg"><b>⚙</b>PARAMS</button>
+    <button data-v="msg"><b>✉</b>MESSAGES<span class="n" id="nav-msg-badge"></span></button><button data-v="cfg"><b>⚙</b>PARAMS</button>
   </nav>
   <main id="x-main"></main><div id="admin-home" class="hidden"></div>
   <div id="x-veil"></div><aside id="x-drawer"></aside>`;
@@ -782,17 +826,19 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     await supabaseClient.rpc('sw_advance_shipments');
     await loadPrice();
     const q = (t, f) => supabaseClient.from(t).select(f || '*');
-    const [sh, pr, rc, wl, pn, adj] = await Promise.all([
+    const [sh, pr, rc, wl, pn, adj, mg] = await Promise.all([
       q('sw_shipments').order('created_at', { ascending: false }).limit(500),
       q('sw_profiles').order('created_at', { ascending: false }),
       q('sw_recharges').order('created_at', { ascending: false }).limit(300),
-      q('sw_wallets', 'user_id,balance'), q('sw_pay_numbers').order('created_at'), q('sw_wallet_adjustments').order('created_at')]);
+      q('sw_wallets', 'user_id,balance'), q('sw_pay_numbers').order('created_at'), q('sw_wallet_adjustments').order('created_at'), q('sw_messages').order('created_at', { ascending: false }).limit(300)]);
     if (sh.error) { toast('Erreur : ' + sh.error.message, 'error'); return; }
-    S.pn = pn.data || []; S.adj = adj.data || []; S.ship = sh.data; S.users = pr.data || []; S.rech = rc.data || []; S.bal = {}; S.own = {};
+    S.msgs = mg.data || []; S.pn = pn.data || []; S.adj = adj.data || []; S.ship = sh.data; S.users = pr.data || []; S.rech = rc.data || []; S.bal = {}; S.own = {};
     (wl.data || []).forEach(w => S.bal[w.user_id] = w.balance);
     S.users.forEach(u => S.own[u.id] = u);
     const n = S.rech.filter(r => r.status === 'pending').length, b = $('nav-rech-badge');
     b.textContent = n; b.style.display = n ? 'block' : 'none';
+    const nm = S.msgs.filter(m => m.status === 'open').length, mb = $('nav-msg-badge');
+    mb.textContent = nm; mb.style.display = nm ? 'block' : 'none';
   }
 
   window.updateRechBadge = () => loadAll().then(draw);
@@ -802,7 +848,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     window.scrollTo(0, 0);
     await loadAll(); draw();
   };
-  function draw() { ({ radar, pipe, cash, acct, cfg })[S.v](); if (S.open) openDrawer(S.open, true); }
+  function draw() { ({ radar, pipe, cash, acct, cfg, msg: inbox })[S.v](); if (S.open) openDrawer(S.open, true); }
 
   function radar() {
     const act = S.ship.filter(live), lt = S.ship.filter(late);
@@ -874,6 +920,22 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     const qi = $('x-uq'); qi.oninput = () => { S.uq = qi.value; const p = qi.selectionStart; acct(); const n = $('x-uq'); n.focus(); n.setSelectionRange(p, p); };
   }
 
+  function inbox() {
+    if (S.mf === undefined) S.mf = 'open';
+    const rows = (S.msgs || []).filter(m => !S.mf || m.status === S.mf);
+    const cnt = {}; S.ship.forEach(s => cnt[s.user_id] = (cnt[s.user_id] || 0) + 1);
+    M.innerHTML = `<p class="x-h"><b>●</b> BOÎTE DE RÉCEPTION // messages des clients</p>
+    <div class="x-chips">${[['open', 'OUVERTS'], ['', 'TOUS'], ['resolved', 'RÉSOLUS']].map(([v, l]) => `<button class="x-btn ${S.mf === v ? 'on' : ''}" data-mf="${v}">${l}</button>`).join('')}</div>
+    ${rows.length ? rows.map(m => { const u = S.own[m.user_id] || {}, op = m.status === 'open'; return `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-size:16px;color:#e9f1f8">${esc(m.subject)}</strong><span class="x-tag" style="color:${op ? '#ffb020' : '#c6ff3d'}">${op ? 'OUVERT' : 'RÉSOLU'}</span></div>
+      <p style="font-size:11px;color:#5b6b7c;margin:4px 0">${esc(MCAT[m.category] || m.category)} · ${fmtDate(m.created_at)}</p>
+      <p style="white-space:pre-wrap;color:#e9f1f8;font-size:13px;margin:8px 0">${esc(m.body)}</p>
+      <div style="font-size:11px;color:#7d8da0;border-top:1px dashed #1b2530;padding-top:8px;margin-bottom:8px">EXPÉDITEUR<br><span style="color:#e9f1f8;word-break:break-all">${esc(u.email || '-')}</span><br>${esc(u.phone || 'sans téléphone')}<br>Solde ${fmtMoney(S.bal[m.user_id] || 0)} · ${cnt[m.user_id] || 0} colis · compte ${u.is_active === false ? 'coupé' : 'actif'}</div>
+      ${op ? `<textarea id="mr-${esc(m.id)}" rows="3" class="x-in" placeholder="réponse au client (facultatif)" style="margin-bottom:8px">${esc(m.admin_reply || '')}</textarea>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="x-btn" data-mrep="${esc(m.id)}">ENVOYER LA RÉPONSE</button><button class="x-btn go" data-mres="${esc(m.id)}">MARQUER RÉSOLU</button></div>`
+      : `${m.admin_reply ? `<p style="font-size:12px;color:#7d8da0;white-space:pre-wrap">réponse : ${esc(m.admin_reply)}</p>` : ''}<button class="x-btn" style="margin-top:8px" data-mre="${esc(m.id)}">ROUVRIR</button>`}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucun message</p>'}`;
+  }
+
   function cfg() {
     M.innerHTML = `<p class="x-h"><b>●</b> PARAMÈTRES // TARIFICATION</p>
     <div class="x-panel" style="margin-top:0"><p class="x-h">PRIX DU REÇU A5 / CODE DE SUIVI (FCFA)</p>
@@ -934,6 +996,17 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     if (g('data-close') || e.target.id === 'x-veil') return closeDrawer();
     if ((el = g('data-open'))) return openDrawer(el.dataset.open);
     if ((el = g('data-rf'))) { S.rf = el.dataset.rf; return cash(); }
+    if ((el = g('data-mf'))) { S.mf = el.dataset.mf; return inbox(); }
+    if ((el = g('data-mrep')) || (el = g('data-mres')) || (el = g('data-mre'))) {
+      const id = el.dataset.mrep || el.dataset.mres || el.dataset.mre, ta = $('mr-' + id), r = ta ? ta.value.trim() : null;
+      let upd;
+      if (el.dataset.mrep) { if (!r) return toast('Écrivez une réponse.', 'error'); upd = { admin_reply: r }; }
+      else if (el.dataset.mres) upd = { status: 'resolved', resolved_at: new Date().toISOString(), admin_reply: r || null };
+      else upd = { status: 'open', resolved_at: null };
+      const { error } = await supabaseClient.from('sw_messages').update(upd).eq('id', id);
+      if (error) return toast('Erreur : ' + error.message, 'error');
+      toast(el.dataset.mrep ? 'Réponse envoyée.' : el.dataset.mres ? 'Message résolu.' : 'Message rouvert.'); await loadAll(); return draw();
+    }
     if ((el = g('data-proof'))) return openProof(el.dataset.proof);
     if (g('data-price')) {
       const p = Number($('cfg-price').value);
