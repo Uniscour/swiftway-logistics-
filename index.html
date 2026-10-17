@@ -591,7 +591,7 @@ async function loadWallet() {
   if (!r.data.length) { list.innerHTML = '<p class="text-center text-sm text-gray-500">Aucune demande de recharge pour le moment.</p>'; return; }
   list.innerHTML = '<h3 class="text-sm font-bold text-gray-900 mb-2">Mes demandes de recharge</h3>' + r.data.map(rc => `
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3"><div class="flex items-start justify-between gap-2"><div>
-      <p class="font-bold text-gray-900">${fmtMoney(rc.amount)}</p>
+      <p class="font-bold text-gray-900">${rc.status === 'approved' && rc.approved_amount != null ? fmtMoney(rc.approved_amount) + (Number(rc.approved_amount) !== Number(rc.amount) ? ' <span class="text-xs font-normal text-gray-400">(demandé : ' + fmtMoney(rc.amount) + ')</span>' : '') : fmtMoney(rc.amount)}</p>
       <p class="text-sm text-gray-500">${esc(METHODS[rc.method] || rc.method)} · ID ${esc(rc.reference)}</p>
       <p class="text-xs text-gray-400 mt-1">${fmtDate(rc.created_at)}</p>
       ${rc.admin_note ? `<p class="text-xs text-gray-500 mt-1">Note : ${esc(rc.admin_note)}</p>` : ''}</div>${rbadge(rc.status)}</div></div>`).join('');
@@ -746,13 +746,13 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     await supabaseClient.rpc('sw_advance_shipments');
     await loadPrice();
     const q = (t, f) => supabaseClient.from(t).select(f || '*');
-    const [sh, pr, rc, wl, pn] = await Promise.all([
+    const [sh, pr, rc, wl, pn, adj] = await Promise.all([
       q('sw_shipments').order('created_at', { ascending: false }).limit(500),
       q('sw_profiles').order('created_at', { ascending: false }),
       q('sw_recharges').order('created_at', { ascending: false }).limit(300),
-      q('sw_wallets', 'user_id,balance'), q('sw_pay_numbers').order('created_at')]);
+      q('sw_wallets', 'user_id,balance'), q('sw_pay_numbers').order('created_at'), q('sw_wallet_adjustments').order('created_at')]);
     if (sh.error) { toast('Erreur : ' + sh.error.message, 'error'); return; }
-    S.pn = pn.data || []; S.ship = sh.data; S.users = pr.data || []; S.rech = rc.data || []; S.bal = {}; S.own = {};
+    S.pn = pn.data || []; S.adj = adj.data || []; S.ship = sh.data; S.users = pr.data || []; S.rech = rc.data || []; S.bal = {}; S.own = {};
     (wl.data || []).forEach(w => S.bal[w.user_id] = w.balance);
     S.users.forEach(u => S.own[u.id] = u);
     const n = S.rech.filter(r => r.status === 'pending').length, b = $('nav-rech-badge');
@@ -809,12 +809,17 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     const col = { pending: '#ffb020', approved: '#c6ff3d', rejected: '#ff5a5f' };
     M.innerHTML = `<p class="x-h"><b>●</b> CAISSE // demandes de recharge</p>
     <div class="x-chips">${[['pending', 'EN ATTENTE'], ['', 'TOUTES'], ['approved', 'APPROUVÉES'], ['rejected', 'REJETÉES']].map(([v, l]) => `<button class="x-btn ${S.rf === v ? 'on' : ''}" data-rf="${v}">${l}</button>`).join('')}</div>
-    ${rows.length ? rows.map(r => { const u = S.own[r.user_id] || {}; return `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-size:20px;color:#e9f1f8">${fmtMoney(r.amount)}</strong><span class="x-tag" style="color:${col[r.status]}">${esc(RSTATUS[r.status].label.toUpperCase())}</span></div>
+    ${rows.length ? rows.map(r => { const u = S.own[r.user_id] || {}; const adjH = (S.adj || []).filter(a => a.recharge_id === r.id).map(a => `<p style="font-size:11px;margin:2px 0;color:${a.delta > 0 ? '#c6ff3d' : '#ff5a5f'}">${a.delta > 0 ? '+' : ''}${fmtMoney(a.delta)} · ${fmtDate(a.created_at)}${a.note ? ' · ' + esc(a.note) : ''}</p>`).join(''); return `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-size:20px;color:#e9f1f8">${fmtMoney(r.status === 'approved' && r.approved_amount != null ? r.approved_amount : r.amount)}${r.status === 'approved' && r.approved_amount != null && Number(r.approved_amount) !== Number(r.amount) ? ` <span style="font-size:11px;font-weight:400;color:#5b6b7c">(demandé : ${fmtMoney(r.amount)})</span>` : ''}</strong><span class="x-tag" style="color:${col[r.status]}">${esc(RSTATUS[r.status].label.toUpperCase())}</span></div>
       <p style="font-size:12px;color:#7d8da0;margin:6px 0">${esc(METHODS[r.method] || r.method)} · ID transaction : <span style="color:#e9f1f8">${esc(r.reference)}</span><br>${esc(u.email || '-')} ${u.phone ? '· ' + esc(u.phone) : ''}<br>${fmtDate(r.created_at)}${r.admin_note ? '<br>note : ' + esc(r.admin_note) : ''}</p>
       ${r.proof_path ? `<button class="x-btn" style="margin-bottom:8px" data-proof="${esc(r.proof_path)}">VOIR LA CAPTURE</button>` : '<p style="font-size:11px;color:#ff5a5f;margin-bottom:8px">// aucune capture jointe</p>'}
-      ${r.status === 'pending' ? `<input id="rn-${esc(r.id)}" class="x-in" placeholder="note (facultatif)" style="margin-bottom:8px"><div style="display:flex;gap:8px">
-        <button class="x-btn go" data-rv="1" data-id="${esc(r.id)}">APPROUVER</button><button class="x-btn no" data-rv="0" data-id="${esc(r.id)}">REJETER</button></div>` : ''}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucune demande</p>'}`;
+      ${r.status === 'pending' ? `<label style="font-size:11px;color:#5b6b7c">MONTANT À CRÉDITER (FCFA) · demandé : ${fmtMoney(r.amount)}</label>
+        <input id="ra-${esc(r.id)}" type="number" min="1" step="1" class="x-in" value="${esc(r.amount)}" style="margin:4px 0 8px">
+        <input id="rn-${esc(r.id)}" class="x-in" placeholder="note (facultatif)" style="margin-bottom:8px"><div style="display:flex;gap:8px">
+        <button class="x-btn go" data-rv="1" data-id="${esc(r.id)}">APPROUVER</button><button class="x-btn no" data-rv="0" data-id="${esc(r.id)}">REJETER</button></div>`
+      : r.status === 'approved' ? `${adjH}<input id="aj-${esc(r.id)}" type="number" min="1" step="1" class="x-in" placeholder="montant à ajouter / retirer (FCFA)" style="margin:8px 0">
+        <input id="an-${esc(r.id)}" class="x-in" placeholder="motif (facultatif)" style="margin-bottom:8px"><div style="display:flex;gap:8px">
+        <button class="x-btn go" data-adj="1" data-id="${esc(r.id)}">AJOUTER</button><button class="x-btn no" data-adj="-1" data-id="${esc(r.id)}">RETIRER</button></div>` : ''}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucune demande</p>'}`;
   }
 
   function acct() {
@@ -926,11 +931,19 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       if (error) return toast('Erreur : ' + error.message, 'error');
       await loadAll(); return draw();
     }
+    if ((el = g('data-adj'))) {
+      const id = el.dataset.id, sign = Number(el.dataset.adj), v = Number($('aj-' + id).value), note = $('an-' + id).value.trim();
+      if (!v || v <= 0) return toast('Entrez un montant valide.', 'error');
+      if (!confirm((sign > 0 ? 'Ajouter ' : 'Retirer ') + fmtMoney(v) + (sign > 0 ? ' au' : ' du') + ' portefeuille de ce client ?')) return;
+      return rpc('sw_admin_adjust_wallet', { p_recharge_id: id, p_delta: sign * v, p_note: note || null }, sign > 0 ? 'Montant ajouté.' : 'Montant retiré.');
+    }
     if ((el = g('data-rv'))) {
       const ap = el.dataset.rv === '1';
-      if (!confirm(ap ? 'Approuver et créditer le portefeuille ?' : 'Rejeter cette demande ?')) return;
+      const am = $('ra-' + el.dataset.id), amount = ap && am ? Number(am.value) : null;
+      if (ap && (!amount || amount <= 0)) return toast('Montant invalide.', 'error');
+      if (!confirm(ap ? 'Créditer ' + fmtMoney(amount) + ' au portefeuille ?' : 'Rejeter cette demande ?')) return;
       const n = $('rn-' + el.dataset.id);
-      return rpc('sw_admin_review_recharge', { p_id: el.dataset.id, p_approve: ap, p_note: n ? n.value.trim() : null }, ap ? 'Recharge approuvée, solde crédité.' : 'Recharge rejetée.');
+      return rpc('sw_admin_review_recharge2', { p_id: el.dataset.id, p_approve: ap, p_note: n ? n.value.trim() || null : null, p_amount: amount }, ap ? 'Recharge approuvée, solde crédité.' : 'Recharge rejetée.');
     }
     if ((el = g('data-us'))) { const id = el.dataset.us;
       return rpc('sw_admin_set_user', { p_id: id, p_role: $('ur-' + id).value, p_active: $('ua-' + id).value === '1' }, 'Compte mis à jour.'); }
