@@ -885,13 +885,21 @@ function replyOnlyCard(m) {
     <p class="text-xs font-bold text-swiftblue mb-1">Réponse de l'assistant</p><p class="text-sm text-gray-800 whitespace-pre-wrap">${esc(m.admin_reply)}</p></div>
     <button type="button" data-udel="${esc(m.id)}" class="u-mdel mt-3 text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button></div>`;
 }
+function broadcastCard(m) {
+  return `<div class="bg-white rounded-2xl shadow-sm border-2 border-blue-200 p-4 mb-3">
+    <div class="flex items-center justify-between gap-2"><span class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-swiftblue text-white">📢 Annonce officielle</span><span class="text-xs text-gray-400">${fmtDate(m.created_at)}</span></div>
+    <p class="font-bold text-gray-900 mt-3">${esc(m.subject)}</p>
+    <p class="text-sm text-gray-700 mt-1 whitespace-pre-wrap">${esc(m.body)}</p>
+    <p class="text-xs text-gray-400 mt-2">— L'équipe SwiftWay Logistics</p>
+    <button type="button" data-udel="${esc(m.id)}" class="u-mdel mt-3 text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button></div>`;
+}
 async function loadHelp() {
   const list = $('help-list'); list.innerHTML = LOADING;
   const { data, error } = await supabaseClient.from('sw_messages').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
   if (error) { list.innerHTML = ''; dShow('Erreur : ' + error.message); return; }
   const msgs = data.filter(x => !x.user_hidden || (x.admin_reply && x.reply_visible));
   if (!msgs.length) { list.innerHTML = '<p class="text-center text-sm text-gray-500">Aucun message envoyé pour le moment.</p>'; return; }
-  list.innerHTML = '<div class="flex items-center justify-between mb-2"><h3 class="text-sm font-bold text-gray-900">Mes messages</h3><button type="button" id="u-mclear" class="text-xs font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Vider mes messages</button></div>' + msgs.map(m => m.user_hidden ? replyOnlyCard(m) : `
+  list.innerHTML = '<div class="flex items-center justify-between mb-2"><h3 class="text-sm font-bold text-gray-900">Mes messages</h3><button type="button" id="u-mclear" class="text-xs font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Vider mes messages</button></div>' + msgs.map(m => m.is_broadcast ? broadcastCard(m) : m.user_hidden ? replyOnlyCard(m) : `
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3"><div class="flex items-start justify-between gap-2"><div>
       <p class="font-bold text-gray-900">${esc(m.subject)}</p>
       <p class="text-xs text-gray-400">${esc(MCAT[m.category] || m.category)} · ${fmtDate(m.created_at)}</p></div>
@@ -1077,7 +1085,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       q('sw_wallets', 'user_id,balance'), q('sw_pay_numbers').order('created_at'), q('sw_wallet_adjustments').order('created_at'), q('sw_messages').order('created_at', { ascending: false }).limit(300),
       q('sw_cancel_requests').order('created_at', { ascending: false }).limit(300)]);
     if (sh.error) { toast('Erreur : ' + sh.error.message, 'error'); return; }
-    S.msgs = (mg.data || []).filter(m => !m.admin_hidden); S.pn = pn.data || []; S.adj = adj.data || []; S.ship = sh.data.map(s => s.status === 'picked_up' ? { ...s, status: 'pending' } : s); S.users = pr.data || []; S.rech = (rc.data || []).filter(r => !r.admin_hidden); S.bal = {}; S.own = {};
+    S.msgs = (mg.data || []).filter(m => !m.admin_hidden && !m.is_broadcast); S.pn = pn.data || []; S.adj = adj.data || []; S.ship = sh.data.map(s => s.status === 'picked_up' ? { ...s, status: 'pending' } : s); S.users = pr.data || []; S.rech = (rc.data || []).filter(r => !r.admin_hidden); S.bal = {}; S.own = {};
     S.cx = cx.data || [];
     (wl.data || []).forEach(w => S.bal[w.user_id] = w.balance);
     S.users.forEach(u => S.own[u.id] = u);
@@ -1203,6 +1211,8 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     const rsv = rows.filter(m => m.status === 'resolved');
     const mBar = rsv.length ? `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-4px 0 12px"><button class="x-btn no" data-mclear="1">VIDER CHEZ MOI (${rsv.length})</button><button class="x-btn no" data-mclear="1" data-both="1">VIDER AUSSI CHEZ LES CLIENTS</button><span style="font-size:11px;color:#5b6b7c">Auto : masqué chez moi 5 jours après la résolution (le client le garde)</span></div>` : '';
     M.innerHTML = `<p class="x-h"><b>●</b> BOÎTE DE RÉCEPTION // messages des clients</p>
+    <div style="margin-bottom:12px"><button class="x-btn ${S.bc ? 'on' : 'go'}" data-bcopen="1">${S.bc ? 'FERMER LA DIFFUSION ✕' : '📢 DIFFUSION / ANNONCE GLOBALE'}</button></div>
+    ${S.bc ? bcPanel() : ''}
     <div class="x-chips">${[['open', 'OUVERTS'], ['', 'TOUS'], ['resolved', 'RÉSOLUS']].map(([v, l]) => `<button class="x-btn ${S.mf === v ? 'on' : ''}" data-mf="${v}">${l}</button>`).join('')}</div>
     ${mBar}
     ${rows.length ? rows.map(m => { const u = S.own[m.user_id] || {}, op = m.status === 'open'; return `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
@@ -1213,6 +1223,44 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       ${op ? `<textarea id="mr-${esc(m.id)}" rows="3" class="x-in" placeholder="réponse au client (facultatif)" style="margin-bottom:8px">${esc(m.admin_reply || '')}</textarea>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="x-btn" data-mrep="${esc(m.id)}">ENVOYER LA RÉPONSE</button><button class="x-btn go" data-mres="${esc(m.id)}">MARQUER RÉSOLU</button></div>`
       : `${m.admin_reply ? `<p style="font-size:12px;color:#7d8da0;white-space:pre-wrap">réponse : ${esc(m.admin_reply)}</p>` : ''}<button class="x-btn" style="margin-top:8px" data-mre="${esc(m.id)}">ROUVRIR</button> <button class="x-btn no" style="margin-top:8px" data-mdel="${esc(m.id)}">SUPPRIMER CHEZ MOI</button> <button class="x-btn no" style="margin-top:8px" data-mdel="${esc(m.id)}" data-both="1">SUPPRIMER AUSSI CHEZ LE CLIENT</button>`}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucun message</p>'}`;
+  }
+
+  // ---------- DIFFUSION DE MESSAGES ----------
+  function bcTargets(f, min, max) {
+    const shipped = {}; S.ship.forEach(s => { shipped[s.user_id] = 1; });
+    return S.users.filter(u => u.role !== 'admin' && u.is_active !== false).filter(u => {
+      const b = Number(S.bal[u.id] || 0);
+      if (f === 'positive') return b > 0;
+      if (f === 'zero') return b <= 0;
+      if (f === 'range') return (min === '' || b >= Number(min)) && (max === '' || b <= Number(max));
+      if (f === 'shipped') return !!shipped[u.id];
+      return true;
+    });
+  }
+  function bcUpdate() {
+    const f = $('bc-f'); if (!f) return;
+    $('bc-range').style.display = f.value === 'range' ? 'grid' : 'none';
+    const n = bcTargets(f.value, $('bc-min').value.trim(), $('bc-max').value.trim()).length;
+    $('bc-count').textContent = n + ' destinataire(s) ciblé(s)';
+  }
+  function bcPanel() {
+    return `<div class="x-panel" id="bc-box" style="margin-top:0;margin-bottom:14px;border-color:#c6ff3d">
+      <p class="x-h"><b>●</b> ANNONCE GLOBALE // envoyée dans l'espace Assistance des clients ciblés</p>
+      <label style="font-size:11px;color:#5b6b7c">DESTINATAIRES</label>
+      <select id="bc-f" class="x-in" style="margin:4px 0 8px">
+        <option value="all">Tous les utilisateurs</option>
+        <option value="positive">Solde positif (supérieur à 0)</option>
+        <option value="zero">Solde à zéro</option>
+        <option value="range">Tranche de solde personnalisée</option>
+        <option value="shipped">Ont déjà expédié au moins un colis</option></select>
+      <div id="bc-range" style="display:none;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <input id="bc-min" type="number" min="0" step="1" class="x-in" placeholder="solde minimum (FCFA)">
+        <input id="bc-max" type="number" min="0" step="1" class="x-in" placeholder="solde maximum (FCFA)"></div>
+      <p id="bc-count" style="font-size:12px;color:#c6ff3d;margin:0 0 10px"></p>
+      <input id="bc-subject" class="x-in" maxlength="120" placeholder="Sujet / titre de l'annonce" style="margin-bottom:8px">
+      <textarea id="bc-body" rows="7" maxlength="2000" class="x-in" placeholder="Votre message (promotion, information importante...)" style="margin-bottom:8px"></textarea>
+      <button class="x-btn go" style="width:100%" data-bcsend="1">ENVOYER À TOUS LES DESTINATAIRES CIBLÉS</button>
+      <p style="font-size:11px;color:#5b6b7c;margin-top:8px">Seuls les comptes clients actifs reçoivent l'annonce. Le message apparaît dans leur Assistance comme « Annonce officielle ».</p></div>`;
   }
 
   function cfg() {
@@ -1289,6 +1337,21 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     if (g('data-v')) return showSub(g('data-v').dataset.v);
     if ((el = g('data-go'))) return showSub(el.dataset.go);
     if (g('data-close') || e.target.id === 'x-veil') return closeDrawer();
+    if (g('data-bcopen')) { S.bc = !S.bc; inbox(); if (S.bc) bcUpdate(); return; }
+    if (g('data-bcsend')) {
+      const f = $('bc-f').value, min = $('bc-min').value.trim(), max = $('bc-max').value.trim();
+      const subject = $('bc-subject').value.trim(), body = $('bc-body').value.trim();
+      if (!subject || !body) return toast('Remplissez le sujet et le message.', 'error');
+      if (f === 'range' && min === '' && max === '') return toast('Indiquez un solde minimum et/ou maximum.', 'error');
+      const n = bcTargets(f, min, max).length;
+      if (!n) return toast('Aucun destinataire ne correspond à ce filtre.', 'error');
+      if (!confirm('Envoyer cette annonce à ' + n + ' utilisateur(s) ?')) return;
+      const btn = g('data-bcsend'); btn.disabled = true;
+      const { data, error } = await supabaseClient.rpc('sw_admin_broadcast', { p_subject: subject, p_body: body, p_filter: f, p_min: min === '' ? null : Number(min), p_max: max === '' ? null : Number(max) });
+      btn.disabled = false;
+      if (error) return toast('Erreur : ' + error.message, 'error');
+      toast('Annonce envoyée à ' + data + ' utilisateur(s).'); S.bc = false; return inbox();
+    }
     if ((el = g('data-cf'))) { S.cf = el.dataset.cf; return cancelV(); }
     if ((el = g('data-cxok')) || (el = g('data-cxno'))) {
       const ap = !!el.dataset.cxok, id = ap ? el.dataset.cxok : el.dataset.cxno, n = $('cn-' + id);
@@ -1381,6 +1444,9 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     if ((el = g('data-auto'))) return rpc('sw_admin_set_auto', { p_id: el.dataset.id, p_auto: el.dataset.auto === '1' });
     if ((el = g('data-win'))) { const h = parseInt($('d-win').value, 10); if (!h || h < 1) return toast('Délai invalide.', 'error'); return rpc('sw_admin_set_window', { p_id: el.dataset.win, p_hours: h }); }
   });
+
+  A.addEventListener('input', e => { if (e.target.closest && e.target.closest('#bc-box')) bcUpdate(); });
+  A.addEventListener('change', e => { if (e.target.closest && e.target.closest('#bc-box')) bcUpdate(); });
 
   let dragId = null;
   A.addEventListener('dragstart', e => { const c = e.target.closest('.x-card'); if (c) dragId = c.dataset.id; });
