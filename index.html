@@ -887,7 +887,7 @@ function replyOnlyCard(m) {
 }
 function broadcastCard(m) {
   return `<div class="bg-white rounded-2xl shadow-sm border-2 border-blue-200 p-4 mb-3">
-    <div class="flex items-center justify-between gap-2"><span class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-swiftblue text-white">📢 Annonce officielle</span><span class="text-xs text-gray-400">${fmtDate(m.created_at)}</span></div>
+    <div class="flex items-center justify-between gap-2"><span class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-swiftblue text-white">${m.category === 'direct' ? "💬 Message de l'assistant" : '📢 Annonce officielle'}</span><span class="text-xs text-gray-400">${fmtDate(m.created_at)}</span></div>
     <p class="font-bold text-gray-900 mt-3">${esc(m.subject)}</p>
     <p class="text-sm text-gray-700 mt-1 whitespace-pre-wrap">${esc(m.body)}</p>
     <p class="text-xs text-gray-400 mt-2">— L'équipe SwiftWay Logistics</p>
@@ -1184,7 +1184,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px">
         <select id="ur-${esc(u.id)}" class="x-in"><option value="user" ${u.role === 'user' ? 'selected' : ''}>CLIENT</option><option value="admin" ${u.role === 'admin' ? 'selected' : ''}>ADMIN</option></select>
         <select id="ua-${esc(u.id)}" class="x-in"><option value="1" ${u.is_active ? 'selected' : ''}>ACTIF</option><option value="0" ${!u.is_active ? 'selected' : ''}>COUPÉ</option></select>
-        <button class="x-btn go" data-us="${esc(u.id)}">OK</button></div></div>`).join('')}`;
+        <button class="x-btn go" data-us="${esc(u.id)}">OK</button></div><button class="x-btn" style="margin-top:8px" data-dmto="${esc(u.id)}">✉ ÉCRIRE À CET UTILISATEUR</button></div>`).join('')}`;
     const qi = $('x-uq'); qi.oninput = () => { S.uq = qi.value; const p = qi.selectionStart; acct(); const n = $('x-uq'); n.focus(); n.setSelectionRange(p, p); };
   }
 
@@ -1211,7 +1211,8 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     const rsv = rows.filter(m => m.status === 'resolved');
     const mBar = rsv.length ? `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-4px 0 12px"><button class="x-btn no" data-mclear="1">VIDER CHEZ MOI (${rsv.length})</button><button class="x-btn no" data-mclear="1" data-both="1">VIDER AUSSI CHEZ LES CLIENTS</button><span style="font-size:11px;color:#5b6b7c">Auto : masqué chez moi 5 jours après la résolution (le client le garde)</span></div>` : '';
     M.innerHTML = `<p class="x-h"><b>●</b> BOÎTE DE RÉCEPTION // messages des clients</p>
-    <div style="margin-bottom:12px"><button class="x-btn ${S.bc ? 'on' : 'go'}" data-bcopen="1">${S.bc ? 'FERMER LA DIFFUSION ✕' : '📢 DIFFUSION / ANNONCE GLOBALE'}</button></div>
+    <div style="margin-bottom:12px"><button class="x-btn ${S.bc ? 'on' : 'go'}" data-bcopen="1">${S.bc ? 'FERMER LA DIFFUSION ✕' : '📢 DIFFUSION / ANNONCE GLOBALE'}</button> <button class="x-btn ${S.dm ? 'on' : 'go'}" data-dmopen="1">${S.dm ? 'FERMER ✕' : '✉ ÉCRIRE À UN UTILISATEUR'}</button></div>
+    ${S.dm ? dmPanel() : ''}
     ${S.bc ? bcPanel() : ''}
     <div class="x-chips">${[['open', 'OUVERTS'], ['', 'TOUS'], ['resolved', 'RÉSOLUS']].map(([v, l]) => `<button class="x-btn ${S.mf === v ? 'on' : ''}" data-mf="${v}">${l}</button>`).join('')}</div>
     ${mBar}
@@ -1261,6 +1262,31 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       <textarea id="bc-body" rows="7" maxlength="2000" class="x-in" placeholder="Votre message (promotion, information importante...)" style="margin-bottom:8px"></textarea>
       <button class="x-btn go" style="width:100%" data-bcsend="1">ENVOYER À TOUS LES DESTINATAIRES CIBLÉS</button>
       <p style="font-size:11px;color:#5b6b7c;margin-top:8px">Seuls les comptes clients actifs reçoivent l'annonce. Le message apparaît dans leur Assistance comme « Annonce officielle ».</p></div>`;
+  }
+
+  // ---------- MESSAGE DIRECT À UN UTILISATEUR ----------
+  function dmListHtml() {
+    const q = ($('dm-q') ? $('dm-q').value : '').trim().toLowerCase();
+    const all = S.users.filter(u => !q || [u.email, u.phone].some(v => String(v || '').toLowerCase().includes(q)));
+    const rows = all.slice(0, 50);
+    return (rows.length ? rows.map(u => `<button class="x-row" style="${S.dmu === u.id ? 'background:#0f1a12;border-left:3px solid #c6ff3d;padding-left:8px' : ''}" data-dmpick="${esc(u.id)}"><span style="word-break:break-all">${esc(u.email || '-')} <span style="color:#7d8da0">${esc(u.phone || '')}</span></span><span style="color:#c6ff3d;white-space:nowrap">${fmtMoney(S.bal[u.id] || 0)}</span></button>`).join('') : '<p style="color:#5b6b7c">// aucun utilisateur</p>')
+      + (all.length > 50 ? `<p style="font-size:11px;color:#5b6b7c;margin-top:6px">${all.length} résultats : affinez la recherche pour voir les autres.</p>` : '');
+  }
+  function dmLabel() {
+    const u = S.own[S.dmu];
+    return u ? 'Destinataire : ' + esc(u.email || '-') + (u.phone ? ' · ' + esc(u.phone) : '') : 'Aucun destinataire choisi : sélectionnez un utilisateur ci-dessus.';
+  }
+  function dmRefresh() { const l = $('dm-list'); if (l) { l.innerHTML = dmListHtml(); $('dm-sel').innerHTML = dmLabel(); } }
+  function dmPanel() {
+    return `<div class="x-panel" id="dm-box" style="margin-top:0;margin-bottom:14px;border-color:#c6ff3d">
+      <p class="x-h"><b>●</b> MESSAGE DIRECT // écrire à un seul utilisateur (problème, information, suivi...)</p>
+      <input id="dm-q" class="x-in" placeholder="> rechercher par email ou téléphone (${S.users.length} utilisateurs)" style="margin-bottom:8px">
+      <div id="dm-list" style="max-height:230px;overflow-y:auto;border:1px solid #1b2530;padding:0 8px;margin-bottom:8px">${dmListHtml()}</div>
+      <p id="dm-sel" style="font-size:12px;color:#c6ff3d;margin:0 0 10px">${dmLabel()}</p>
+      <input id="dm-subject" class="x-in" maxlength="120" placeholder="Sujet / titre du message" style="margin-bottom:8px">
+      <textarea id="dm-body" rows="6" maxlength="2000" class="x-in" placeholder="Votre message à cet utilisateur" style="margin-bottom:8px"></textarea>
+      <button class="x-btn go" style="width:100%" data-dmsend="1">ENVOYER À CET UTILISATEUR</button>
+      <p style="font-size:11px;color:#5b6b7c;margin-top:8px">Le message apparaît dans l'espace Assistance de l'utilisateur comme « Message de l'assistant ».</p></div>`;
   }
 
   function cfg() {
@@ -1337,7 +1363,21 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     if (g('data-v')) return showSub(g('data-v').dataset.v);
     if ((el = g('data-go'))) return showSub(el.dataset.go);
     if (g('data-close') || e.target.id === 'x-veil') return closeDrawer();
-    if (g('data-bcopen')) { S.bc = !S.bc; inbox(); if (S.bc) bcUpdate(); return; }
+    if (g('data-bcopen')) { S.bc = !S.bc; if (S.bc) S.dm = false; inbox(); if (S.bc) bcUpdate(); return; }
+    if (g('data-dmopen')) { S.dm = !S.dm; if (S.dm) S.bc = false; return inbox(); }
+    if ((el = g('data-dmto'))) { S.dm = true; S.bc = false; S.dmu = el.dataset.dmto; S.v = 'msg'; return showSub('msg'); }
+    if ((el = g('data-dmpick'))) { S.dmu = el.dataset.dmpick; return dmRefresh(); }
+    if (g('data-dmsend')) {
+      const subject = $('dm-subject').value.trim(), body = $('dm-body').value.trim();
+      if (!S.dmu || !S.own[S.dmu]) return toast('Choisissez un utilisateur.', 'error');
+      if (!subject || !body) return toast('Remplissez le sujet et le message.', 'error');
+      if (!confirm('Envoyer ce message à ' + (S.own[S.dmu].email || 'cet utilisateur') + ' ?')) return;
+      const btn = g('data-dmsend'); btn.disabled = true;
+      const { error } = await supabaseClient.rpc('sw_admin_send_direct', { p_user: S.dmu, p_subject: subject, p_body: body });
+      btn.disabled = false;
+      if (error) return toast('Erreur : ' + error.message, 'error');
+      toast('Message envoyé à ' + (S.own[S.dmu].email || 'l\'utilisateur') + '.'); S.dm = false; S.dmu = null; return inbox();
+    }
     if (g('data-bcsend')) {
       const f = $('bc-f').value, min = $('bc-min').value.trim(), max = $('bc-max').value.trim();
       const subject = $('bc-subject').value.trim(), body = $('bc-body').value.trim();
@@ -1445,7 +1485,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     if ((el = g('data-win'))) { const h = parseInt($('d-win').value, 10); if (!h || h < 1) return toast('Délai invalide.', 'error'); return rpc('sw_admin_set_window', { p_id: el.dataset.win, p_hours: h }); }
   });
 
-  A.addEventListener('input', e => { if (e.target.closest && e.target.closest('#bc-box')) bcUpdate(); });
+  A.addEventListener('input', e => { if (e.target.id === 'dm-q') dmRefresh(); if (e.target.closest && e.target.closest('#bc-box')) bcUpdate(); });
   A.addEventListener('change', e => { if (e.target.closest && e.target.closest('#bc-box')) bcUpdate(); });
 
   let dragId = null;
