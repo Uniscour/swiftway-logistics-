@@ -623,15 +623,17 @@ async function renderDetails(id) {
           const rem0 = DUR_KEYS.slice(Math.min(tgt, 3)).reduce((t, k) => t + hs[k], 0);
           if (Date.now() + rem0 * 3600000 > etaMs) throw new Error('Les durées dépassent la date de livraison estimée (' + fmtDate(etaMs) + ').');
         }
-        const edits = {}; let lastT = 0;
+        const edits = {}, vals = [];
         for (const inp of holder.querySelectorAll('.ed-evt')) {
           if (!inp.value) continue;
-          const tt = new Date(inp.value).getTime();
-          if (tt < t0 || tt > etaMs) throw new Error('Chaque heure d\'étape doit rester entre la création du colis et la livraison estimée (' + fmtDate(etaMs) + ').');
-          if (tt < lastT) throw new Error('Les étapes doivent rester dans l\'ordre chronologique.');
-          lastT = tt;
-          if (inp.value !== inp.dataset.orig) edits[inp.dataset.st] = new Date(inp.value).toISOString();
+          const tt = new Date(inp.value).getTime(), changed = inp.value !== inp.dataset.orig;
+          vals.push(tt);
+          if (changed) {
+            if (tt < Math.floor(t0 / 60000) * 60000 || tt > etaMs) throw new Error('Chaque heure d\'étape doit rester entre la création du colis et la livraison estimée (' + fmtDate(etaMs) + ').');
+            edits[inp.dataset.st] = new Date(inp.value).toISOString();
+          }
         }
+        if (Object.keys(edits).length && vals.some((v, i) => i > 0 && v < vals[i - 1])) throw new Error('Les étapes doivent rester dans l\'ordre chronologique.');
         const target = Math.max(0, ...cbs.filter(c => c.checked).map(c => Number(c.dataset.k))), cur = Math.max(0, STEPS.indexOf(s.status));
         if (target > cur) {
           for (let i = cur + 1; i <= target; i++) { const r = await supabaseClient.rpc('sw_user_set_step', { p_id: id, p_status: STEPS[i] }); if (r.error) throw r.error; }
