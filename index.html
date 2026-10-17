@@ -244,6 +244,7 @@ const STATUS = {
 };
 const dAlert = $('d-alert');
 const COUNTRIES = ["Afghanistan","Afrique du Sud","Albanie","Algérie","Allemagne","Andorre","Angola","Antigua-et-Barbuda","Arabie saoudite","Argentine","Arménie","Australie","Autriche","Azerbaïdjan","Bahamas","Bahreïn","Bangladesh","Barbade","Belgique","Belize","Bénin","Bhoutan","Biélorussie","Birmanie (Myanmar)","Bolivie","Bosnie-Herzégovine","Botswana","Brésil","Brunei","Bulgarie","Burkina Faso","Burundi","Cambodge","Cameroun","Canada","Cap-Vert","Chili","Chine","Chypre","Colombie","Comores","Congo","Corée du Nord","Corée du Sud","Costa Rica","Côte d'Ivoire","Croatie","Cuba","Danemark","Djibouti","Dominique","Égypte","Émirats arabes unis","Équateur","Érythrée","Espagne","Estonie","Eswatini","États-Unis","Éthiopie","Fidji","Finlande","France","Gabon","Gambie","Géorgie","Ghana","Grèce","Grenade","Guatemala","Guinée","Guinée-Bissau","Guinée équatoriale","Guyana","Haïti","Honduras","Hongrie","Îles Marshall","Îles Salomon","Inde","Indonésie","Irak","Iran","Irlande","Islande","Israël","Italie","Jamaïque","Japon","Jordanie","Kazakhstan","Kenya","Kirghizistan","Kiribati","Koweït","Laos","Lesotho","Lettonie","Liban","Libéria","Libye","Liechtenstein","Lituanie","Luxembourg","Macédoine du Nord","Madagascar","Malaisie","Malawi","Maldives","Mali","Malte","Maroc","Maurice","Mauritanie","Mexique","Micronésie","Moldavie","Monaco","Mongolie","Monténégro","Mozambique","Namibie","Nauru","Népal","Nicaragua","Niger","Nigéria","Norvège","Nouvelle-Zélande","Oman","Ouganda","Ouzbékistan","Pakistan","Palaos","Palestine","Panama","Papouasie-Nouvelle-Guinée","Paraguay","Pays-Bas","Pérou","Philippines","Pologne","Portugal","Qatar","République centrafricaine","République démocratique du Congo","République dominicaine","Roumanie","Royaume-Uni","Russie","Rwanda","Saint-Christophe-et-Niévès","Sainte-Lucie","Saint-Marin","Saint-Vincent-et-les-Grenadines","Salvador","Samoa","Sao Tomé-et-Principe","Sénégal","Serbie","Seychelles","Sierra Leone","Singapour","Slovaquie","Slovénie","Somalie","Soudan","Soudan du Sud","Sri Lanka","Suède","Suisse","Suriname","Syrie","Tadjikistan","Tanzanie","Tchad","Tchéquie","Thaïlande","Timor oriental","Togo","Tonga","Trinité-et-Tobago","Tunisie","Turkménistan","Turquie","Tuvalu","Ukraine","Uruguay","Vanuatu","Vatican (Saint-Siège)","Venezuela","Viêt Nam","Yémen","Zambie","Zimbabwe"];
+const CUSTOMS = { paid: "Déjà payée", unpaid: "Non payée" };
 const PKG_TYPES = ["Carton", "Valise", "Sac", "Mallette", "Enveloppe", "Autre"];
 const CURRENCIES = [['XAF', 'Franc CFA (FCFA / XAF)'], ['EUR', 'Euro (€ / EUR)'], ['USD', 'Dollar ($ / USD)']];
 
@@ -296,6 +297,8 @@ $('new-form').innerHTML =
     SEL('p-service', 'Type de service', [['standard', 'Standard'], ['express', 'Express (plus rapide)']]) +
     SEL('p-auto', 'Passage des étapes', [['1', 'Automatique (le colis avance tout seul)'], ['0', 'Manuel (je modifie moi-même les étapes)']]) +
     SEL('p-payer', 'Qui paie la livraison ?', [['sender', "L'expéditeur"], ['receiver', 'Le destinataire']]) +
+    SEL('p-stop', "Pays d'escale" + OPT, [['', "Aucune escale"], ...COUNTRIES.slice().sort((a, b) => a.localeCompare(b, 'fr')).map(c => [c, c])]) +
+    SEL('p-customs', 'Douane' + OPT, [['', 'Non précisé'], ['paid', 'Douane déjà payée'], ['unpaid', 'Douane non payée']]) +
     `<label class="flex items-center gap-3 text-sm font-semibold text-gray-700"><input id="p-fragile" type="checkbox" class="w-5 h-5 rounded border-gray-300"> Colis fragile</label>` +
     `<div><label class="${LB}">Instructions de livraison${OPT}</label><textarea id="p-notes" rows="3" placeholder="Ex: appeler avant de livrer..." class="${IC}"></textarea></div>`) +
   CARD('Signatures', "Signez avec le doigt ou la souris. Elles s'impriment en encre bleue sur le reçu A5.",
@@ -381,7 +384,7 @@ function detailsHtml(s) {
     ${party('Destinataire', s.receiver_name, s.receiver_phone, s.receiver_email, s.receiver_address, s.receiver_district, s.destination, s.receiver_region, s.receiver_country)}
     <div class="bg-gray-50 rounded-xl p-3"><p class="text-xs font-bold text-swiftblue mb-1">Colis</p>
       ${line('Agence', s.agency_name)}${line('Contenu', s.description)}${line('Type', s.package_type)}${line('Nombre', s.package_count)}
-      ${line('Poids', s.weight_kg ? s.weight_kg + ' kg' : '')}${line('Dimensions', dimsOf(s))}
+      ${line('Poids', s.weight_kg ? s.weight_kg + ' kg' : '')}${line('Dimensions', dimsOf(s))}${line("Pays d'escale", s.stopover_country)}${line('Douane', CUSTOMS[s.customs_status])}
       ${line('Valeur déclarée', s.declared_value ? fmtCur(s.declared_value, cur) : '')}${line('Frais de transport', s.shipping_fee ? fmtCur(s.shipping_fee, cur) : '')}
       ${line('Service', s.service_type === 'express' ? 'Express' : 'Standard')}${line('Paiement', s.payer === 'receiver' ? 'Le destinataire' : "L'expéditeur")}
       ${s.is_fragile ? '<p class="text-sm font-semibold text-amber-700">Colis fragile</p>' : ''}${line('Instructions', s.delivery_instructions)}</div></div>`;
@@ -460,7 +463,7 @@ function receiptHtml(s) {
       </div>
       <div style="margin-top:8px;border:1px solid ${NAVY}"><div style="background:#e8eef7;font-size:8.5px;letter-spacing:.14em;font-weight:800;padding:3px 8px;color:${NAVY}">DÉTAILS DU COLIS</div>
         <table style="width:100%;border-collapse:collapse;font-size:10.5px;margin:3px 8px;width:calc(100% - 16px)">
-          ${row('Contenu', s.description)}${row('Type', s.package_type)}${row('Nombre de colis', s.package_count)}${row('Poids total', s.weight_kg ? s.weight_kg + ' kg' : '')}${row('Dimensions', dimsOf(s))}
+          ${row('Contenu', s.description)}${row('Type', s.package_type)}${row('Nombre de colis', s.package_count)}${row('Poids total', s.weight_kg ? s.weight_kg + ' kg' : '')}${row('Dimensions', dimsOf(s))}${row('Pays d\'escale', s.stopover_country)}${row('Douane', CUSTOMS[s.customs_status])}
           ${row('Mention', s.is_fragile ? 'COLIS FRAGILE' : '')}${row('Instructions', s.delivery_instructions)}</table></div>
       ${fees}
       <div style="flex:1"></div>
@@ -662,7 +665,7 @@ $('new-form').addEventListener('submit', async (e) => {
   const row = { description: val('p-desc'), package_type: $('p-type').value, package_count: num('p-count') || 1, weight_kg: num('p-weight'),
     length_cm: num('p-length'), width_cm: num('p-width'), height_cm: num('p-height'), declared_value: num('p-value'), shipping_fee: num('p-fee'),
     currency: $('p-cur').value, agency_name: val('p-agency'), service_type: $('p-service').value, payer: $('p-payer').value,
-    is_fragile: $('p-fragile').checked, delivery_instructions: txt('p-notes'), auto_progress: $('p-auto').value === '1',
+    is_fragile: $('p-fragile').checked, delivery_instructions: txt('p-notes'), auto_progress: $('p-auto').value === '1', stopover_country: $('p-stop').value || null, customs_status: $('p-customs').value || null,
     sender_signature: sigData('sig-s'), agency_signature: sigData('sig-a') };
   [['s', 'sender_', 'origin'], ['r', 'receiver_', 'destination']].forEach(([p, pre, city]) => {
     row[pre + 'name'] = val(p + '-name'); row[pre + 'phone'] = val(p + '-phone'); row[pre + 'email'] = txt(p + '-email');
