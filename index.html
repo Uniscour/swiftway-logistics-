@@ -85,12 +85,12 @@
     </div>
   </header>
   <main class="max-w-3xl mx-auto px-4 py-6">
-    <div class="flex overflow-x-auto gap-1 bg-gray-100 p-1 rounded-xl mb-6">
-      <button data-tab="list" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Mes colis</button>
-      <button data-tab="new" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Nouvelle</button>
-      <button data-tab="track" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Suivre</button>
-      <button data-tab="wallet" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Portefeuille</button>
-      <button data-tab="help" class="dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer">Assistance</button>
+    <div class="grid grid-cols-5 gap-1 bg-gray-100 p-1 rounded-xl mb-6">
+      <button data-tab="list" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer">Mes colis</button>
+      <button data-tab="new" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer">Nouvelle</button>
+      <button data-tab="track" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer">Suivre</button>
+      <button data-tab="wallet" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer">Portefeuille</button>
+      <button data-tab="help" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer">Assistance</button>
     </div>
     <div id="d-alert" class="hidden mb-4 p-4 rounded-xl text-sm text-center font-medium"></div>
     <section id="view-list"><div id="list-container"></div></section>
@@ -290,6 +290,7 @@ $('new-form').innerHTML =
     F('p-agency', 'Agence / Transporteur', 'required maxlength="80" placeholder="Ex: Agence Voyage Central, Express Carrier..."') +
     '<p class="text-xs text-gray-400 -mt-2">Ce nom sera le seul affiché sur le reçu.</p>' +
     SEL('p-service', 'Type de service', [['standard', 'Standard'], ['express', 'Express (plus rapide)']]) +
+    SEL('p-auto', 'Passage des étapes', [['1', 'Automatique (le colis avance tout seul)'], ['0', 'Manuel (je modifie moi-même les étapes)']]) +
     SEL('p-payer', 'Qui paie la livraison ?', [['sender', "L'expéditeur"], ['receiver', 'Le destinataire']]) +
     `<label class="flex items-center gap-3 text-sm font-semibold text-gray-700"><input id="p-fragile" type="checkbox" class="w-5 h-5 rounded border-gray-300"> Colis fragile</label>` +
     `<div><label class="${LB}">Instructions de livraison${OPT}</label><textarea id="p-notes" rows="3" placeholder="Ex: appeler avant de livrer..." class="${IC}"></textarea></div>`) +
@@ -383,11 +384,22 @@ function detailsHtml(s) {
 }
 
 // ---------- AVANCEMENT MANUEL PAR L'EXPÉDITEUR ----------
-function stepsCtl(s) {
+function toLocalInput(d) { if (!d) return ''; const x = new Date(d); return new Date(x.getTime() - x.getTimezoneOffset() * 60000).toISOString().slice(0, 16); }
+function editCtl(s, events) {
   if (s.status === 'cancelled') return '';
-  const i = STEPS.indexOf(s.status);
-  return `<div class="mt-3 bg-gray-50 rounded-xl p-3"><p class="text-xs font-bold text-swiftblue mb-2">Avancement : cochez / décochez les étapes</p>` +
-    STEPS.map((st, k) => `<label class="flex items-center gap-3 py-1 text-sm cursor-pointer"><input type="checkbox" class="step-cb w-5 h-5" data-id="${esc(s.id)}" data-k="${k}" ${k <= i ? 'checked' : ''}> ${esc(STATUS[st].label)}</label>`).join('') + '</div>';
+  const first = {}; (events || []).forEach(e => { if (!first[e.status]) first[e.status] = e; });
+  const eta = s.estimated_delivery_at || new Date(new Date(s.created_at).getTime() + (s.delivery_window_hours || 48) * 3600000).toISOString();
+  const evRows = STEPS.filter(st => first[st]).map(st => `<div><label class="${LB}">${esc(STATUS[st].label)} · date et heure</label><input type="datetime-local" class="ed-evt ${IC}" data-st="${st}" data-orig="${toLocalInput(first[st].created_at)}" value="${toLocalInput(first[st].created_at)}"></div>`).join('');
+  return `<div class="mt-3 bg-gray-50 rounded-xl p-3 space-y-3"><p class="text-xs font-bold text-swiftblue">Modifier le suivi</p>
+    <div><label class="${LB}">Étape actuelle du colis</label><select class="ed-st ${IC}">${STEPS.map(st => `<option value="${st}" ${st === s.status ? 'selected' : ''}>${esc(STATUS[st].label)}</option>`).join('')}</select></div>
+    <div><label class="${LB}">Date et heure d'arrivée estimée</label><input type="datetime-local" class="ed-eta ${IC}" value="${toLocalInput(eta)}"></div>
+    <div><label class="${LB}">Délai prévu (heures)</label><input type="number" min="1" max="720" class="ed-hrs ${IC}" value="${esc(s.delivery_window_hours || 48)}"></div>
+    ${evRows ? `<div class="space-y-2"><p class="${LB}">Date et heure de chaque étape atteinte</p>${evRows}</div>` : ''}
+    <div><label class="${LB}">Ajouter une note au suivi${OPT}</label><input class="ed-note ${IC}" maxlength="200" placeholder="Ex: colis arrivé au hub de Douala"></div>
+    <label class="flex items-center gap-3 text-sm font-semibold text-gray-700"><input type="checkbox" class="ed-auto w-5 h-5" ${s.auto_progress ? 'checked' : ''}> Passage automatique des étapes</label>
+    <p class="text-xs text-gray-400">Si vous changez l'étape à la main, le mode automatique se désactive.</p>
+    <button type="button" class="save-ed w-full bg-swiftblue text-white font-semibold py-3 rounded-xl cursor-pointer">Actualiser</button>
+    <p class="text-xs text-gray-400">Après « Actualiser », la personne qui a le code de suivi voit les changements (mise à jour toutes les 15 secondes).</p></div>`;
 }
 
 // ---------- REÇU A5 PAYANT (MARQUE BLANCHE) ----------
@@ -492,7 +504,7 @@ function showTab(name) {
   TABS.forEach(t => { const el = $('view-' + t); if (el) el.classList.toggle('hidden', t !== name); });
   document.querySelectorAll('.dtab').forEach(b => {
     const active = b.dataset.tab === name;
-    b.className = 'dtab shrink-0 px-4 py-2.5 text-sm font-semibold rounded-lg cursor-pointer transition ' + (active ? 'bg-white text-swiftblue shadow-sm' : 'text-gray-500 hover:text-gray-900');
+    b.className = 'dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer transition ' + (active ? 'bg-white text-swiftblue shadow-sm' : 'text-gray-500 hover:text-gray-900');
   });
   if (name === 'list') loadShipments();
   if (name === 'wallet') loadWallet();
@@ -504,15 +516,28 @@ let SH = {};
 async function renderDetails(id) {
   const holder = $('ev-' + id), s = SH[id]; if (!holder || !s) return;
   const { data: events, error } = await supabaseClient.from('sw_shipment_events').select('*').eq('shipment_id', id).order('created_at', { ascending: true });
-  holder.innerHTML = error ? '<p class="text-sm text-red-600 mt-3">Erreur de chargement.</p>' : detailsHtml(s) + stepsCtl(s) + timeline(events, s);
+  holder.innerHTML = error ? '<p class="text-sm text-red-600 mt-3">Erreur de chargement.</p>' : detailsHtml(s) + editCtl(s, events) + timeline(events, s);
   holder.classList.remove('hidden');
-  holder.querySelectorAll('.step-cb').forEach(cb => cb.addEventListener('change', async () => {
-    const k = Number(cb.dataset.k);
-    if (!cb.checked && k === 0) { cb.checked = true; return; }
-    const { error: er } = await supabaseClient.rpc('sw_user_set_step', { p_id: id, p_status: cb.checked ? STEPS[k] : STEPS[k - 1] });
-    if (er) { toast('Erreur : ' + er.message, 'error'); cb.checked = !cb.checked; return; }
-    await loadShipments(id);
-  }));
+  const q1 = (c) => holder.querySelector(c);
+  if (q1('.ed-st')) {
+    q1('.ed-st').addEventListener('change', () => { if (q1('.ed-st').value !== s.status) q1('.ed-auto').checked = false; });
+    q1('.save-ed').addEventListener('click', async (ev) => {
+      const btn = ev.currentTarget; btn.disabled = true; btn.textContent = 'Actualisation...';
+      try {
+        const st = q1('.ed-st').value, eta = q1('.ed-eta').value, hrs = parseInt(q1('.ed-hrs').value, 10), note = q1('.ed-note').value.trim();
+        if (st !== s.status) { const r = await supabaseClient.rpc('sw_user_set_step', { p_id: id, p_status: st }); if (r.error) throw r.error; }
+        for (const inp of holder.querySelectorAll('.ed-evt')) {
+          if (inp.value && inp.value !== inp.dataset.orig) {
+            const r = await supabaseClient.rpc('sw_user_set_event_time', { p_id: id, p_status: inp.dataset.st, p_at: new Date(inp.value).toISOString() }); if (r.error) throw r.error;
+          }
+        }
+        const r2 = await supabaseClient.rpc('sw_user_update_shipment', { p_id: id, p_eta: eta ? new Date(eta).toISOString() : null, p_auto: q1('.ed-auto').checked, p_hours: hrs > 0 ? hrs : null, p_note: note || null });
+        if (r2.error) throw r2.error;
+        toast('Suivi actualisé.');
+      } catch (err) { toast('Erreur : ' + (err.message || err), 'error'); }
+      await loadShipments(id);
+    });
+  }
 }
 
 async function loadShipments(openId) {
@@ -572,7 +597,7 @@ $('new-form').addEventListener('submit', async (e) => {
   const row = { description: val('p-desc'), package_type: $('p-type').value, package_count: num('p-count') || 1, weight_kg: num('p-weight'),
     length_cm: num('p-length'), width_cm: num('p-width'), height_cm: num('p-height'), declared_value: num('p-value'), shipping_fee: num('p-fee'),
     currency: $('p-cur').value, agency_name: val('p-agency'), service_type: $('p-service').value, payer: $('p-payer').value,
-    is_fragile: $('p-fragile').checked, delivery_instructions: txt('p-notes'),
+    is_fragile: $('p-fragile').checked, delivery_instructions: txt('p-notes'), auto_progress: $('p-auto').value === '1',
     sender_signature: sigData('sig-s'), agency_signature: sigData('sig-a') };
   [['s', 'sender_', 'origin'], ['r', 'receiver_', 'destination']].forEach(([p, pre, city]) => {
     row[pre + 'name'] = val(p + '-name'); row[pre + 'phone'] = val(p + '-phone'); row[pre + 'email'] = txt(p + '-email');
