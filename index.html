@@ -810,13 +810,17 @@ async function loadWallet() {
   $('wallet-balance').textContent = fmtMoney(w.data ? w.data.balance : 0);
   PAYNUMS = pn.data || []; renderPayNums();
   if (r.error) { list.innerHTML = ''; dShow('Erreur : ' + r.error.message); return; }
-  if (!r.data.length) { list.innerHTML = '<p class="text-center text-sm text-gray-500">Aucune demande de recharge pour le moment.</p>'; return; }
-  list.innerHTML = '<h3 class="text-sm font-bold text-gray-900 mb-2">Mes demandes de recharge</h3>' + r.data.map(rc => `
+  const recs = r.data.filter(x => !x.user_hidden);
+  if (!recs.length) { list.innerHTML = '<p class="text-center text-sm text-gray-500">Aucune demande de recharge pour le moment.</p>'; return; }
+  list.innerHTML = '<div class="flex items-center justify-between mb-2"><h3 class="text-sm font-bold text-gray-900">Mes demandes de recharge</h3>' + (recs.some(x => x.status !== 'pending') ? '<button type="button" id="u-rclear" class="text-xs font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Vider mon journal</button>' : '') + '</div>' + recs.map(rc => `
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3"><div class="flex items-start justify-between gap-2"><div>
       <p class="font-bold text-gray-900">${rc.status === 'approved' && rc.approved_amount != null ? fmtMoney(rc.approved_amount) + (Number(rc.approved_amount) !== Number(rc.amount) ? ' <span class="text-xs font-normal text-gray-400">(demandé : ' + fmtMoney(rc.amount) + ')</span>' : '') : fmtMoney(rc.amount)}</p>
       <p class="text-sm text-gray-500">${esc(METHODS[rc.method] || rc.method)} · ID ${esc(rc.reference)}</p>
       <p class="text-xs text-gray-400 mt-1">${fmtDate(rc.created_at)}</p>
-      ${rc.admin_note ? `<p class="text-xs text-gray-500 mt-1">${rc.status === 'rejected' ? 'Motif du refus' : 'Note'} : ${esc(rc.admin_note)}</p>` : ''}</div>${rbadge(rc.status)}</div></div>`).join('');
+      ${rc.admin_note ? `<p class="text-xs text-gray-500 mt-1">${rc.status === 'rejected' ? 'Motif du refus' : 'Note'} : ${esc(rc.admin_note)}</p>` : ''}</div>${rbadge(rc.status)}</div>${rc.status !== 'pending' ? `<button type="button" data-udel="${esc(rc.id)}" class="u-rdel mt-3 text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button>` : ''}</div>`).join('');
+  const hideR = async (ids) => { const { error } = await supabaseClient.rpc('sw_user_hide_recharges', { p_ids: ids.map(String) }); if (error) { toast('Erreur : ' + error.message, 'error'); return; } toast('Supprimé de votre journal.'); loadWallet(); };
+  list.querySelectorAll('.u-rdel').forEach(b => b.addEventListener('click', () => { if (confirm('Supprimer cette ligne de votre journal ?')) hideR([b.dataset.udel]); }));
+  const ucl = $('u-rclear'); if (ucl) ucl.addEventListener('click', () => { const ids = recs.filter(x => x.status !== 'pending').map(x => x.id); if (ids.length && confirm('Supprimer ' + ids.length + ' ligne(s) traitée(s) de votre journal ?')) hideR(ids); });
 }
 let PAYNUMS = [];
 function renderPayNums() {
@@ -856,14 +860,18 @@ async function loadHelp() {
   const list = $('help-list'); list.innerHTML = LOADING;
   const { data, error } = await supabaseClient.from('sw_messages').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
   if (error) { list.innerHTML = ''; dShow('Erreur : ' + error.message); return; }
-  if (!data.length) { list.innerHTML = '<p class="text-center text-sm text-gray-500">Aucun message envoyé pour le moment.</p>'; return; }
-  list.innerHTML = '<h3 class="text-sm font-bold text-gray-900 mb-2">Mes messages</h3>' + data.map(m => `
+  const msgs = data.filter(x => !x.user_hidden);
+  if (!msgs.length) { list.innerHTML = '<p class="text-center text-sm text-gray-500">Aucun message envoyé pour le moment.</p>'; return; }
+  list.innerHTML = '<div class="flex items-center justify-between mb-2"><h3 class="text-sm font-bold text-gray-900">Mes messages</h3><button type="button" id="u-mclear" class="text-xs font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Vider mes messages</button></div>' + msgs.map(m => `
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3"><div class="flex items-start justify-between gap-2"><div>
       <p class="font-bold text-gray-900">${esc(m.subject)}</p>
       <p class="text-xs text-gray-400">${esc(MCAT[m.category] || m.category)} · ${fmtDate(m.created_at)}</p></div>
       <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold ${m.status === 'resolved' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}">${m.status === 'resolved' ? 'Résolu' : 'En cours'}</span></div>
       <p class="text-sm text-gray-700 mt-2 whitespace-pre-wrap">${esc(m.body)}</p>
-      ${m.admin_reply ? `<div class="mt-3 bg-blue-50 border border-blue-100 rounded-xl p-3"><p class="text-xs font-bold text-swiftblue mb-1">Réponse de l'assistant</p><p class="text-sm text-gray-800 whitespace-pre-wrap">${esc(m.admin_reply)}</p></div>` : ''}</div>`).join('');
+      ${m.admin_reply ? `<div class="mt-3 bg-blue-50 border border-blue-100 rounded-xl p-3"><p class="text-xs font-bold text-swiftblue mb-1">Réponse de l'assistant</p><p class="text-sm text-gray-800 whitespace-pre-wrap">${esc(m.admin_reply)}</p></div>` : ''}<button type="button" data-udel="${esc(m.id)}" class="u-mdel mt-3 text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button></div>`).join('');
+  const hideM = async (ids) => { const { error } = await supabaseClient.rpc('sw_user_hide_messages', { p_ids: ids.map(String) }); if (error) { toast('Erreur : ' + error.message, 'error'); return; } toast('Supprimé de votre journal.'); loadHelp(); };
+  list.querySelectorAll('.u-mdel').forEach(b => b.addEventListener('click', () => { if (confirm('Supprimer ce message de votre journal ?')) hideM([b.dataset.udel]); }));
+  const umc = $('u-mclear'); if (umc) umc.addEventListener('click', () => { if (confirm('Supprimer tous vos messages de votre journal ?')) hideM(msgs.map(x => x.id)); });
 }
 $('help-form').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -1037,7 +1045,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       q('sw_recharges').order('created_at', { ascending: false }).limit(300),
       q('sw_wallets', 'user_id,balance'), q('sw_pay_numbers').order('created_at'), q('sw_wallet_adjustments').order('created_at'), q('sw_messages').order('created_at', { ascending: false }).limit(300)]);
     if (sh.error) { toast('Erreur : ' + sh.error.message, 'error'); return; }
-    S.msgs = mg.data || []; S.pn = pn.data || []; S.adj = adj.data || []; S.ship = sh.data.map(s => s.status === 'picked_up' ? { ...s, status: 'pending' } : s); S.users = pr.data || []; S.rech = rc.data || []; S.bal = {}; S.own = {};
+    S.msgs = (mg.data || []).filter(m => !m.admin_hidden); S.pn = pn.data || []; S.adj = adj.data || []; S.ship = sh.data.map(s => s.status === 'picked_up' ? { ...s, status: 'pending' } : s); S.users = pr.data || []; S.rech = (rc.data || []).filter(r => !r.admin_hidden); S.bal = {}; S.own = {};
     (wl.data || []).forEach(w => S.bal[w.user_id] = w.balance);
     S.users.forEach(u => S.own[u.id] = u);
     const n = S.rech.filter(r => r.status === 'pending').length, b = $('nav-rech-badge');
@@ -1095,7 +1103,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     const rows = S.rech.filter(r => !S.rf || r.status === S.rf);
     const col = { pending: '#ffb020', approved: '#c6ff3d', rejected: '#ff5a5f' };
     const clr = rows.filter(r => r.status !== 'pending');
-    const clrBar = clr.length ? `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-4px 0 12px"><button class="x-btn no" data-rclear="${S.rf}">VIDER (${clr.length})</button><span style="font-size:11px;color:#5b6b7c">Suppression automatique 5 jours après le traitement</span></div>` : '';
+    const clrBar = clr.length ? `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-4px 0 12px"><button class="x-btn no" data-rclear="${S.rf}">VIDER CHEZ MOI (${clr.length})</button><button class="x-btn no" data-rclear="${S.rf}" data-both="1">VIDER AUSSI CHEZ LES CLIENTS</button><span style="font-size:11px;color:#5b6b7c">Auto : masqué chez moi 5 jours après le traitement (le journal du client est conservé)</span></div>` : '';
     M.innerHTML = `<p class="x-h"><b>●</b> CAISSE // demandes de recharge</p>
     <div class="x-chips">${[['pending', 'EN ATTENTE'], ['', 'TOUTES'], ['approved', 'APPROUVÉES'], ['rejected', 'REJETÉES']].map(([v, l]) => `<button class="x-btn ${S.rf === v ? 'on' : ''}" data-rf="${v}">${l}</button>`).join('')}</div>
     ${clrBar}
@@ -1109,7 +1117,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
         <button class="x-btn go" data-rv="1" data-id="${esc(r.id)}">APPROUVER</button><button class="x-btn no" data-rv="0" data-id="${esc(r.id)}">REJETER</button></div>`
       : r.status === 'approved' ? `${adjH}<input id="aj-${esc(r.id)}" type="number" min="1" step="1" class="x-in" placeholder="montant à ajouter / retirer (FCFA)" style="margin:8px 0">
         <input id="an-${esc(r.id)}" class="x-in" placeholder="motif (facultatif)" style="margin-bottom:8px"><div style="display:flex;gap:8px">
-        <button class="x-btn go" data-adj="1" data-id="${esc(r.id)}">AJOUTER</button><button class="x-btn no" data-adj="-1" data-id="${esc(r.id)}">RETIRER</button></div>` : ''}${r.status !== 'pending' ? `<div style="margin-top:10px"><button class="x-btn no" data-rdel="${esc(r.id)}">SUPPRIMER</button></div>` : ''}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucune demande</p>'}`;
+        <button class="x-btn go" data-adj="1" data-id="${esc(r.id)}">AJOUTER</button><button class="x-btn no" data-adj="-1" data-id="${esc(r.id)}">RETIRER</button></div>` : ''}${r.status !== 'pending' ? `<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="x-btn no" data-rdel="${esc(r.id)}">SUPPRIMER CHEZ MOI</button><button class="x-btn no" data-rdel="${esc(r.id)}" data-both="1">SUPPRIMER AUSSI CHEZ LE CLIENT</button></div>` : ''}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucune demande</p>'}`;
   }
 
   function acct() {
@@ -1133,7 +1141,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     const rows = (S.msgs || []).filter(m => !S.mf || m.status === S.mf);
     const cnt = {}; S.ship.forEach(s => cnt[s.user_id] = (cnt[s.user_id] || 0) + 1);
     const rsv = rows.filter(m => m.status === 'resolved');
-    const mBar = rsv.length ? `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-4px 0 12px"><button class="x-btn no" data-mclear="1">VIDER LES RÉSOLUS (${rsv.length})</button><span style="font-size:11px;color:#5b6b7c">Suppression automatique 5 jours après la résolution</span></div>` : '';
+    const mBar = rsv.length ? `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-4px 0 12px"><button class="x-btn no" data-mclear="1">VIDER CHEZ MOI (${rsv.length})</button><button class="x-btn no" data-mclear="1" data-both="1">VIDER AUSSI CHEZ LES CLIENTS</button><span style="font-size:11px;color:#5b6b7c">Auto : masqué chez moi 5 jours après la résolution (le client le garde)</span></div>` : '';
     M.innerHTML = `<p class="x-h"><b>●</b> BOÎTE DE RÉCEPTION // messages des clients</p>
     <div class="x-chips">${[['open', 'OUVERTS'], ['', 'TOUS'], ['resolved', 'RÉSOLUS']].map(([v, l]) => `<button class="x-btn ${S.mf === v ? 'on' : ''}" data-mf="${v}">${l}</button>`).join('')}</div>
     ${mBar}
@@ -1144,7 +1152,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       <div style="font-size:11px;color:#7d8da0;border-top:1px dashed #1b2530;padding-top:8px;margin-bottom:8px">EXPÉDITEUR<br><span style="color:#e9f1f8;word-break:break-all">${esc(u.email || '-')}</span><br>${esc(u.phone || 'sans téléphone')}<br>Solde ${fmtMoney(S.bal[m.user_id] || 0)} · ${cnt[m.user_id] || 0} colis · compte ${u.is_active === false ? 'coupé' : 'actif'}</div>
       ${op ? `<textarea id="mr-${esc(m.id)}" rows="3" class="x-in" placeholder="réponse au client (facultatif)" style="margin-bottom:8px">${esc(m.admin_reply || '')}</textarea>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="x-btn" data-mrep="${esc(m.id)}">ENVOYER LA RÉPONSE</button><button class="x-btn go" data-mres="${esc(m.id)}">MARQUER RÉSOLU</button></div>`
-      : `${m.admin_reply ? `<p style="font-size:12px;color:#7d8da0;white-space:pre-wrap">réponse : ${esc(m.admin_reply)}</p>` : ''}<button class="x-btn" style="margin-top:8px" data-mre="${esc(m.id)}">ROUVRIR</button> <button class="x-btn no" style="margin-top:8px" data-mdel="${esc(m.id)}">SUPPRIMER</button>`}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucun message</p>'}`;
+      : `${m.admin_reply ? `<p style="font-size:12px;color:#7d8da0;white-space:pre-wrap">réponse : ${esc(m.admin_reply)}</p>` : ''}<button class="x-btn" style="margin-top:8px" data-mre="${esc(m.id)}">ROUVRIR</button> <button class="x-btn no" style="margin-top:8px" data-mdel="${esc(m.id)}">SUPPRIMER CHEZ MOI</button> <button class="x-btn no" style="margin-top:8px" data-mdel="${esc(m.id)}" data-both="1">SUPPRIMER AUSSI CHEZ LE CLIENT</button>`}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucun message</p>'}`;
   }
 
   function cfg() {
@@ -1195,15 +1203,15 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     if (!p.length) return;
     try { await supabaseClient.storage.from('sw-proofs').remove(p); } catch (e) {}
   }
-  async function delRecharges(ids) {
-    const { data, error } = await supabaseClient.rpc('sw_admin_delete_recharges', { p_ids: ids.map(String) });
+  async function delRecharges(ids, both) {
+    const { data, error } = await supabaseClient.rpc('sw_admin_delete_recharges', { p_ids: ids.map(String), p_both: !!both });
     if (error) return toast('Erreur : ' + error.message, 'error');
-    await removeProofs(data); toast('Supprimé de la base.'); await loadAll(); draw();
+    await removeProofs(data); toast(both ? 'Supprimé chez moi et chez le client.' : 'Supprimé chez moi (le client garde son journal).'); await loadAll(); draw();
   }
-  async function delMessages(ids) {
-    const { error } = await supabaseClient.rpc('sw_admin_delete_messages', { p_ids: ids.map(String) });
+  async function delMessages(ids, both) {
+    const { error } = await supabaseClient.rpc('sw_admin_delete_messages', { p_ids: ids.map(String), p_both: !!both });
     if (error) return toast('Erreur : ' + error.message, 'error');
-    toast('Supprimé de la base.'); await loadAll(); draw();
+    toast(both ? 'Supprimé chez moi et chez le client.' : 'Supprimé chez moi (le client garde son message).'); await loadAll(); draw();
   }
 
   async function rpc(fn, args, ok) {
@@ -1235,16 +1243,18 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       toast(el.dataset.mrep ? 'Réponse envoyée.' : el.dataset.mres ? 'Message résolu.' : 'Message rouvert.'); await loadAll(); return draw();
     }
     if ((el = g('data-rdel')) || (el = g('data-rclear'))) {
+      const both = el.dataset.both === '1', where = both ? ' chez moi ET chez le client' : ' chez moi seulement (le client garde son journal)';
       let ids;
-      if (el.dataset.rdel) { ids = [el.dataset.rdel]; if (!confirm('Supprimer définitivement cette demande et sa capture ?')) return; }
-      else { const f = el.dataset.rclear; ids = S.rech.filter(r => r.status !== 'pending' && (!f || r.status === f)).map(r => r.id); if (!ids.length) return; if (!confirm('Supprimer définitivement ' + ids.length + ' demande(s) traitée(s) et leurs captures ?')) return; }
-      return delRecharges(ids);
+      if (el.dataset.rdel) { ids = [el.dataset.rdel]; if (!confirm('Supprimer cette demande' + where + ' ?')) return; }
+      else { const f = el.dataset.rclear; ids = S.rech.filter(r => r.status !== 'pending' && (!f || r.status === f)).map(r => r.id); if (!ids.length) return; if (!confirm('Supprimer ' + ids.length + ' demande(s) traitée(s)' + where + ' ?')) return; }
+      return delRecharges(ids, both);
     }
     if ((el = g('data-mdel')) || (el = g('data-mclear'))) {
+      const both = el.dataset.both === '1', where = both ? ' chez moi ET chez le client' : ' chez moi seulement (le client le garde)';
       let ids;
-      if (el.dataset.mdel) { ids = [el.dataset.mdel]; if (!confirm('Supprimer définitivement ce message ?')) return; }
-      else { ids = (S.msgs || []).filter(m => m.status === 'resolved' && (!S.mf || m.status === S.mf)).map(m => m.id); if (!ids.length) return; if (!confirm('Supprimer définitivement ' + ids.length + ' message(s) résolu(s) ?')) return; }
-      return delMessages(ids);
+      if (el.dataset.mdel) { ids = [el.dataset.mdel]; if (!confirm('Supprimer ce message' + where + ' ?')) return; }
+      else { ids = (S.msgs || []).filter(m => m.status === 'resolved' && (!S.mf || m.status === S.mf)).map(m => m.id); if (!ids.length) return; if (!confirm('Supprimer ' + ids.length + ' message(s) résolu(s)' + where + ' ?')) return; }
+      return delMessages(ids, both);
     }
     if ((el = g('data-proof'))) return openProof(el.dataset.proof);
     if (g('data-price')) {
