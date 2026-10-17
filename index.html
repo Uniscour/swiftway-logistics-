@@ -364,7 +364,10 @@ function stepDur(ship, st) {
   const v = Number(h[st]); return v > 0 ? v : d[st];
 }
 
-function timeline(events, ship, owner) {
+// Frise IDENTIQUE pour l'expéditeur et le destinataire :
+// - dates seulement (jamais d'heures), aucune date/heure prévue, aucun compte à rebours.
+// - la date de la 1re étape ("En attente") = date de création du colis, figée.
+function timeline(events, ship) {
   events = (events || []).filter(e => e.status !== 'picked_up');
   if (ship && ship.status === 'picked_up') ship = { ...ship, status: 'pending' };
   const byStatus = {}, extra = {};
@@ -381,30 +384,23 @@ function timeline(events, ship, owner) {
   let html = '';
   if (ship && !cancelled) {
     const eta = ship.estimated_delivery_at || (start ? new Date(start + win * 3600000).toISOString() : null);
-    html += `<div class="mt-4"><div class="flex justify-between text-xs text-gray-500 mb-1"><span>${ship.status === 'delivered' ? 'Livré' : 'Livraison estimée'}</span><span class="font-semibold text-gray-700">${eta ? (owner ? fmtDate(eta) : fmtDay(eta)) : ''}</span></div>
+    html += `<div class="mt-4"><div class="flex justify-between text-xs text-gray-500 mb-1"><span>${ship.status === 'delivered' ? 'Livré' : 'Livraison estimée'}</span><span class="font-semibold text-gray-700">${eta ? fmtDay(eta) : ''}</span></div>
       <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-2 bg-swiftblue rounded-full" style="width:${pct}%"></div></div></div>`;
-  }
-  const offs = [0]; DUR_KEYS.forEach(k => offs.push(offs[offs.length - 1] + (ship ? stepDur(ship, k) : 0)));
-  if (owner && ship && ship.auto_progress && !cancelled && STEPS.includes(ship.status) && ship.status !== 'delivered') {
-    const cs = byStatus[ship.status] ? new Date(byStatus[ship.status].created_at).getTime() : start;
-    const st0 = Math.max(cs, ship.auto_anchor ? new Date(ship.auto_anchor).getTime() : 0);
-    const nextAt = new Date(st0 + stepDur(ship, ship.status) * 3600000).toISOString();
-    html += `<p class="text-xs font-semibold text-swiftblue mt-2">Prochaine étape (${esc(STATUS[STEPS[STEPS.indexOf(ship.status) + 1]].label)}) dans <span data-cd="${nextAt}"></span></p>`;
   }
   html += '<ol class="space-y-3 mt-4">' + STEPS.map((st, i) => {
     const ev = byStatus[st], done = !!ev, current = done && i === lastDone && !cancelled;
     const label = (STATUS[st] || { label: st }).label;
-    const planned = start ? new Date(start + offs[i] * 3600000) : null;
     const dot = done ? (current ? 'bg-swiftblue ring-4 ring-blue-100' : 'bg-swiftblue') : 'bg-gray-200';
-    const when = done ? (owner ? `<p class="text-xs text-gray-400">${fmtDate(ev.created_at)}</p>` : (i === 0 ? `<p class="text-xs text-gray-400">${fmtDay(ev.created_at)}</p>` : '')) : (owner && planned && !cancelled ? `<p class="text-xs text-gray-400">Prévu : ${fmtDate(planned)}</p>` : '');
+    const stepDate = done ? (i === 0 && ship ? ship.created_at : ev.created_at) : null;
+    const when = done ? `<p class="text-xs text-gray-400">${fmtDay(stepDate)}</p>` : '';
     const note = done && ev.note ? `<p class="text-xs text-gray-500">${esc(ev.note)}</p>` : '';
-    const extraNotes = (extra[st] || []).map(x => `<p class="text-xs text-gray-500">${esc(x.note)} ${owner ? `<span class="text-gray-400">· ${fmtDate(x.created_at)}</span>` : ''}</p>`).join('');
+    const extraNotes = (extra[st] || []).map(x => `<p class="text-xs text-gray-500">${esc(x.note)} <span class="text-gray-400">· ${fmtDay(x.created_at)}</span></p>`).join('');
     return `<li class="flex gap-3 ${done ? '' : 'opacity-60'}"><span class="mt-1.5 w-3 h-3 rounded-full ${dot} shrink-0"></span>
       <div><p class="text-sm font-semibold ${done ? 'text-gray-900' : 'text-gray-500'}">${esc(label)}</p>${note}${extraNotes}${when}</div></li>`;
   }).join('') + '</ol>';
   if (cancelled) {
     const ev = byStatus['cancelled'];
-    html += `<div class="mt-3 bg-red-50 text-red-700 rounded-xl p-3 text-sm font-semibold">Expédition annulée${ev ? ' · ' + (owner ? fmtDate(ev.created_at) : fmtDay(ev.created_at)) : ''}</div>`;
+    html += `<div class="mt-3 bg-red-50 text-red-700 rounded-xl p-3 text-sm font-semibold">Expédition annulée${ev ? ' · ' + fmtDay(ev.created_at) : ''}</div>`;
   }
   return html;
 }
@@ -444,7 +440,7 @@ function editCtl(s, events) {
     ${evRows ? `<div class="space-y-2"><p class="${LB}">Date et heure de chaque étape atteinte</p>${evRows}</div>` : ''}
     <div><label class="${LB}">Ajouter une note au suivi${OPT}</label><input class="ed-note ${IC}" maxlength="200" placeholder="Ex: colis arrivé au hub de Douala"></div>
     <label class="flex items-center gap-3 text-sm font-semibold text-gray-700"><input type="checkbox" class="ed-auto w-5 h-5" ${s.auto_progress ? 'checked' : ''}> Passage automatique des étapes</label>
-    <p class="text-xs text-gray-400">Automatique : chaque étape avance toute seule à la fin de sa durée (compte à rebours). Manuel : vous gérez les étapes vous-même. Si vous changez l'étape à la main, le mode automatique se désactive.</p>
+    <p class="text-xs text-gray-400">Automatique : chaque étape avance toute seule à la fin de sa durée. Manuel : vous gérez les étapes vous-même. Si vous changez l'étape à la main, le mode automatique se désactive.</p>
     <div class="ed-hbox ${s.auto_progress ? '' : 'hidden'} space-y-2 bg-white rounded-xl p-3"><p class="${LB}">Durée de chaque étape avant le passage à la suivante</p>
       ${DUR_KEYS.map(k => `<div><label class="${LB}">${esc(STATUS[k].label)} → étape suivante</label>${hmInputs('ed' + s.id + k, k, stepDur(s, k))}</div>`).join('')}</div>
     <button type="button" class="save-ed w-full bg-swiftblue text-white font-semibold py-3 rounded-xl cursor-pointer">Actualiser</button>
@@ -598,7 +594,7 @@ let SH = {}, lastOpenId = null;
 async function renderDetails(id) {
   const holder = $('ev-' + id), s = SH[id]; if (!holder || !s) return;
   const { data: events, error } = await supabaseClient.from('sw_shipment_events').select('*').eq('shipment_id', id).order('created_at', { ascending: true });
-  holder.innerHTML = error ? '<p class="text-sm text-red-600 mt-3">Erreur de chargement.</p>' : detailsHtml(s) + editCtl(s, events) + timeline(events, s, true);
+  holder.innerHTML = error ? '<p class="text-sm text-red-600 mt-3">Erreur de chargement.</p>' : detailsHtml(s) + editCtl(s, events) + timeline(events, s);
   holder.classList.remove('hidden'); lastOpenId = id;
   const q1 = (c) => holder.querySelector(c);
   const cbs = [...holder.querySelectorAll('.ed-cb')];
@@ -681,9 +677,9 @@ async function loadShipments(openId) {
       <div class="flex items-start justify-between gap-2"><div>
         <p class="font-bold text-gray-900">${esc(s.tracking_code)}</p>
         <p class="text-sm text-gray-500">${esc(s.origin)} → ${esc(s.destination)}</p>
-        <p class="text-xs text-gray-400 mt-1">Pour ${esc(s.receiver_name)} · ${fmtDate(s.created_at)}</p>
+        <p class="text-xs text-gray-400 mt-1">Pour ${esc(s.receiver_name)} · ${fmtDay(s.created_at)}</p>
         ${s.agency_name ? `<p class="text-xs text-gray-400">Agence : ${esc(s.agency_name)}</p>` : ''}
-        ${s.estimated_delivery_at && s.status !== 'delivered' && s.status !== 'cancelled' ? `<p class="text-xs text-gray-500">Livraison estimée : ${fmtDate(s.estimated_delivery_at)}</p>` : ''}
+        ${s.estimated_delivery_at && s.status !== 'delivered' && s.status !== 'cancelled' ? `<p class="text-xs text-gray-500">Livraison estimée : ${fmtDay(s.estimated_delivery_at)}</p>` : ''}
       </div>${badge(s.status)}</div>
       <div class="flex flex-wrap items-center gap-3 mt-3">
         <button type="button" data-id="${esc(s.id)}" class="details-btn text-sm font-semibold text-swiftblue cursor-pointer">${openId === s.id ? 'Masquer le suivi' : 'Voir le suivi'}</button>
@@ -764,8 +760,7 @@ $('track-form').addEventListener('submit', async (e) => {
   if (error) { out.innerHTML = ''; dShow("Erreur : " + error.message); return; }
   dHide();
   if (!data) { out.innerHTML = '<div class="bg-white rounded-2xl border border-gray-100 p-6 text-center text-gray-500">Aucun colis trouvé avec ce code. Vérifiez-le et réessayez.</div>'; return; }
-  out.innerHTML = `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5"><div class="flex items-start justify-between gap-2">
-    <div><p class="font-bold text-gray-900">${esc(data.tracking_code)}</p><p class="text-sm text-gray-500">${esc(data.origin)} → ${esc(data.destination)}</p></div>${badge(data.status)}</div>${pubParties(data)}${timeline(data.events, data)}</div>`;
+  out.innerHTML = pubRender(data);
 });
 
 const doLogout = async () => {
@@ -881,6 +876,7 @@ function pubParties(d) {
   return `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">${parts}</div>` + (d.stopover_country ? `<p class="text-sm text-gray-700 mt-2"><span class="text-gray-400">Pays d'escale :</span> ${esc(d.stopover_country)}</p>` : '');
 }
 let pubTimer = null, pubCode = null;
+// Rendu UNIQUE du suivi : utilisé par le destinataire (lien / QR) ET par l'onglet « Suivre » de l'expéditeur.
 function pubRender(data) {
   data = { ...data, status: data.status === 'picked_up' ? 'pending' : data.status, events: (data.events || []).filter(e => e.status !== 'picked_up') };
   const evs = (data.events || []).filter(e => e.status === data.status);
@@ -926,7 +922,7 @@ function startPublic(code) {
   if (code) { $('pub-code').value = code; searchPublic(code, false); }
 }
 
-// ---------- COMPTE À REBOURS ----------
+// ---------- ACTUALISATION AUTOMATIQUE (sans affichage de compte à rebours) ----------
 function refreshAfterCd() {
   if (!$('pub-view').classList.contains('hidden')) { if (pubCode) searchPublic(pubCode, false); return; }
   if (currentUser && !isAdmin && !$('dash-view').classList.contains('hidden') && !$('view-list').classList.contains('hidden')) loadShipments(lastOpenId);
@@ -1165,7 +1161,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       <div style="margin-top:10px;padding:12px;background:#fff;border:1px solid #c9d1d9">
         <p style="font-size:12px;font-weight:700">AUTO : ${s.auto_progress ? 'ACTIVÉ' : 'DÉSACTIVÉ'} <button class="x-btn" style="margin-left:8px" data-auto="${s.auto_progress ? 0 : 1}" data-id="${esc(s.id)}">${s.auto_progress ? 'COUPER' : 'RÉACTIVER'}</button></p>
         <div style="display:flex;gap:8px;margin-top:8px"><input id="d-win" type="number" min="1" max="720" class="x-in" value="${esc(win(s))}"><button class="x-btn go" data-win="${esc(s.id)}">DÉLAI (h)</button></div></div>
-      ${timeline(S.ev, s, true)}`;
+      ${timeline(S.ev, s)}`;
     $('x-drawer').classList.add('open'); $('x-veil').style.display = 'block';
   }
   function closeDrawer() { S.open = null; $('x-drawer').classList.remove('open'); $('x-veil').style.display = 'none'; }
