@@ -7,6 +7,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>tailwind.config = { theme: { extend: { colors: { swiftblue: '#0047AB' } } } }</script>
 <style>
 @media print {
@@ -17,6 +18,7 @@
   .no-print { display: none !important; }
   #receipt-sheet { box-shadow: none !important; margin: 0 !important; }
   #receipt-zoom { zoom: 1 !important; }
+  #receipt-overlay > div:not(.no-print) { overflow: visible !important; }
   #receipt-sheet, #receipt-sheet * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 </style>
@@ -473,16 +475,43 @@ function showReceipt(s) {
   const ov = document.createElement('div');
   ov.id = 'receipt-overlay';
   ov.style.cssText = 'position:fixed;inset:0;z-index:80;background:#111c;overflow:auto;padding:16px 8px 40px';
-  ov.innerHTML = `<div class="no-print" style="max-width:148mm;margin:0 auto 12px;display:flex;gap:8px">
+  ov.innerHTML = `<div class="no-print" style="max-width:148mm;margin:0 auto 12px;display:flex;flex-wrap:wrap;gap:8px">
+      <button type="button" id="rcpt-wa" style="flex:1 1 100%;background:#25D366" class="text-white font-semibold py-3 rounded-xl cursor-pointer">Partager sur WhatsApp</button>
       <button type="button" id="rcpt-print" class="flex-1 bg-swiftblue text-white font-semibold py-3 rounded-xl cursor-pointer">Imprimer / Enregistrer en PDF</button>
       <button type="button" id="rcpt-close" class="bg-white text-gray-800 font-semibold px-5 py-3 rounded-xl cursor-pointer">Fermer</button></div>
     <div style="overflow-x:auto"><div id="receipt-zoom" style="width:148mm;margin:0 auto;zoom:${Math.min(1,(window.innerWidth-16)/560).toFixed(3)}">${receiptHtml(s)}</div></div>`;
   document.body.appendChild(ov);
   $('rcpt-close').addEventListener('click', closeReceipt);
+  $('rcpt-wa').addEventListener('click', (e) => shareReceipt(s, e.currentTarget));
   $('rcpt-print').addEventListener('click', () => {
     const old = document.title; document.title = 'Recu-' + s.tracking_code; window.print();
     setTimeout(() => { document.title = old; }, 500);
   });
+}
+async function shareReceipt(s, btn) {
+  const old = btn.textContent; btn.disabled = true; btn.textContent = 'Préparation du reçu...';
+  let host = null;
+  try {
+    host = document.createElement('div');
+    host.style.cssText = 'position:fixed;left:-10000px;top:0;width:148mm';
+    host.innerHTML = receiptHtml(s); document.body.appendChild(host);
+    const canvas = await html2canvas(host.firstElementChild, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+    const file = new File([blob], 'Recu-' + s.tracking_code + '.png', { type: 'image/png' });
+    const text = "Reçu d'expédition " + s.tracking_code;
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: text, text });
+    } else {
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name;
+      document.body.appendChild(a); a.click(); a.remove();
+      window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+      toast("Image du reçu enregistrée : joignez-la dans WhatsApp.");
+    }
+  } catch (err) {
+    if (!err || err.name !== 'AbortError') toast('Partage impossible : ' + ((err && err.message) || err), 'error');
+  }
+  if (host) host.remove();
+  btn.disabled = false; btn.textContent = old;
 }
 function closeReceipt() { const o = $('receipt-overlay'); if (o) o.remove(); }
 async function openReceipt(s, btn) {
