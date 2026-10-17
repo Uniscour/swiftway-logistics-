@@ -258,6 +258,7 @@ const PARTY = (p, t, sub) => CARD(t, sub,
   F(p + '-district', 'Quartier', '', 1) + F(p + '-city', 'Ville', 'required') + F(p + '-region', 'Région / Province', 'required') +
   SEL(p + '-country', 'Pays', [["Cameroun", "Cameroun"], ...COUNTRIES.filter(c => c !== "Cameroun").sort((a, b) => a.localeCompare(b, 'fr')).map(c => [c, c])]));
 const D3 = (id, ph) => `<input id="${id}" type="number" min="0" step="0.1" placeholder="${ph}" class="${IC}">`;
+const sigPad = (id, l) => `<div><label class="${LB}">${l}${OPT}</label><canvas id="${id}" width="600" height="200" style="width:100%;height:auto;aspect-ratio:3/1;touch-action:none;border:1px dashed #9ca3af;border-radius:12px;background:#fff"></canvas><button type="button" data-clear="${id}" class="sig-clear text-xs font-semibold text-gray-600 mt-1 underline cursor-pointer">Effacer</button></div>`;
 
 $('new-form').innerHTML =
   PARTY('s', 'Expéditeur', 'La personne qui envoie le colis') +
@@ -276,7 +277,31 @@ $('new-form').innerHTML =
     SEL('p-payer', 'Qui paie la livraison ?', [['sender', "L'expéditeur"], ['receiver', 'Le destinataire']]) +
     `<label class="flex items-center gap-3 text-sm font-semibold text-gray-700"><input id="p-fragile" type="checkbox" class="w-5 h-5 rounded border-gray-300"> Colis fragile</label>` +
     `<div><label class="${LB}">Instructions de livraison${OPT}</label><textarea id="p-notes" rows="3" placeholder="Ex: appeler avant de livrer..." class="${IC}"></textarea></div>`) +
+  CARD('Signatures', "Signez avec le doigt ou la souris. Elles s'impriment en encre bleue sur le reçu A5.",
+    sigPad('sig-s', "Signature de l'expéditeur") + sigPad('sig-a', "Signature de l'agence")) +
   `<button type="submit" id="new-btn" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition shadow-md cursor-pointer">Créer l'expédition</button>`;
+
+// ---------- SIGNATURES TACTILES (encre bleue) ----------
+const SIG = {};
+function initSig(id) {
+  const c = $(id), x = c.getContext('2d'); let down = false, last = null;
+  SIG[id] = { c, empty: true };
+  const pos = e => { const r = c.getBoundingClientRect(); return [(e.clientX - r.left) * c.width / r.width, (e.clientY - r.top) * c.height / r.height]; };
+  c.addEventListener('pointerdown', e => {
+    e.preventDefault(); c.setPointerCapture(e.pointerId); down = true; last = pos(e);
+    x.strokeStyle = x.fillStyle = '#1a3fd6'; x.lineWidth = 3; x.lineCap = x.lineJoin = 'round';
+    x.beginPath(); x.arc(last[0], last[1], 1.5, 0, 7); x.fill(); SIG[id].empty = false;
+  });
+  c.addEventListener('pointermove', e => {
+    if (!down) return; e.preventDefault();
+    const p = pos(e); x.beginPath(); x.moveTo(last[0], last[1]); x.lineTo(p[0], p[1]); x.stroke(); last = p;
+  });
+  ['pointerup', 'pointercancel'].forEach(t => c.addEventListener(t, () => { down = false; }));
+}
+function clearSig(id) { const s = SIG[id]; s.c.getContext('2d').clearRect(0, 0, s.c.width, s.c.height); s.empty = true; }
+function sigData(id) { return SIG[id].empty ? null : SIG[id].c.toDataURL('image/png'); }
+['sig-s', 'sig-a'].forEach(initSig);
+document.querySelectorAll('.sig-clear').forEach(b => b.addEventListener('click', () => clearSig(b.dataset.clear)));
 
 // ---------- SUIVI (frise) ----------
 const STEPS = ['pending', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered'];
@@ -364,12 +389,15 @@ async function loadReceiptSet() {
     receiptSet = new Set((data || []).map(r => r.shipment_id));
   } catch (err) { receiptSet = new Set(); }
 }
+// Lien texte partagé : page de suivi de base (le code est saisi à la main)
 function trackUrl(code) { return location.origin + location.pathname + '?suivi=1'; }
+// QR code du reçu : page de suivi avec le code déjà injecté (recherche automatique)
+function qrUrl(code) { return location.origin + location.pathname + '?suivi=1&t=' + encodeURIComponent(code); }
 
 function receiptHtml(s) {
   const ag = (s.agency_name || '').trim(), cur = s.currency || 'XAF', m = v => fmtCur(v, cur), NAVY = '#0f2a4a';
   let qrSvg = '';
-  try { const q = qrcode(0, 'M'); q.addData(trackUrl(s.tracking_code)); q.make(); qrSvg = q.createSvgTag(3, 0).replace('<svg', '<svg style="width:100%;height:100%;display:block"'); } catch (e) {}
+  try { const q = qrcode(0, 'M'); q.addData(qrUrl(s.tracking_code)); q.make(); qrSvg = q.createSvgTag(3, 0).replace('<svg', '<svg style="width:100%;height:100%;display:block"'); } catch (e) {}
   const row = (l, v) => v ? `<tr><td style="padding:2px 0;color:#667;width:36%;vertical-align:top">${l}</td><td style="padding:2px 0;font-weight:700">${esc(v)}</td></tr>` : '';
   const box = (t, n, ph, ad, di, ci, re, co) => `<div style="flex:1;border:1px solid ${NAVY};min-width:0;background:#fff"><div style="background:${NAVY};color:#fff;font-size:8.5px;letter-spacing:.14em;font-weight:800;padding:3px 8px">${t}</div>
     <div style="padding:6px 8px"><div style="font-weight:800;font-size:12px">${esc(n)}</div><div>${esc(ph)}</div><div>${esc([ad, di].filter(Boolean).join(', '))}</div><div>${esc([ci, re, co].filter(Boolean).join(', '))}</div></div></div>`;
@@ -380,6 +408,8 @@ function receiptHtml(s) {
     ${fee ? `<tr><td style="padding:2px 8px">Frais de transport (${s.payer === 'receiver' ? 'payés par le destinataire' : "payés par l'expéditeur"})</td><td style="padding:2px 8px;text-align:right;font-weight:700">${m(fee)}</td></tr>` : ''}
     </table></div>` : '';
   const stamp = `<div style="transform:rotate(-8deg);border:2.5px solid #1d4ed8;color:#1d4ed8;opacity:.85;padding:4px 12px;text-align:center;border-radius:4px"><div style="font-size:15px;font-weight:900;letter-spacing:.18em">APPROUVÉ</div><div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-top:1px">par ${esc(ag)}</div></div>`;
+  const sigSender = s.sender_signature ? `<img src="${esc(s.sender_signature)}" alt="" style="max-width:100%;max-height:18mm;object-fit:contain">` : '';
+  const sigAgency = s.agency_signature ? `<img src="${esc(s.agency_signature)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">` : '';
   return `<div id="receipt-sheet" style="position:relative;width:148mm;height:210mm;box-sizing:border-box;padding:6mm;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;line-height:1.35;margin:0 auto;box-shadow:0 4px 24px #0006;overflow:hidden">
     <div style="position:absolute;inset:6mm;border:2px solid ${NAVY};outline:1px solid ${NAVY};outline-offset:-5px;pointer-events:none"></div>
     <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;overflow:hidden"><div style="transform:rotate(-30deg);font-size:34px;font-weight:900;color:${NAVY};opacity:.055;white-space:nowrap;text-transform:uppercase;letter-spacing:.1em">${esc(ag)}</div></div>
@@ -390,7 +420,7 @@ function receiptHtml(s) {
         <div><div style="font-size:8.5px;color:#667">N° DE BORDEREAU / SUIVI</div><div style="font-size:17px;font-weight:900;letter-spacing:.06em;color:${NAVY}">${esc(s.tracking_code)}</div>
           <div style="font-size:9px;color:#667;margin-top:2px">Émis le ${fmtDate(s.created_at)}</div>
           <div style="display:inline-block;margin-top:3px;border:1px solid ${NAVY};color:${NAVY};font-size:8.5px;font-weight:800;padding:1px 7px;letter-spacing:.1em">${s.service_type === 'express' ? 'EXPRESS 24 H' : 'STANDARD 48 H'}</div></div>
-        <div style="text-align:center"><div style="width:22mm;height:22mm;border:1px solid ${NAVY};padding:1.5mm;background:#fff">${qrSvg}</div><div style="font-size:7.5px;color:#667;margin-top:1px">Scannez, puis entrez le code</div></div>
+        <div style="text-align:center"><div style="width:22mm;height:22mm;border:1px solid ${NAVY};padding:1.5mm;background:#fff">${qrSvg}</div><div style="font-size:7.5px;color:#667;margin-top:1px">Scannez pour suivre le colis</div></div>
       </div>
       <div style="display:flex;gap:7px">
         ${box('EXPÉDITEUR', s.sender_name, s.sender_phone, s.sender_address, s.sender_district, s.origin, s.sender_region, s.sender_country)}
@@ -403,8 +433,8 @@ function receiptHtml(s) {
       ${fees}
       <div style="flex:1"></div>
       <div style="display:flex;gap:7px;align-items:stretch">
-        <div style="flex:1;border:1px dashed #556;padding:5px 8px;min-height:27mm;font-size:8.5px;color:#667">SIGNATURE EXPÉDITEUR</div>
-        <div style="flex:1;border:1px dashed #556;padding:5px 8px;min-height:27mm;font-size:8.5px;color:#667;display:flex;flex-direction:column"><div>SIGNATURE DE L'AGENCE</div><div style="flex:1;display:flex;align-items:center;justify-content:center">${stamp}</div></div>
+        <div style="flex:1;border:1px dashed #556;padding:5px 8px;min-height:27mm;font-size:8.5px;color:#667;display:flex;flex-direction:column"><div>SIGNATURE EXPÉDITEUR</div><div style="flex:1;display:flex;align-items:center;justify-content:center">${sigSender}</div></div>
+        <div style="flex:1;border:1px dashed #556;padding:5px 8px;min-height:27mm;font-size:8.5px;color:#667;display:flex;flex-direction:column"><div>SIGNATURE DE L'AGENCE</div><div style="flex:1;position:relative;display:flex;align-items:center;justify-content:center">${sigAgency}${stamp}</div></div>
       </div>
       <div style="margin-top:8px;border-top:2px solid ${NAVY};padding-top:4px;text-align:center;font-size:9.5px"><div style="font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:${NAVY}">${esc(ag)}</div><div style="color:#667">Document émis le ${fmtDate(new Date())}</div></div>
     </div></div>`;
@@ -525,7 +555,8 @@ $('new-form').addEventListener('submit', async (e) => {
   const row = { description: val('p-desc'), package_type: $('p-type').value, package_count: num('p-count') || 1, weight_kg: num('p-weight'),
     length_cm: num('p-length'), width_cm: num('p-width'), height_cm: num('p-height'), declared_value: num('p-value'), shipping_fee: num('p-fee'),
     currency: $('p-cur').value, agency_name: val('p-agency'), service_type: $('p-service').value, payer: $('p-payer').value,
-    is_fragile: $('p-fragile').checked, delivery_instructions: txt('p-notes') };
+    is_fragile: $('p-fragile').checked, delivery_instructions: txt('p-notes'),
+    sender_signature: sigData('sig-s'), agency_signature: sigData('sig-a') };
   [['s', 'sender_', 'origin'], ['r', 'receiver_', 'destination']].forEach(([p, pre, city]) => {
     row[pre + 'name'] = val(p + '-name'); row[pre + 'phone'] = val(p + '-phone'); row[pre + 'email'] = txt(p + '-email');
     row[pre + 'address'] = val(p + '-address'); row[pre + 'district'] = txt(p + '-district'); row[city] = val(p + '-city');
@@ -534,7 +565,7 @@ $('new-form').addEventListener('submit', async (e) => {
   const { data, error } = await supabaseClient.from('sw_shipments').insert(row).select().single();
   btn.disabled = false; btn.textContent = "Créer l'expédition";
   if (error) { dShow("Erreur : " + error.message); return; }
-  e.target.reset(); showTab('list');
+  e.target.reset(); clearSig('sig-s'); clearSig('sig-a'); showTab('list');
   dShow("Expédition créée ! Code de suivi : " + data.tracking_code + (data.estimated_delivery_at ? " · Livraison estimée : " + fmtDate(data.estimated_delivery_at) : ""), 'success');
 });
 
@@ -616,7 +647,6 @@ $('recharge-form').addEventListener('submit', async (e) => {
   if (!ref) { toast("Indiquez l'ID de la transaction.", 'error'); return; }
   if (!f) { toast("Ajoutez la capture d'écran de la preuve de paiement.", 'error'); return; }
   if (!f.type.startsWith('image/')) { toast('Le fichier doit être une image.', 'error'); return; }
-  if (!f) { toast('Ajoutez la capture d\'écran.', 'error'); return; }
   if (f.size > 5 * 1024 * 1024) { toast('Image trop lourde (5 Mo max).', 'error'); return; }
   btn.disabled = true; btn.textContent = 'Envoi...';
   const path = currentUser.id + '/' + Date.now() + '-' + f.name.replace(/[^a-zA-Z0-9._-]/g, '_');
