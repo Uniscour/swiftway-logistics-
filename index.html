@@ -844,7 +844,13 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
         <input id="pn-phone" class="x-in" placeholder="Numéro (ex : 6XX XX XX XX)">
         <input id="pn-name" class="x-in" placeholder="Nom du titulaire">
         <button class="x-btn go" data-pnadd="1">AJOUTER</button></div>
-      ${(S.pn || []).map(p => `<div class="x-row" style="cursor:default"><span><span class="x-tag" style="color:${p.operator === 'mtn' ? '#ffb020' : '#ff7a1a'}">${p.operator === 'mtn' ? 'MTN' : 'ORANGE'}</span> ${esc(p.phone)} · ${esc(p.holder_name)}${p.is_active ? '' : ' <span style="color:#ff5a5f">(masqué)</span>'}</span><span><button class="x-btn" data-pntog="${esc(p.id)}" data-on="${p.is_active ? 0 : 1}">${p.is_active ? 'MASQUER' : 'AFFICHER'}</button> <button class="x-btn no" data-pndel="${esc(p.id)}">✕</button></span></div>`).join('') || '<p style="color:#5b6b7c">// aucun numéro</p>'}</div>`;
+      ${(S.pn || []).map(p => S.pe === p.id
+      ? `<div class="x-panel" style="margin:0 0 8px"><div style="display:grid;gap:8px">
+          <select id="pe-op" class="x-in"><option value="mtn" ${p.operator === 'mtn' ? 'selected' : ''}>MTN Money</option><option value="orange" ${p.operator === 'orange' ? 'selected' : ''}>Orange Money</option></select>
+          <input id="pe-phone" class="x-in" value="${esc(p.phone)}" placeholder="Numéro">
+          <input id="pe-name" class="x-in" value="${esc(p.holder_name)}" placeholder="Nom du titulaire">
+          <div style="display:flex;gap:8px"><button class="x-btn go" data-pesave="${esc(p.id)}">ENREGISTRER</button><button class="x-btn" data-pecancel="1">ANNULER</button></div></div></div>`
+      : `<div class="x-row" style="cursor:default;flex-wrap:wrap"><span><span class="x-tag" style="color:${p.operator === 'mtn' ? '#ffb020' : '#ff7a1a'}">${p.operator === 'mtn' ? 'MTN' : 'ORANGE'}</span> ${esc(p.phone)} · ${esc(p.holder_name)}${p.is_active ? '' : ' <span style="color:#ff5a5f">(masqué)</span>'}</span><span><button class="x-btn" data-pedit="${esc(p.id)}">MODIFIER</button> <button class="x-btn" data-pntog="${esc(p.id)}" data-on="${p.is_active ? 0 : 1}">${p.is_active ? 'MASQUER' : 'AFFICHER'}</button> <button class="x-btn no" data-pndel="${esc(p.id)}">SUPPRIMER</button></span></div>`).join('') || '<p style="color:#5b6b7c">// aucun numéro</p>'}</div>`;
   }
 
   async function openDrawer(id, keep) {
@@ -899,6 +905,15 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       const { error } = await supabaseClient.from('sw_pay_numbers').insert({ operator: $('pn-op').value, phone: ph, holder_name: nm });
       if (error) return toast('Erreur : ' + error.message, 'error');
       toast('Numéro ajouté.'); await loadAll(); return draw();
+    }
+    if ((el = g('data-pedit'))) { S.pe = el.dataset.pedit; return cfg(); }
+    if (g('data-pecancel')) { S.pe = null; return cfg(); }
+    if ((el = g('data-pesave'))) {
+      const ph = $('pe-phone').value.trim(), nm = $('pe-name').value.trim();
+      if (!ph || !nm) return toast('Numéro et nom requis.', 'error');
+      const { error } = await supabaseClient.from('sw_pay_numbers').update({ operator: $('pe-op').value, phone: ph, holder_name: nm }).eq('id', el.dataset.pesave);
+      if (error) return toast('Erreur : ' + error.message, 'error');
+      S.pe = null; toast('Numéro modifié.'); await loadAll(); return draw();
     }
     if ((el = g('data-pntog'))) {
       const { error } = await supabaseClient.from('sw_pay_numbers').update({ is_active: el.dataset.on === '1' }).eq('id', el.dataset.pntog);
