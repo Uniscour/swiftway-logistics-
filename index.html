@@ -243,6 +243,8 @@ const STATUS = {
 };
 const dAlert = $('d-alert');
 const COUNTRIES = ["Afghanistan","Afrique du Sud","Albanie","Algérie","Allemagne","Andorre","Angola","Antigua-et-Barbuda","Arabie saoudite","Argentine","Arménie","Australie","Autriche","Azerbaïdjan","Bahamas","Bahreïn","Bangladesh","Barbade","Belgique","Belize","Bénin","Bhoutan","Biélorussie","Birmanie (Myanmar)","Bolivie","Bosnie-Herzégovine","Botswana","Brésil","Brunei","Bulgarie","Burkina Faso","Burundi","Cambodge","Cameroun","Canada","Cap-Vert","Chili","Chine","Chypre","Colombie","Comores","Congo","Corée du Nord","Corée du Sud","Costa Rica","Côte d'Ivoire","Croatie","Cuba","Danemark","Djibouti","Dominique","Égypte","Émirats arabes unis","Équateur","Érythrée","Espagne","Estonie","Eswatini","États-Unis","Éthiopie","Fidji","Finlande","France","Gabon","Gambie","Géorgie","Ghana","Grèce","Grenade","Guatemala","Guinée","Guinée-Bissau","Guinée équatoriale","Guyana","Haïti","Honduras","Hongrie","Îles Marshall","Îles Salomon","Inde","Indonésie","Irak","Iran","Irlande","Islande","Israël","Italie","Jamaïque","Japon","Jordanie","Kazakhstan","Kenya","Kirghizistan","Kiribati","Koweït","Laos","Lesotho","Lettonie","Liban","Libéria","Libye","Liechtenstein","Lituanie","Luxembourg","Macédoine du Nord","Madagascar","Malaisie","Malawi","Maldives","Mali","Malte","Maroc","Maurice","Mauritanie","Mexique","Micronésie","Moldavie","Monaco","Mongolie","Monténégro","Mozambique","Namibie","Nauru","Népal","Nicaragua","Niger","Nigéria","Norvège","Nouvelle-Zélande","Oman","Ouganda","Ouzbékistan","Pakistan","Palaos","Palestine","Panama","Papouasie-Nouvelle-Guinée","Paraguay","Pays-Bas","Pérou","Philippines","Pologne","Portugal","Qatar","République centrafricaine","République démocratique du Congo","République dominicaine","Roumanie","Royaume-Uni","Russie","Rwanda","Saint-Christophe-et-Niévès","Sainte-Lucie","Saint-Marin","Saint-Vincent-et-les-Grenadines","Salvador","Samoa","Sao Tomé-et-Principe","Sénégal","Serbie","Seychelles","Sierra Leone","Singapour","Slovaquie","Slovénie","Somalie","Soudan","Soudan du Sud","Sri Lanka","Suède","Suisse","Suriname","Syrie","Tadjikistan","Tanzanie","Tchad","Tchéquie","Thaïlande","Timor oriental","Togo","Tonga","Trinité-et-Tobago","Tunisie","Turkménistan","Turquie","Tuvalu","Ukraine","Uruguay","Vanuatu","Vatican (Saint-Siège)","Venezuela","Viêt Nam","Yémen","Zambie","Zimbabwe"];
+const DUR_KEYS = ['pending', 'in_transit', 'out_for_delivery'];
+const DUR_DEFAULT = { pending: 12, in_transit: 24, out_for_delivery: 12 };
 const CUSTOMS = { paid: "Déjà payée", unpaid: "Non payée" };
 const PKG_TYPES = ["Carton", "Valise", "Sac", "Mallette", "Enveloppe", "Autre"];
 const CURRENCIES = [['XAF', 'Franc CFA (FCFA / XAF)'], ['EUR', 'Euro (€ / EUR)'], ['USD', 'Dollar ($ / USD)']];
@@ -269,6 +271,12 @@ function dHide() { dAlert.classList.add('hidden'); }
 // ---------- FORMULAIRE NOUVELLE EXPÉDITION (généré) ----------
 const IC = 'w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50';
 const LB = 'block text-xs font-semibold text-gray-700 mb-1';
+function hmToHours(h, m) { return (Number(h) || 0) + (Number(m) || 0) / 60; }
+function hoursToHM(v) { const t = Math.round(Number(v) * 60); return [Math.floor(t / 60), t % 60]; }
+function hmInputs(id, key, v) {
+  const [h, m] = hoursToHM(v);
+  return `<div class="flex items-center gap-2"><input id="${id}-h" data-k="${key}" type="number" min="0" step="1" value="${h}" class="dur-h ${IC}"><span class="text-sm text-gray-600">h</span><input id="${id}-m" data-k="${key}" type="number" min="0" max="59" step="1" value="${m}" class="dur-m ${IC}"><span class="text-sm text-gray-600">min</span></div>`;
+}
 const OPT = ' <span class="text-gray-400 font-normal">(facultatif)</span>';
 const F = (id, l, a = '', o) => `<div><label class="${LB}">${l}${o ? OPT : ''}</label><input id="${id}" ${a} class="${IC}"></div>`;
 const SEL = (id, l, opts) => `<div><label class="${LB}">${l}</label><select id="${id}" class="${IC}">${opts.map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join('')}</select></div>`;
@@ -296,7 +304,8 @@ $('new-form').innerHTML =
     '<p class="text-xs text-gray-400 -mt-2">Ce nom sera le seul affiché sur le reçu.</p>' +
     SEL('p-service', 'Type de service', [['standard', 'Standard'], ['express', 'Express (plus rapide)']]) +
     SEL('p-auto', 'Passage des étapes', [['1', 'Automatique (le colis avance tout seul)'], ['0', 'Manuel (je modifie moi-même les étapes)']]) +
-    `<div id="auto-box" class="space-y-2 bg-gray-50 rounded-xl p-3"><p class="${LB}">Durée de chaque étape avant le passage à la suivante (en heures)</p><div class="grid grid-cols-3 gap-2">${[['hs-pending', 'En attente', '12'], ['hs-transit', 'En transit', '24'], ['hs-out', 'En livraison', '12']].map(([id, l, v]) => `<div><label class="text-[11px] text-gray-500">${l}</label><input id="${id}" type="number" min="0.1" step="0.1" value="${v}" class="${IC}"></div>`).join('')}</div></div>` +
+`<div id="auto-box" class="space-y-3 bg-gray-50 rounded-xl p-3"><p class="${LB}">Durée de chaque étape avant le passage à la suivante</p>${DUR_KEYS.map(k => `<div><label class="text-[11px] text-gray-500">${esc(STATUS[k].label)} → étape suivante</label>${hmInputs('hs-' + k, k, DUR_DEFAULT[k])}</div>`).join('')}</div>` +
+    F('p-eta', 'Date et heure de livraison prévue', 'type="datetime-local"', 1) +
     SEL('p-payer', 'Qui paie la livraison ?', [['sender', "L'expéditeur"], ['receiver', 'Le destinataire']]) +
     SEL('p-stop', "Pays d'escale" + OPT, [['', "Aucune escale"], ...COUNTRIES.slice().sort((a, b) => a.localeCompare(b, 'fr')).map(c => [c, c])]) +
     SEL('p-customs', 'Douane' + OPT, [['', 'Non précisé'], ['paid', 'Douane déjà payée'], ['unpaid', 'Douane non payée']]) +
@@ -306,7 +315,14 @@ $('new-form').innerHTML =
     sigPad('sig-s', "Signature de l'expéditeur") + sigPad('sig-a', "Signature de l'agence")) +
   `<button type="submit" id="new-btn" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition shadow-md cursor-pointer">Créer l'expédition</button>`;
 
-$('p-auto').addEventListener('change', () => $('auto-box').classList.toggle('hidden', $('p-auto').value !== '1'));
+function syncEta() {
+  if ($('p-auto').value !== '1') return;
+  const tot = DUR_KEYS.reduce((t, k) => t + hmToHours($('hs-' + k + '-h').value, $('hs-' + k + '-m').value), 0);
+  if (tot > 0) $('p-eta').value = toLocalInput(new Date(Date.now() + tot * 3600000));
+}
+$('p-auto').addEventListener('change', () => { $('auto-box').classList.toggle('hidden', $('p-auto').value !== '1'); syncEta(); });
+$('auto-box').querySelectorAll('input').forEach(i => i.addEventListener('input', syncEta));
+syncEta();
 
 // ---------- SIGNATURES TACTILES (encre bleue) ----------
 const SIG = {};
@@ -333,14 +349,13 @@ document.querySelectorAll('.sig-clear').forEach(b => b.addEventListener('click',
 // ---------- SUIVI (frise) ----------
 const STEPS = ['pending', 'in_transit', 'out_for_delivery', 'delivered'];
 const STEP_FRAC = [0, 0.25, 0.75, 1];
-const DUR_KEYS = ['pending', 'in_transit', 'out_for_delivery'];
 function stepDur(ship, st) {
   const h = (ship && ship.step_hours) || {}, w = Number(ship && ship.delivery_window_hours) || 48;
   const d = { pending: w * 0.25, in_transit: w * 0.5, out_for_delivery: w * 0.25 };
   const v = Number(h[st]); return v > 0 ? v : d[st];
 }
 
-function timeline(events, ship) {
+function timeline(events, ship, owner) {
   events = (events || []).filter(e => e.status !== 'picked_up');
   if (ship && ship.status === 'picked_up') ship = { ...ship, status: 'pending' };
   const byStatus = {}, extra = {};
@@ -358,11 +373,10 @@ function timeline(events, ship) {
   if (ship && !cancelled) {
     const eta = ship.estimated_delivery_at || (start ? new Date(start + win * 3600000).toISOString() : null);
     html += `<div class="mt-4"><div class="flex justify-between text-xs text-gray-500 mb-1"><span>${ship.status === 'delivered' ? 'Livré' : 'Livraison estimée'}</span><span class="font-semibold text-gray-700">${eta ? fmtDate(eta) : ''}</span></div>
-      <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-2 bg-swiftblue rounded-full" style="width:${pct}%"></div></div>
-      <p class="text-xs text-gray-400 mt-1">Délai prévu : ${win} h (${ship.service_type === 'express' ? 'Express' : 'Standard'})</p></div>`;
+      <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-2 bg-swiftblue rounded-full" style="width:${pct}%"></div></div></div>`;
   }
   const offs = [0]; DUR_KEYS.forEach(k => offs.push(offs[offs.length - 1] + (ship ? stepDur(ship, k) : 0)));
-  if (ship && ship.auto_progress && !cancelled && STEPS.includes(ship.status) && ship.status !== 'delivered') {
+  if (owner && ship && ship.auto_progress && !cancelled && STEPS.includes(ship.status) && ship.status !== 'delivered') {
     const cs = byStatus[ship.status] ? new Date(byStatus[ship.status].created_at).getTime() : start;
     const st0 = Math.max(cs, ship.auto_anchor ? new Date(ship.auto_anchor).getTime() : 0);
     const nextAt = new Date(st0 + stepDur(ship, ship.status) * 3600000).toISOString();
@@ -373,7 +387,7 @@ function timeline(events, ship) {
     const label = (STATUS[st] || { label: st }).label;
     const planned = start ? new Date(start + offs[i] * 3600000) : null;
     const dot = done ? (current ? 'bg-swiftblue ring-4 ring-blue-100' : 'bg-swiftblue') : 'bg-gray-200';
-    const when = done ? `<p class="text-xs text-gray-400">${fmtDate(ev.created_at)}</p>` : (planned && !cancelled ? `<p class="text-xs text-gray-400">Prévu : ${fmtDate(planned)}</p>` : '');
+    const when = done ? `<p class="text-xs text-gray-400">${fmtDate(ev.created_at)}</p>` : (owner && planned && !cancelled ? `<p class="text-xs text-gray-400">Prévu : ${fmtDate(planned)}</p>` : '');
     const note = done && ev.note ? `<p class="text-xs text-gray-500">${esc(ev.note)}</p>` : '';
     const extraNotes = (extra[st] || []).map(x => `<p class="text-xs text-gray-500">${esc(x.note)} <span class="text-gray-400">· ${fmtDate(x.created_at)}</span></p>`).join('');
     return `<li class="flex gap-3 ${done ? '' : 'opacity-60'}"><span class="mt-1.5 w-3 h-3 rounded-full ${dot} shrink-0"></span>
@@ -422,8 +436,8 @@ function editCtl(s, events) {
     <div><label class="${LB}">Ajouter une note au suivi${OPT}</label><input class="ed-note ${IC}" maxlength="200" placeholder="Ex: colis arrivé au hub de Douala"></div>
     <label class="flex items-center gap-3 text-sm font-semibold text-gray-700"><input type="checkbox" class="ed-auto w-5 h-5" ${s.auto_progress ? 'checked' : ''}> Passage automatique des étapes</label>
     <p class="text-xs text-gray-400">Automatique : chaque étape avance toute seule à la fin de sa durée (compte à rebours). Manuel : vous gérez les étapes vous-même. Si vous changez l'étape à la main, le mode automatique se désactive.</p>
-    <div class="ed-hbox ${s.auto_progress ? '' : 'hidden'} space-y-2 bg-white rounded-xl p-3"><p class="${LB}">Durée de chaque étape avant le passage à la suivante (en heures)</p>
-      ${[['pending', 'En attente'], ['in_transit', 'En transit'], ['out_for_delivery', 'En cours de livraison']].map(([k, l]) => `<div><label class="${LB}">${l} → étape suivante</label><input type="number" min="0.1" step="0.1" class="ed-h ${IC}" data-k="${k}" value="${stepDur(s, k)}"></div>`).join('')}</div>
+    <div class="ed-hbox ${s.auto_progress ? '' : 'hidden'} space-y-2 bg-white rounded-xl p-3"><p class="${LB}">Durée de chaque étape avant le passage à la suivante</p>
+      ${DUR_KEYS.map(k => `<div><label class="${LB}">${esc(STATUS[k].label)} → étape suivante</label>${hmInputs('ed' + s.id + k, k, stepDur(s, k))}</div>`).join('')}</div>
     <button type="button" class="save-ed w-full bg-swiftblue text-white font-semibold py-3 rounded-xl cursor-pointer">Actualiser</button>
     <p class="text-xs text-gray-400">Après « Actualiser », la personne qui a le code de suivi voit les changements (mise à jour toutes les 15 secondes).</p></div>`;
 }
@@ -575,7 +589,7 @@ let SH = {}, lastOpenId = null;
 async function renderDetails(id) {
   const holder = $('ev-' + id), s = SH[id]; if (!holder || !s) return;
   const { data: events, error } = await supabaseClient.from('sw_shipment_events').select('*').eq('shipment_id', id).order('created_at', { ascending: true });
-  holder.innerHTML = error ? '<p class="text-sm text-red-600 mt-3">Erreur de chargement.</p>' : detailsHtml(s) + editCtl(s, events) + timeline(events, s);
+  holder.innerHTML = error ? '<p class="text-sm text-red-600 mt-3">Erreur de chargement.</p>' : detailsHtml(s) + editCtl(s, events) + timeline(events, s, true);
   holder.classList.remove('hidden'); lastOpenId = id;
   const q1 = (c) => holder.querySelector(c);
   const cbs = [...holder.querySelectorAll('.ed-cb')];
@@ -588,11 +602,19 @@ async function renderDetails(id) {
       q1('.ed-auto').checked = false; syncH();
     }));
     q1('.ed-auto').addEventListener('change', syncH);
+    const updEta = () => {
+      if (!q1('.ed-auto').checked) return;
+      const t = Math.max(0, ...cbs.filter(c => c.checked).map(c => Number(c.dataset.k)));
+      let rem = 0; DUR_KEYS.slice(Math.min(t, 3)).forEach(k => { rem += hmToHours(q1('.dur-h[data-k="' + k + '"]').value, q1('.dur-m[data-k="' + k + '"]').value); });
+      q1('.ed-eta').value = toLocalInput(new Date(Date.now() + rem * 3600000));
+    };
+    holder.querySelectorAll('.dur-h,.dur-m').forEach(i => i.addEventListener('input', updEta));
+    q1('.ed-auto').addEventListener('change', updEta);
     q1('.save-ed').addEventListener('click', async (ev) => {
       const btn = ev.currentTarget; btn.disabled = true; btn.textContent = 'Actualisation...';
       try {
         const eta0 = q1('.ed-eta').value, note = q1('.ed-note').value.trim(), auto = q1('.ed-auto').checked, hs = {};
-        holder.querySelectorAll('.ed-h').forEach(i => { hs[i.dataset.k] = Number(i.value); });
+        DUR_KEYS.forEach(k => { hs[k] = hmToHours(q1('.dur-h[data-k="' + k + '"]').value, q1('.dur-m[data-k="' + k + '"]').value); });
         if (auto && Object.values(hs).some(v => !(v > 0))) throw new Error('Indiquez une durée valide pour chaque étape.');
         const target = Math.max(0, ...cbs.filter(c => c.checked).map(c => Number(c.dataset.k))), cur = Math.max(0, STEPS.indexOf(s.status));
         if (target > cur) {
@@ -606,7 +628,7 @@ async function renderDetails(id) {
           }
         }
         const rem = DUR_KEYS.slice(Math.min(target, 3)).reduce((t, k) => t + hs[k], 0);
-        const etaIso = auto ? new Date(Date.now() + rem * 3600000).toISOString() : (eta0 ? new Date(eta0).toISOString() : null);
+        const etaIso = eta0 ? new Date(eta0).toISOString() : (auto ? new Date(Date.now() + rem * 3600000).toISOString() : null);
         const r2 = await supabaseClient.rpc('sw_user_update_shipment', { p_id: id, p_eta: etaIso, p_auto: auto, p_steps: auto ? hs : null, p_note: note || null });
         if (r2.error) throw r2.error;
         toast('Suivi actualisé.');
@@ -696,11 +718,12 @@ $('new-form').addEventListener('submit', async (e) => {
     is_fragile: $('p-fragile').checked, delivery_instructions: txt('p-notes'), auto_progress: $('p-auto').value === '1', stopover_country: $('p-stop').value || null, customs_status: $('p-customs').value || null,
     sender_signature: sigData('sig-s'), agency_signature: sigData('sig-a') };
   if (row.auto_progress) {
-    const hs = { pending: Number($('hs-pending').value), in_transit: Number($('hs-transit').value), out_for_delivery: Number($('hs-out').value) };
-    if (Object.values(hs).some(v => !(v > 0))) { btn.disabled = false; setNewLabel(); dShow('Indiquez une durée valide pour chaque étape.'); window.scrollTo(0, 0); return; }
+    const hs = {}; DUR_KEYS.forEach(k => { hs[k] = hmToHours($('hs-' + k + '-h').value, $('hs-' + k + '-m').value); });
+    if (Object.values(hs).some(v => !(v > 0))) { btn.disabled = false; setNewLabel(); dShow('Indiquez une durée valide (au moins 1 minute) pour chaque étape.'); window.scrollTo(0, 0); return; }
     const tot = hs.pending + hs.in_transit + hs.out_for_delivery;
-    row.step_hours = hs; row.delivery_window_hours = Math.ceil(tot); row.estimated_delivery_at = new Date(Date.now() + tot * 3600000).toISOString();
-  }
+    row.step_hours = hs; row.delivery_window_hours = Math.max(1, Math.ceil(tot));
+    row.estimated_delivery_at = ($('p-eta').value ? new Date($('p-eta').value) : new Date(Date.now() + tot * 3600000)).toISOString();
+  } else if ($('p-eta').value) row.estimated_delivery_at = new Date($('p-eta').value).toISOString();
   [['s', 'sender_', 'origin'], ['r', 'receiver_', 'destination']].forEach(([p, pre, city]) => {
     row[pre + 'name'] = val(p + '-name'); row[pre + 'phone'] = val(p + '-phone'); row[pre + 'email'] = txt(p + '-email');
     row[pre + 'address'] = val(p + '-address'); row[pre + 'district'] = txt(p + '-district'); row[city] = val(p + '-city');
@@ -714,7 +737,7 @@ $('new-form').addEventListener('submit', async (e) => {
   }
   btn.disabled = false; setNewLabel();
   receiptSet.add(data.id);
-  e.target.reset(); $('auto-box').classList.remove('hidden'); clearSig('sig-s'); clearSig('sig-a'); showTab('list');
+  e.target.reset(); $('auto-box').classList.remove('hidden'); syncEta(); clearSig('sig-s'); clearSig('sig-a'); showTab('list');
   dShow("Paiement confirmé ! Expédition créée · Code de suivi : " + data.tracking_code, 'success');
   showReceipt(data);
 });
@@ -1128,7 +1151,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       <div style="margin-top:10px;padding:12px;background:#fff;border:1px solid #c9d1d9">
         <p style="font-size:12px;font-weight:700">AUTO : ${s.auto_progress ? 'ACTIVÉ' : 'DÉSACTIVÉ'} <button class="x-btn" style="margin-left:8px" data-auto="${s.auto_progress ? 0 : 1}" data-id="${esc(s.id)}">${s.auto_progress ? 'COUPER' : 'RÉACTIVER'}</button></p>
         <div style="display:flex;gap:8px;margin-top:8px"><input id="d-win" type="number" min="1" max="720" class="x-in" value="${esc(win(s))}"><button class="x-btn go" data-win="${esc(s.id)}">DÉLAI (h)</button></div></div>
-      ${timeline(S.ev, s)}`;
+      ${timeline(S.ev, s, true)}`;
     $('x-drawer').classList.add('open'); $('x-veil').style.display = 'block';
   }
   function closeDrawer() { S.open = null; $('x-drawer').classList.remove('open'); $('x-veil').style.display = 'none'; }
