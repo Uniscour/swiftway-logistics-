@@ -638,13 +638,11 @@ $('new-form').addEventListener('submit', async (e) => {
     row[pre + 'address'] = val(p + '-address'); row[pre + 'district'] = txt(p + '-district'); row[city] = val(p + '-city');
     row[pre + 'region'] = val(p + '-region'); row[pre + 'country'] = val(p + '-country');
   });
-  const { data, error } = await supabaseClient.from('sw_shipments').insert(row).select().single();
-  if (error) { btn.disabled = false; setNewLabel(); dShow("Erreur : " + error.message); window.scrollTo(0, 0); return; }
-  const pay = await supabaseClient.rpc('sw_buy_receipt', { p_shipment_id: data.id });
-  if (pay.error) {
-    await supabaseClient.from('sw_shipments').delete().eq('id', data.id);
+  // Création + paiement en UNE seule opération côté base : si le paiement échoue, rien n'est créé.
+  const { data, error } = await supabaseClient.rpc('sw_create_paid_shipment', { p_row: row });
+  if (error || !data) {
     btn.disabled = false; setNewLabel();
-    dShow('Paiement refusé : ' + (pay.error.message || 'erreur') + ". Aucune expédition n'a été créée."); window.scrollTo(0, 0); return;
+    dShow((error && error.message ? error.message : 'Paiement refusé') + ". Aucune expédition n'a été créée."); window.scrollTo(0, 0); return;
   }
   btn.disabled = false; setNewLabel();
   receiptSet.add(data.id);
