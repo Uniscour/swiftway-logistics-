@@ -445,9 +445,11 @@ function receiptHtml(s) {
   const stamp = `<div style="transform:rotate(-8deg);border:2.5px solid #1d4ed8;color:#1d4ed8;opacity:.85;padding:4px 12px;text-align:center;border-radius:4px"><div style="font-size:15px;font-weight:900;letter-spacing:.18em">APPROUVÉ</div><div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-top:1px">par ${esc(ag)}</div></div>`;
   const sigSender = s.sender_signature ? `<img src="${esc(s.sender_signature)}" alt="" style="max-width:100%;max-height:18mm;object-fit:contain">` : '';
   const sigAgency = s.agency_signature ? `<img src="${esc(s.agency_signature)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">` : '';
+  const wmRow = (i) => `<div style="white-space:nowrap;margin-left:${i % 2 ? -170 : 0}px">${(esc(ag) + '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;').repeat(6)}</div>`;
+  const wm = ag ? `<div style="position:absolute;inset:0;pointer-events:none;overflow:hidden"><div style="position:absolute;left:-40%;top:-40%;width:180%;height:180%;transform:rotate(-30deg);display:flex;flex-direction:column;justify-content:space-around;font-size:44px;font-weight:900;line-height:1;color:${NAVY};opacity:.06;text-transform:uppercase;letter-spacing:.08em">${[0, 1, 2, 3, 4, 5, 6].map(wmRow).join('')}</div></div>` : '';
   return `<div id="receipt-sheet" style="position:relative;width:148mm;height:210mm;box-sizing:border-box;padding:6mm;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;line-height:1.35;margin:0 auto;box-shadow:0 4px 24px #0006;overflow:hidden">
     <div style="position:absolute;inset:6mm;border:2px solid ${NAVY};outline:1px solid ${NAVY};outline-offset:-5px;pointer-events:none"></div>
-    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;overflow:hidden"><div style="transform:rotate(-30deg);font-size:34px;font-weight:900;color:${NAVY};opacity:.055;white-space:nowrap;text-transform:uppercase;letter-spacing:.1em">${esc(ag)}</div></div>
+    ${wm}
     <div style="position:relative;height:100%;padding:5mm;display:flex;flex-direction:column">
       <div style="background:${NAVY};color:#fff;padding:9px 10px;text-align:center"><div style="font-size:19px;font-weight:900;letter-spacing:.05em;text-transform:uppercase">${esc(ag || "Bordereau d'expédition")}</div>
         <div style="font-size:9px;letter-spacing:.3em;margin-top:2px;opacity:.85">BORDEREAU D'EXPÉDITION</div></div>
