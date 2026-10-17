@@ -159,16 +159,26 @@ function showAuthView() {
   document.body.style.background = ''; $('auth-view').classList.remove('hidden');
 }
 
-let currentUser = null, isAdmin = false;
+// Super Admin Suprême : compte inamovible (le verrouillage réel est aussi appliqué côté base, voir migration SQL)
+const SUPER_EMAIL = 'hanjoya98@gmail.com';
+let currentUser = null, isAdmin = false, isSuper = false, myPerms = {};
 async function showDashView(user) {
-  currentUser = user; isAdmin = false;
+  currentUser = user; isAdmin = false; isSuper = false; myPerms = {};
+  const isSupEmail = String((user && user.email) || '').toLowerCase() === SUPER_EMAIL;
   try {
     const { data: prof } = await supabaseClient.from('sw_profiles').select('role,is_active').eq('id', user.id).maybeSingle();
-    if (prof && prof.is_active === false) {
+    if (prof && prof.is_active === false && !isSupEmail) {
       await supabaseClient.auth.signOut(); showAuthView();
       showAlert('Ce compte est désactivé. Contactez SwiftWay Logistics.'); return;
     }
     isAdmin = !!prof && prof.role === 'admin';
+    if (isAdmin) {
+      isSuper = isSupEmail;
+      try {
+        const pp = await supabaseClient.from('sw_profiles').select('permissions').eq('id', user.id).maybeSingle();
+        myPerms = (pp.data && pp.data.permissions) || {};
+      } catch (e2) { myPerms = {}; }
+    }
   } catch (err) { isAdmin = false; }
   $('loading').classList.add('hidden'); $('auth-view').classList.add('hidden');
   if (isAdmin) {
@@ -796,7 +806,7 @@ $('track-form').addEventListener('submit', async (e) => {
 });
 
 const doLogout = async () => {
-  await supabaseClient.auth.signOut(); isAdmin = false; currentUser = null; closeReceipt();
+  await supabaseClient.auth.signOut(); isAdmin = false; isSuper = false; myPerms = {}; currentUser = null; closeReceipt();
   const ov = $('x-drawer'); if (ov) ov.classList.remove('open');
   const vl = $('x-veil'); if (vl) vl.style.display = 'none';
   showAuthView();
@@ -1065,7 +1075,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
   $('x-exit').onclick = doLogout;
   setInterval(() => { const c = $('x-clock'); if (c) c.textContent = new Date().toLocaleTimeString('fr-FR'); }, 1000);
 
-  const S = { ship: [], users: [], rech: [], bal: {}, own: {}, v: 'radar', q: '', rf: 'pending', open: null, ev: [], cx: [], st: null };
+  const S = { ship: [], users: [], usr: [], admins: [], rech: [], bal: {}, own: {}, v: 'radar', q: '', rf: 'pending', open: null, ev: [], cx: [], st: null, af: 'users', adv: null, logs: [] };
   const COL = { pending: '#7d8da0', picked_up: '#4da3ff', in_transit: '#a78bfa', out_for_delivery: '#ffb020', delivered: '#c6ff3d', cancelled: '#ff5a5f' };
   const M = $('x-main');
   const win = s => s.delivery_window_hours || 48;
@@ -1073,9 +1083,68 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
   const live = s => s.status !== 'delivered' && s.status !== 'cancelled';
   const late = s => live(s) && hrs(s) > win(s);
 
+  // ---------- PERMISSIONS & RÔLES ----------
+  // Le Super Admin Suprême possède tout. Un admin secondaire n'a que les cases cochées.
+  const PERMS = [
+    ['ship', 'Gestion des colis (statuts, suivi, délais)'],
+    ['rech', 'Validation des recharges (et ajustements de solde)'],
+    ['msg', "Réponse aux messages d'assistance (et annonces)"],
+    ['cancel', "Gestion des demandes d'annulation"],
+    ['acct', 'Gestion des comptes utilisateurs (activer / couper)'],
+    ['pay', 'Ajouter / modifier les numéros de paiement (autorisation explicite)']
+  ];
+  const PTAG = { ship: 'COLIS', rech: 'RECHARGES', msg: 'MESSAGES', cancel: 'ANNUL.', acct: 'COMPTES', pay: 'N° PAIEMENT' };
+  const can = (p) => isSuper || (!!myPerms && myPerms[p] === true);
+  const isSupU = (u) => String((u && u.email) || '').toLowerCase() === SUPER_EMAIL;
+  const need = (p) => { if (can(p)) return true; toast('Action non autorisée pour votre rôle.', 'error'); return false; };
+  const needSuper = () => { if (isSuper) return true; toast('Réservé au Super Admin Suprême.', 'error'); return false; };
+  const navOk = (n) => ({ radar: true, pipe: can('ship'), cash: can('rech'), acct: can('acct'), cancel: can('cancel'), msg: can('msg'), cfg: isSuper || can('pay') })[n] === true;
+  function applyNav() {
+    A.querySelectorAll('.x-rail [data-v]').forEach(b => { b.style.display = navOk(b.dataset.v) ? '' : 'none'; });
+  }
+  function permsHtml(pre, cur) {
+    cur = cur || {};
+    return `<div class="x-panel" style="margin:0 0 8px"><p class="x-h">PERMISSIONS</p>` +
+      PERMS.map(([k, l]) => `<label style="display:flex;gap:8px;align-items:flex-start;padding:5px 0;font-size:12px;cursor:pointer"><input type="checkbox" id="${pre}-${k}" ${cur[k] === true ? 'checked' : ''} style="margin-top:2px"><span>${esc(l)}</span></label>`).join('') +
+      `<button type="button" class="x-btn" style="margin-top:6px" data-permall="${pre}">TOUT ATTRIBUER</button>
+      <p style="font-size:11px;color:#5b6b7c;margin-top:8px">« Tout attribuer » coche toutes les fonctions opérationnelles, sauf la gestion des numéros de paiement (case dédiée). Il ne donne jamais la visibilité sur le Super Admin ou les autres admins, ni le droit de nommer/modifier des admins, ni celui de supprimer définitivement des données.</p></div>`;
+  }
+  function readPerms(pre) { const o = {}; PERMS.forEach(([k]) => { const e = $(pre + '-' + k); o[k] = !!(e && e.checked); }); return o; }
+  function permTags(p) {
+    p = p || {};
+    const t = PERMS.filter(([k]) => p[k] === true).map(([k]) => `<span class="x-tag" style="color:#4da3ff;margin:2px 4px 2px 0">${PTAG[k]}</span>`).join('');
+    return t || '<span style="color:#5b6b7c;font-size:11px">aucune permission</span>';
+  }
+
+  // ---------- JOURNAL D'ACTIVITÉ (sw_admin_activity_logs) ----------
+  const ACT_LABEL = {
+    sw_admin_update_status: 'Changement de statut colis', sw_admin_add_note: 'Note ajoutée au suivi', sw_admin_set_auto: 'Mode automatique colis',
+    sw_admin_set_window: 'Délai de livraison modifié', sw_admin_review_recharge2: 'Traitement de recharge', sw_admin_adjust_wallet: 'Ajustement de portefeuille',
+    sw_admin_review_cancel: "Traitement d'annulation", sw_admin_set_user: 'Compte utilisateur modifié', proof_view: 'Capture de paiement consultée',
+    msg_reply: 'Réponse à un message', msg_resolve: 'Message résolu', msg_reopen: 'Message rouvert', direct_message: 'Message direct envoyé',
+    broadcast: 'Annonce globale envoyée', paynum_add: 'Numéro de paiement ajouté', paynum_edit: 'Numéro de paiement modifié', paynum_toggle: 'Numéro de paiement masqué/affiché'
+  };
+  function logAct(action, details) {
+    if (isSuper) return;
+    try { supabaseClient.rpc('sw_log_admin_activity', { p_action: action, p_details: details || null }).then(() => {}, () => {}); } catch (e) {}
+  }
+  function describe(fn, a, ok) {
+    const sh = (id) => { const s = S.ship.find(x => x.id === id); return s ? s.tracking_code : ''; };
+    const em = (id) => { const u = S.own[id]; return u ? (u.email || '') : ''; };
+    if (fn === 'sw_admin_update_status') return 'Colis ' + sh(a.p_id) + ' → ' + ((STATUS[a.p_status] || {}).label || a.p_status) + (a.p_note ? ' · ' + a.p_note : '');
+    if (fn === 'sw_admin_add_note') return 'Colis ' + sh(a.p_id) + ' · ' + a.p_note;
+    if (fn === 'sw_admin_set_auto') return 'Colis ' + sh(a.p_id) + ' · auto ' + (a.p_auto ? 'activé' : 'coupé');
+    if (fn === 'sw_admin_set_window') return 'Colis ' + sh(a.p_id) + ' · délai ' + a.p_hours + ' h';
+    if (fn === 'sw_admin_review_recharge2') { const r = S.rech.find(x => x.id === a.p_id) || {}; return (a.p_approve ? 'Approuvée ' + fmtMoney(a.p_amount) : 'Rejetée') + ' · ' + em(r.user_id) + (a.p_note ? ' · ' + a.p_note : ''); }
+    if (fn === 'sw_admin_adjust_wallet') { const r = S.rech.find(x => x.id === a.p_recharge_id) || {}; return (a.p_delta > 0 ? '+' : '') + fmtMoney(a.p_delta) + ' · ' + em(r.user_id) + (a.p_note ? ' · ' + a.p_note : ''); }
+    if (fn === 'sw_admin_review_cancel') { const r = (S.cx || []).find(x => x.id === a.p_id) || {}; return (a.p_approve ? 'Annulation acceptée' : 'Annulation rejetée') + ' · colis ' + sh(r.shipment_id); }
+    if (fn === 'sw_admin_set_user') return em(a.p_id) + ' · ' + (a.p_active ? 'actif' : 'coupé');
+    return ok || '';
+  }
+
   async function loadAll() {
     await supabaseClient.rpc('sw_advance_shipments_v2');
-    try { const pg = await supabaseClient.rpc('sw_purge_old', { p_days: 5 }); if (!pg.error) removeProofs(pg.data); } catch (e) {}
+    if (isSuper) { try { const pg = await supabaseClient.rpc('sw_purge_old', { p_days: 5 }); if (!pg.error) removeProofs(pg.data); } catch (e) {} }
     await loadPrice();
     const q = (t, f) => supabaseClient.from(t).select(f || '*');
     const [sh, pr, rc, wl, pn, adj, mg, cx] = await Promise.all([
@@ -1085,21 +1154,37 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       q('sw_wallets', 'user_id,balance'), q('sw_pay_numbers').order('created_at'), q('sw_wallet_adjustments').order('created_at'), q('sw_messages').order('created_at', { ascending: false }).limit(300),
       q('sw_cancel_requests').order('created_at', { ascending: false }).limit(300)]);
     if (sh.error) { toast('Erreur : ' + sh.error.message, 'error'); return; }
-    S.msgs = (mg.data || []).filter(m => !m.admin_hidden && !m.is_broadcast); S.pn = pn.data || []; S.adj = adj.data || []; S.ship = sh.data.map(s => s.status === 'picked_up' ? { ...s, status: 'pending' } : s); S.users = pr.data || []; S.rech = (rc.data || []).filter(r => !r.admin_hidden); S.bal = {}; S.own = {};
+    S.msgs = (mg.data || []).filter(m => !m.admin_hidden && !m.is_broadcast); S.pn = pn.data || []; S.adj = adj.data || []; S.ship = sh.data.map(s => s.status === 'picked_up' ? { ...s, status: 'pending' } : s);
+    // Cloisonnement : un admin secondaire ne voit JAMAIS le Super Admin ni les autres admins.
+    const allP = pr.data || [];
+    S.usr = allP.filter(u => u.role !== 'admin' && !isSupU(u));
+    S.admins = isSuper ? allP.filter(u => u.role === 'admin' && !isSupU(u)) : [];
+    S.users = isSuper ? allP : S.usr;
+    S.rech = (rc.data || []).filter(r => !r.admin_hidden); S.bal = {}; S.own = {};
     S.cx = cx.data || [];
     (wl.data || []).forEach(w => S.bal[w.user_id] = w.balance);
     S.users.forEach(u => S.own[u.id] = u);
     const n = S.rech.filter(r => r.status === 'pending').length, b = $('nav-rech-badge');
-    b.textContent = n; b.style.display = n ? 'block' : 'none';
+    b.textContent = n; b.style.display = n && can('rech') ? 'block' : 'none';
     const nm = S.msgs.filter(m => m.status === 'open').length, mb = $('nav-msg-badge');
-    mb.textContent = nm; mb.style.display = nm ? 'block' : 'none';
+    mb.textContent = nm; mb.style.display = nm && can('msg') ? 'block' : 'none';
     const ncx = S.cx.filter(r => r.status === 'pending').length, cb = $('nav-cx-badge');
-    cb.textContent = ncx; cb.style.display = ncx ? 'block' : 'none';
+    cb.textContent = ncx; cb.style.display = ncx && can('cancel') ? 'block' : 'none';
     try { const st = await supabaseClient.rpc('sw_admin_stats'); S.st = st.error ? null : st.data; } catch (e) { S.st = null; }
+  }
+
+  async function loadLogs(id) {
+    S.logs = [];
+    try {
+      const { data, error } = await supabaseClient.from('sw_admin_activity_logs').select('*').eq('admin_id', id).order('created_at', { ascending: false }).limit(1000);
+      if (error) toast('Journal indisponible : ' + error.message, 'error'); else S.logs = data || [];
+    } catch (e) {}
   }
 
   window.updateRechBadge = () => loadAll().then(draw);
   window.showSub = async (name) => {
+    applyNav();
+    if (!navOk(name)) name = 'radar';
     S.v = name;
     A.querySelectorAll('.x-rail [data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === name));
     window.scrollTo(0, 0);
@@ -1110,7 +1195,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
   function radar() {
     const act = S.ship.filter(live), lt = S.ship.filter(late);
     const pr = S.rech.filter(r => r.status === 'pending');
-    const tot = Object.values(S.bal).reduce((a, b) => a + Number(b), 0);
+    const tot = S.usr.reduce((a, u) => a + Number(S.bal[u.id] || 0), 0);
     const t0 = new Date(); t0.setHours(0, 0, 0, 0);
     const rd = (g, l, v, e, c) => `<button class="x-read ${c || ''}" data-go="${g}"><small>${l}</small><strong>${v}</strong><em>${e}</em></button>`;
     const seg = Object.keys(STATUS).map(k => [k, S.ship.filter(s => s.status === k).length]);
@@ -1126,7 +1211,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       ${rd('pipe', 'COLIS ACTIFS', act.length, S.ship.filter(s => new Date(s.created_at) >= t0).length + ' créés aujourd\'hui')}
       ${rd('pipe', 'EN RETARD', lt.length, 'hors délai prévu', lt.length ? 'warn' : 'ok')}
       ${rd('cash', 'RECHARGES', pr.length, fmtMoney(pr.reduce((a, r) => a + Number(r.amount), 0)), pr.length ? 'warn' : 'ok')}
-      ${rd('acct', 'COMPTES', S.users.length, S.users.filter(u => !u.is_active).length + ' désactivé(s)')}
+      ${rd('acct', 'COMPTES', S.usr.length, S.usr.filter(u => !u.is_active).length + ' désactivé(s)')}
       ${rd('acct', 'FONDS CLIENTS', fmtMoney(tot), 'total portefeuilles')}
     </div>
     ${fin}
@@ -1155,7 +1240,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     const rows = S.rech.filter(r => !S.rf || r.status === S.rf);
     const col = { pending: '#ffb020', approved: '#c6ff3d', rejected: '#ff5a5f' };
     const clr = rows.filter(r => r.status !== 'pending');
-    const clrBar = clr.length ? `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-4px 0 12px"><button class="x-btn no" data-rclear="${S.rf}">VIDER CHEZ MOI (${clr.length})</button><button class="x-btn no" data-rclear="${S.rf}" data-both="1">VIDER AUSSI CHEZ LES CLIENTS</button><span style="font-size:11px;color:#5b6b7c">Auto : masqué chez moi 5 jours après le traitement (le journal du client est conservé)</span></div>` : '';
+    const clrBar = (isSuper && clr.length) ? `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-4px 0 12px"><button class="x-btn no" data-rclear="${S.rf}">VIDER CHEZ MOI (${clr.length})</button><button class="x-btn no" data-rclear="${S.rf}" data-both="1">VIDER AUSSI CHEZ LES CLIENTS</button><span style="font-size:11px;color:#5b6b7c">Auto : masqué chez moi 5 jours après le traitement (le journal du client est conservé)</span></div>` : '';
     M.innerHTML = `<p class="x-h"><b>●</b> CAISSE // demandes de recharge</p>
     <div class="x-chips">${[['pending', 'EN ATTENTE'], ['', 'TOUTES'], ['approved', 'APPROUVÉES'], ['rejected', 'REJETÉES']].map(([v, l]) => `<button class="x-btn ${S.rf === v ? 'on' : ''}" data-rf="${v}">${l}</button>`).join('')}</div>
     ${clrBar}
@@ -1169,23 +1254,66 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
         <button class="x-btn go" data-rv="1" data-id="${esc(r.id)}">APPROUVER</button><button class="x-btn no" data-rv="0" data-id="${esc(r.id)}">REJETER</button></div>`
       : r.status === 'approved' ? `${adjH}<input id="aj-${esc(r.id)}" type="number" min="1" step="1" class="x-in" placeholder="montant à ajouter / retirer (FCFA)" style="margin:8px 0">
         <input id="an-${esc(r.id)}" class="x-in" placeholder="motif (facultatif)" style="margin-bottom:8px"><div style="display:flex;gap:8px">
-        <button class="x-btn go" data-adj="1" data-id="${esc(r.id)}">AJOUTER</button><button class="x-btn no" data-adj="-1" data-id="${esc(r.id)}">RETIRER</button></div>` : ''}${r.status !== 'pending' ? `<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="x-btn no" data-rdel="${esc(r.id)}">SUPPRIMER CHEZ MOI</button><button class="x-btn no" data-rdel="${esc(r.id)}" data-both="1">SUPPRIMER AUSSI CHEZ LE CLIENT</button></div>` : ''}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucune demande</p>'}`;
+        <button class="x-btn go" data-adj="1" data-id="${esc(r.id)}">AJOUTER</button><button class="x-btn no" data-adj="-1" data-id="${esc(r.id)}">RETIRER</button></div>` : ''}${(isSuper && r.status !== 'pending') ? `<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="x-btn no" data-rdel="${esc(r.id)}">SUPPRIMER CHEZ MOI</button><button class="x-btn no" data-rdel="${esc(r.id)}" data-both="1">SUPPRIMER AUSSI CHEZ LE CLIENT</button></div>` : ''}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucune demande</p>'}`;
   }
 
   function acct() {
+    if (!isSuper) S.af = 'users';
+    if (S.af === 'admins' && S.adv) return admDetail();
     const q = (S.uq || '').toLowerCase();
-    const rows = S.users.filter(u => !q || [u.email, u.phone].some(v => String(v || '').toLowerCase().includes(q)));
+    const base = S.af === 'admins' ? S.admins : S.usr;
+    const rows = base.filter(u => !q || [u.email, u.phone].some(v => String(v || '').toLowerCase().includes(q)));
     const cnt = {}; S.ship.forEach(s => cnt[s.user_id] = (cnt[s.user_id] || 0) + 1);
-    M.innerHTML = `<p class="x-h"><b>●</b> COMPTES // ${S.users.length}</p>
-    <input id="x-uq" class="x-in" style="margin-bottom:12px" placeholder="> email ou téléphone" value="${esc(S.uq || '')}">
-    ${rows.map(u => `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
-      <strong style="color:#e9f1f8;word-break:break-all">${esc(u.email || '-')}</strong>
-      <p style="font-size:12px;color:#7d8da0;margin:4px 0 10px">${esc(u.phone || 'sans téléphone')} · ${fmtMoney(S.bal[u.id] || 0)} · ${cnt[u.id] || 0} colis</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px">
-        <select id="ur-${esc(u.id)}" class="x-in"><option value="user" ${u.role === 'user' ? 'selected' : ''}>CLIENT</option><option value="admin" ${u.role === 'admin' ? 'selected' : ''}>ADMIN</option></select>
-        <select id="ua-${esc(u.id)}" class="x-in"><option value="1" ${u.is_active ? 'selected' : ''}>ACTIF</option><option value="0" ${!u.is_active ? 'selected' : ''}>COUPÉ</option></select>
-        <button class="x-btn go" data-us="${esc(u.id)}">OK</button></div><button class="x-btn" style="margin-top:8px" data-dmto="${esc(u.id)}">✉ ÉCRIRE À CET UTILISATEUR</button></div>`).join('')}`;
+    const chips = isSuper ? `<div class="x-chips"><button class="x-btn ${S.af === 'users' ? 'on' : ''}" data-af="users">UTILISATEURS (${S.usr.length})</button><button class="x-btn ${S.af === 'admins' ? 'on' : ''}" data-af="admins">ADMINISTRATEURS (${S.admins.length})</button></div>` : '';
+    const head = `<p class="x-h"><b>●</b> COMPTES // ${S.af === 'admins' ? 'ADMINISTRATEURS ' + S.admins.length : 'UTILISATEURS ' + S.usr.length}</p>${chips}`;
+    const search = `<input id="x-uq" class="x-in" style="margin-bottom:12px" placeholder="> email ou téléphone" value="${esc(S.uq || '')}">`;
+    let body = '';
+    if (S.af === 'admins') {
+      const cands = S.usr.slice().sort((a, b) => String(a.email || '').localeCompare(String(b.email || '')));
+      body = `<div class="x-panel" style="margin-top:0;margin-bottom:14px;border-color:#c6ff3d"><p class="x-h"><b>●</b> NOMMER UN ADMINISTRATEUR</p>
+        <select id="nm-user" class="x-in" style="margin-bottom:8px"><option value="">— choisir un utilisateur —</option>${cands.map(u => `<option value="${esc(u.id)}" ${S.nm === u.id ? 'selected' : ''}>${esc(u.email || '-')} ${u.phone ? '· ' + esc(u.phone) : ''}</option>`).join('')}</select>
+        ${permsHtml('nm', {})}
+        <button class="x-btn go" style="width:100%" data-admnew="1">NOMMER ADMINISTRATEUR</button></div>` +
+        (rows.length ? rows.map(u => `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
+          <strong style="color:#e9f1f8;word-break:break-all">${esc(u.email || '-')}</strong> <span class="x-tag" style="color:${u.is_active ? '#c6ff3d' : '#ff5a5f'}">${u.is_active ? 'ACTIF' : 'COUPÉ'}</span>
+          <p style="font-size:12px;color:#7d8da0;margin:4px 0 6px">${esc(u.phone || 'sans téléphone')}</p>
+          <div style="margin-bottom:8px">${permTags(u.permissions)}</div>
+          <button class="x-btn go" data-admopen="${esc(u.id)}">OUVRIR : TABLEAU DE BORD & JOURNAL</button></div>`).join('') : '<p style="color:#5b6b7c">// aucun administrateur secondaire</p>');
+    } else {
+      body = rows.map(u => `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
+        <strong style="color:#e9f1f8;word-break:break-all">${esc(u.email || '-')}</strong>
+        <p style="font-size:12px;color:#7d8da0;margin:4px 0 10px">${esc(u.phone || 'sans téléphone')} · ${fmtMoney(S.bal[u.id] || 0)} · ${cnt[u.id] || 0} colis</p>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:8px">
+          <select id="ua-${esc(u.id)}" class="x-in"><option value="1" ${u.is_active ? 'selected' : ''}>ACTIF</option><option value="0" ${!u.is_active ? 'selected' : ''}>COUPÉ</option></select>
+          <button class="x-btn go" data-us="${esc(u.id)}">OK</button></div>${can('msg') ? `<button class="x-btn" style="margin-top:8px" data-dmto="${esc(u.id)}">✉ ÉCRIRE À CET UTILISATEUR</button>` : ''}${isSuper ? ` <button class="x-btn" style="margin-top:8px" data-mkadm="${esc(u.id)}">★ NOMMER ADMINISTRATEUR</button>` : ''}</div>`).join('');
+    }
+    M.innerHTML = head + search + body;
     const qi = $('x-uq'); qi.oninput = () => { S.uq = qi.value; const p = qi.selectionStart; acct(); const n = $('x-uq'); n.focus(); n.setSelectionRange(p, p); };
+  }
+
+  // Tableau de bord personnel + journal complet d'un administrateur secondaire (Super Admin uniquement)
+  function admDetail() {
+    const u = S.admins.find(x => x.id === S.adv);
+    if (!u) { S.adv = null; return acct(); }
+    const L = S.logs || [], t0 = new Date(); t0.setHours(0, 0, 0, 0);
+    const today = L.filter(l => new Date(l.created_at) >= t0).length, wk = L.filter(l => Date.now() - new Date(l.created_at) <= 7 * 864e5).length;
+    const by = {}; L.forEach(l => { by[l.action] = (by[l.action] || 0) + 1; });
+    const rows = Object.entries(by).sort((a, b) => b[1] - a[1]), mx = rows.length ? rows[0][1] : 1;
+    const rd = (l, v, e) => `<div class="x-read" style="cursor:default"><small>${l}</small><strong>${v}</strong><em>${e}</em></div>`;
+    M.innerHTML = `<p class="x-h"><b>●</b> ADMINISTRATEUR // ${esc(u.email || '-')}</p>
+    <div class="x-chips"><button class="x-btn" data-admback="1">← RETOUR</button><button class="x-btn" data-admopen="${esc(u.id)}">ACTUALISER</button></div>
+    <div class="x-panel" style="margin-top:0"><strong style="color:#e9f1f8;word-break:break-all">${esc(u.email || '-')}</strong> <span class="x-tag" style="color:${u.is_active ? '#c6ff3d' : '#ff5a5f'}">${u.is_active ? 'ACTIF' : 'COUPÉ'}</span>
+      <p style="font-size:12px;color:#7d8da0;margin:4px 0 6px">${esc(u.phone || 'sans téléphone')}</p><div>${permTags(u.permissions)}</div></div>
+    <div class="x-panel"><p class="x-h">TABLEAU DE BORD PERSONNEL</p><div class="x-grid">
+      ${rd('ACTIONS TOTALES', L.length, 'depuis la nomination')}${rd("AUJOURD'HUI", today, 'actions')}${rd('7 DERNIERS JOURS', wk, 'actions')}
+      ${rd('DERNIÈRE ACTIVITÉ', L.length ? fmtDay(L[0].created_at) : '-', L.length ? new Date(L[0].created_at).toLocaleTimeString('fr-FR') : 'aucune')}${rd('TYPES D\'ACTIONS', rows.length, 'différents')}</div>
+      <div style="margin-top:12px">${rows.length ? rows.map(([k, n]) => `<div style="margin:6px 0"><div style="display:flex;justify-content:space-between;font-size:11px;color:#7d8da0"><span>${esc(ACT_LABEL[k] || k)}</span><span>${n}</span></div><div style="height:6px;background:#101820"><div style="height:6px;width:${n / mx * 100}%;background:#c6ff3d"></div></div></div>`).join('') : '<p style="color:#5b6b7c;font-size:12px">// aucune action enregistrée</p>'}</div></div>
+    <div class="x-panel"><p class="x-h">CONFIGURER LES PERMISSIONS</p>${permsHtml('ap', u.permissions)}
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="x-btn go" data-admsave="${esc(u.id)}">ENREGISTRER</button>
+      <button class="x-btn" data-admtog="${u.is_active ? 0 : 1}" data-id="${esc(u.id)}">${u.is_active ? 'SUSPENDRE LE COMPTE' : 'RÉACTIVER LE COMPTE'}</button>
+      <button class="x-btn no" data-admdemote="${esc(u.id)}">RÉTROGRADER EN UTILISATEUR</button></div></div>
+    <div class="x-panel"><p class="x-h">JOURNAL D'ACTIVITÉ COMPLET (${L.length})</p>
+      ${L.length ? L.map(l => `<div class="x-row" style="cursor:default;flex-direction:column;gap:2px"><span style="color:#e9f1f8">${esc(ACT_LABEL[l.action] || l.action)}</span><span style="color:#7d8da0;font-size:12px;white-space:pre-wrap;word-break:break-word">${esc(l.details || '')}</span><span style="color:#5b6b7c;font-size:10px">${fmtDate(l.created_at)}</span></div>`).join('') : '<p style="color:#5b6b7c">// journal vide</p>'}</div>`;
   }
 
   function cancelV() {
@@ -1209,7 +1337,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     const rows = (S.msgs || []).filter(m => !S.mf || m.status === S.mf);
     const cnt = {}; S.ship.forEach(s => cnt[s.user_id] = (cnt[s.user_id] || 0) + 1);
     const rsv = rows.filter(m => m.status === 'resolved');
-    const mBar = rsv.length ? `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-4px 0 12px"><button class="x-btn no" data-mclear="1">VIDER CHEZ MOI (${rsv.length})</button><button class="x-btn no" data-mclear="1" data-both="1">VIDER AUSSI CHEZ LES CLIENTS</button><span style="font-size:11px;color:#5b6b7c">Auto : masqué chez moi 5 jours après la résolution (le client le garde)</span></div>` : '';
+    const mBar = (isSuper && rsv.length) ? `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-4px 0 12px"><button class="x-btn no" data-mclear="1">VIDER CHEZ MOI (${rsv.length})</button><button class="x-btn no" data-mclear="1" data-both="1">VIDER AUSSI CHEZ LES CLIENTS</button><span style="font-size:11px;color:#5b6b7c">Auto : masqué chez moi 5 jours après la résolution (le client le garde)</span></div>` : '';
     M.innerHTML = `<p class="x-h"><b>●</b> BOÎTE DE RÉCEPTION // messages des clients</p>
     <div style="margin-bottom:12px"><button class="x-btn ${S.bc ? 'on' : 'go'}" data-bcopen="1">${S.bc ? 'FERMER LA DIFFUSION ✕' : '📢 DIFFUSION / ANNONCE GLOBALE'}</button> <button class="x-btn ${S.dm ? 'on' : 'go'}" data-dmopen="1">${S.dm ? 'FERMER ✕' : '✉ ÉCRIRE À UN UTILISATEUR'}</button></div>
     ${S.dm ? dmPanel() : ''}
@@ -1223,13 +1351,13 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       <div style="font-size:11px;color:#7d8da0;border-top:1px dashed #1b2530;padding-top:8px;margin-bottom:8px">EXPÉDITEUR<br><span style="color:#e9f1f8;word-break:break-all">${esc(u.email || '-')}</span><br>${esc(u.phone || 'sans téléphone')}<br>Solde ${fmtMoney(S.bal[m.user_id] || 0)} · ${cnt[m.user_id] || 0} colis · compte ${u.is_active === false ? 'coupé' : 'actif'}</div>
       ${op ? `<textarea id="mr-${esc(m.id)}" rows="3" class="x-in" placeholder="réponse au client (facultatif)" style="margin-bottom:8px">${esc(m.admin_reply || '')}</textarea>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="x-btn" data-mrep="${esc(m.id)}">ENVOYER LA RÉPONSE</button><button class="x-btn go" data-mres="${esc(m.id)}">MARQUER RÉSOLU</button></div>`
-      : `${m.admin_reply ? `<p style="font-size:12px;color:#7d8da0;white-space:pre-wrap">réponse : ${esc(m.admin_reply)}</p>` : ''}<button class="x-btn" style="margin-top:8px" data-mre="${esc(m.id)}">ROUVRIR</button> <button class="x-btn no" style="margin-top:8px" data-mdel="${esc(m.id)}">SUPPRIMER CHEZ MOI</button> <button class="x-btn no" style="margin-top:8px" data-mdel="${esc(m.id)}" data-both="1">SUPPRIMER AUSSI CHEZ LE CLIENT</button>`}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucun message</p>'}`;
+      : `${m.admin_reply ? `<p style="font-size:12px;color:#7d8da0;white-space:pre-wrap">réponse : ${esc(m.admin_reply)}</p>` : ''}<button class="x-btn" style="margin-top:8px" data-mre="${esc(m.id)}">ROUVRIR</button>${isSuper ? ` <button class="x-btn no" style="margin-top:8px" data-mdel="${esc(m.id)}">SUPPRIMER CHEZ MOI</button> <button class="x-btn no" style="margin-top:8px" data-mdel="${esc(m.id)}" data-both="1">SUPPRIMER AUSSI CHEZ LE CLIENT</button>` : ''}`}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucun message</p>'}`;
   }
 
   // ---------- DIFFUSION DE MESSAGES ----------
   function bcTargets(f, min, max) {
     const shipped = {}; S.ship.forEach(s => { shipped[s.user_id] = 1; });
-    return S.users.filter(u => u.role !== 'admin' && u.is_active !== false).filter(u => {
+    return S.users.filter(u => u.role !== 'admin' && !isSupU(u) && u.is_active !== false).filter(u => {
       const b = Number(S.bal[u.id] || 0);
       if (f === 'positive') return b > 0;
       if (f === 'zero') return b <= 0;
@@ -1290,11 +1418,12 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
   }
 
   function cfg() {
-    M.innerHTML = `<p class="x-h"><b>●</b> PARAMÈTRES // TARIFICATION</p>
-    <div class="x-panel" style="margin-top:0"><p class="x-h">PRIX DU REÇU A5 / CODE DE SUIVI (FCFA)</p>
+    const priceHtml = isSuper ? `<div class="x-panel" style="margin-top:0"><p class="x-h">PRIX DU REÇU A5 / CODE DE SUIVI (FCFA)</p>
       <p style="font-size:12px;color:#7d8da0;margin:0 0 10px">Montant débité du portefeuille du client à la première génération du reçu d'une expédition. Prix actuel : <span style="color:#c6ff3d">${fmtMoney(RECEIPT_PRICE)}</span></p>
-      <div style="display:flex;gap:8px"><input id="cfg-price" type="number" min="0" step="1" class="x-in" value="${esc(RECEIPT_PRICE)}"><button class="x-btn go" data-price="1">ENREGISTRER</button></div></div>
-    <div class="x-panel"><p class="x-h">NUMÉROS DE RECHARGE (affichés aux clients)</p>
+      <div style="display:flex;gap:8px"><input id="cfg-price" type="number" min="0" step="1" class="x-in" value="${esc(RECEIPT_PRICE)}"><button class="x-btn go" data-price="1">ENREGISTRER</button></div></div>` : '';
+    M.innerHTML = `<p class="x-h"><b>●</b> PARAMÈTRES // ${isSuper ? 'TARIFICATION' : 'NUMÉROS DE PAIEMENT'}</p>
+    ${priceHtml}
+    <div class="x-panel" ${isSuper ? '' : 'style="margin-top:0"'}><p class="x-h">NUMÉROS DE RECHARGE (affichés aux clients)</p>
       <div style="display:grid;gap:8px;margin-bottom:12px">
         <select id="pn-op" class="x-in"><option value="mtn">MTN Money</option><option value="orange">Orange Money</option></select>
         <input id="pn-phone" class="x-in" placeholder="Numéro (ex : 6XX XX XX XX)">
@@ -1306,7 +1435,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
           <input id="pe-phone" class="x-in" value="${esc(p.phone)}" placeholder="Numéro">
           <input id="pe-name" class="x-in" value="${esc(p.holder_name)}" placeholder="Nom du titulaire">
           <div style="display:flex;gap:8px"><button class="x-btn go" data-pesave="${esc(p.id)}">ENREGISTRER</button><button class="x-btn" data-pecancel="1">ANNULER</button></div></div></div>`
-      : `<div class="x-row" style="cursor:default;flex-wrap:wrap"><span><span class="x-tag" style="color:${p.operator === 'mtn' ? '#ffb020' : '#ff7a1a'}">${p.operator === 'mtn' ? 'MTN' : 'ORANGE'}</span> ${esc(p.phone)} · ${esc(p.holder_name)}${p.is_active ? '' : ' <span style="color:#ff5a5f">(masqué)</span>'}</span><span><button class="x-btn" data-pedit="${esc(p.id)}">MODIFIER</button> <button class="x-btn" data-pntog="${esc(p.id)}" data-on="${p.is_active ? 0 : 1}">${p.is_active ? 'MASQUER' : 'AFFICHER'}</button> <button class="x-btn no" data-pndel="${esc(p.id)}">SUPPRIMER</button></span></div>`).join('') || '<p style="color:#5b6b7c">// aucun numéro</p>'}</div>`;
+      : `<div class="x-row" style="cursor:default;flex-wrap:wrap"><span><span class="x-tag" style="color:${p.operator === 'mtn' ? '#ffb020' : '#ff7a1a'}">${p.operator === 'mtn' ? 'MTN' : 'ORANGE'}</span> ${esc(p.phone)} · ${esc(p.holder_name)}${p.is_active ? '' : ' <span style="color:#ff5a5f">(masqué)</span>'}</span><span><button class="x-btn" data-pedit="${esc(p.id)}">MODIFIER</button> <button class="x-btn" data-pntog="${esc(p.id)}" data-on="${p.is_active ? 0 : 1}">${p.is_active ? 'MASQUER' : 'AFFICHER'}</button>${isSuper ? ` <button class="x-btn no" data-pndel="${esc(p.id)}">SUPPRIMER</button>` : ''}</span></div>`).join('') || '<p style="color:#5b6b7c">// aucun numéro</p>'}</div>`;
   }
 
   async function openDrawer(id, keep) {
@@ -1315,9 +1444,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     if (!keep) { const { data } = await supabaseClient.from('sw_shipment_events').select('*').eq('shipment_id', id).order('created_at', { ascending: true }); S.ev = data || []; }
     const st = document.activeElement && document.activeElement.closest && document.activeElement.closest('#x-drawer');
     if (keep && st) return;
-    $('x-drawer').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><h3 style="font-weight:800;font-size:18px">${esc(s.tracking_code)}</h3><button class="x-btn" data-close="1">FERMER ✕</button></div>
-      <p style="font-size:12px;color:#555;margin-top:4px">Compte : ${esc((S.own[s.user_id] || {}).email || '-')}</p>
-      ${detailsHtml(s)}
+    const ctl = can('ship') ? `
       <div style="margin-top:14px;padding:12px;background:#fff;border:1px solid #c9d1d9" class="space-y-2">
         <p style="font-size:12px;font-weight:700">STATUT</p>
         <select id="d-st" class="x-in">${Object.keys(STATUS).map(k => `<option value="${k}" ${k === s.status ? 'selected' : ''}>${esc(STATUS[k].label)}</option>`).join('')}</select>
@@ -1326,7 +1453,11 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
         <p style="font-size:11px;color:#666;margin-top:6px">Changer le statut coupe l'avancement automatique. Sans changement, la note est ajoutée au suivi.</p></div>
       <div style="margin-top:10px;padding:12px;background:#fff;border:1px solid #c9d1d9">
         <p style="font-size:12px;font-weight:700">AUTO : ${s.auto_progress ? 'ACTIVÉ' : 'DÉSACTIVÉ'} <button class="x-btn" style="margin-left:8px" data-auto="${s.auto_progress ? 0 : 1}" data-id="${esc(s.id)}">${s.auto_progress ? 'COUPER' : 'RÉACTIVER'}</button></p>
-        <div style="display:flex;gap:8px;margin-top:8px"><input id="d-win" type="number" min="1" max="720" class="x-in" value="${esc(win(s))}"><button class="x-btn go" data-win="${esc(s.id)}">DÉLAI (h)</button></div></div>
+        <div style="display:flex;gap:8px;margin-top:8px"><input id="d-win" type="number" min="1" max="720" class="x-in" value="${esc(win(s))}"><button class="x-btn go" data-win="${esc(s.id)}">DÉLAI (h)</button></div></div>` : '';
+    $('x-drawer').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><h3 style="font-weight:800;font-size:18px">${esc(s.tracking_code)}</h3><button class="x-btn" data-close="1">FERMER ✕</button></div>
+      <p style="font-size:12px;color:#555;margin-top:4px">Compte : ${esc((S.own[s.user_id] || {}).email || '-')}</p>
+      ${detailsHtml(s)}
+      ${ctl}
       ${timeline(S.ev, s, true)}`;
     $('x-drawer').classList.add('open'); $('x-veil').style.display = 'block';
   }
@@ -1351,6 +1482,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
   async function rpc(fn, args, ok) {
     const { error } = await supabaseClient.rpc(fn, args);
     if (error) { toast('Erreur : ' + error.message, 'error'); return false; }
+    logAct(fn, describe(fn, args, ok));
     toast(ok || 'Enregistré.'); await loadAll();
     if (S.open) { const { data } = await supabaseClient.from('sw_shipment_events').select('*').eq('shipment_id', S.open).order('created_at', { ascending: true }); S.ev = data || []; }
     draw(); if (S.open) { $('x-drawer').blur(); openDrawerForce(); } return true;
@@ -1363,11 +1495,46 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     if (g('data-v')) return showSub(g('data-v').dataset.v);
     if ((el = g('data-go'))) return showSub(el.dataset.go);
     if (g('data-close') || e.target.id === 'x-veil') return closeDrawer();
-    if (g('data-bcopen')) { S.bc = !S.bc; if (S.bc) S.dm = false; inbox(); if (S.bc) bcUpdate(); return; }
-    if (g('data-dmopen')) { S.dm = !S.dm; if (S.dm) S.bc = false; return inbox(); }
-    if ((el = g('data-dmto'))) { S.dm = true; S.bc = false; S.dmu = el.dataset.dmto; S.v = 'msg'; return showSub('msg'); }
+    // ---- Comptes : sous-onglets, administrateurs (Super Admin uniquement) ----
+    if ((el = g('data-af'))) { if (!needSuper()) return; S.af = el.dataset.af; S.adv = null; return acct(); }
+    if ((el = g('data-mkadm'))) { if (!needSuper()) return; S.af = 'admins'; S.adv = null; S.nm = el.dataset.mkadm; return acct(); }
+    if ((el = g('data-permall'))) { PERMS.forEach(([k]) => { const c = $(el.dataset.permall + '-' + k); if (c && k !== 'pay') c.checked = true; }); return; }
+    if ((el = g('data-admopen'))) { if (!needSuper()) return; S.af = 'admins'; S.adv = el.dataset.admopen; await loadLogs(S.adv); return acct(); }
+    if (g('data-admback')) { if (!needSuper()) return; S.adv = null; S.logs = []; return acct(); }
+    if (g('data-admnew')) {
+      if (!needSuper()) return;
+      const id = $('nm-user').value;
+      if (!id) return toast('Choisissez un utilisateur.', 'error');
+      const u = S.own[id] || {};
+      if (isSupU(u) || u.role === 'admin') return toast('Compte non éligible.', 'error');
+      if (!confirm('Nommer ' + (u.email || 'cet utilisateur') + ' administrateur avec les permissions cochées ?')) return;
+      S.nm = null;
+      return rpc('sw_admin_promote', { p_id: id, p_perms: readPerms('nm') }, 'Administrateur nommé.');
+    }
+    if ((el = g('data-admsave'))) {
+      if (!needSuper()) return;
+      return rpc('sw_admin_set_perms', { p_id: el.dataset.admsave, p_perms: readPerms('ap') }, 'Permissions enregistrées.');
+    }
+    if ((el = g('data-admtog'))) {
+      if (!needSuper()) return;
+      const t = S.own[el.dataset.id] || {};
+      if (isSupU(t)) return toast('Le Super Admin Suprême ne peut pas être désactivé.', 'error');
+      return rpc('sw_admin_set_user', { p_id: el.dataset.id, p_role: 'admin', p_active: el.dataset.admtog === '1' }, 'Compte administrateur mis à jour.');
+    }
+    if ((el = g('data-admdemote'))) {
+      if (!needSuper()) return;
+      const t = S.own[el.dataset.admdemote] || {};
+      if (isSupU(t)) return toast('Le Super Admin Suprême ne peut pas être rétrogradé.', 'error');
+      if (!confirm('Rétrograder ' + (t.email || 'cet administrateur') + ' en simple utilisateur ?')) return;
+      S.adv = null; S.logs = [];
+      return rpc('sw_admin_set_user', { p_id: el.dataset.admdemote, p_role: 'user', p_active: true }, 'Administrateur rétrogradé.');
+    }
+    if (g('data-bcopen')) { if (!need('msg')) return; S.bc = !S.bc; if (S.bc) S.dm = false; inbox(); if (S.bc) bcUpdate(); return; }
+    if (g('data-dmopen')) { if (!need('msg')) return; S.dm = !S.dm; if (S.dm) S.bc = false; return inbox(); }
+    if ((el = g('data-dmto'))) { if (!need('msg')) return; S.dm = true; S.bc = false; S.dmu = el.dataset.dmto; S.v = 'msg'; return showSub('msg'); }
     if ((el = g('data-dmpick'))) { S.dmu = el.dataset.dmpick; return dmRefresh(); }
     if (g('data-dmsend')) {
+      if (!need('msg')) return;
       const subject = $('dm-subject').value.trim(), body = $('dm-body').value.trim();
       if (!S.dmu || !S.own[S.dmu]) return toast('Choisissez un utilisateur.', 'error');
       if (!subject || !body) return toast('Remplissez le sujet et le message.', 'error');
@@ -1376,9 +1543,11 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       const { error } = await supabaseClient.rpc('sw_admin_send_direct', { p_user: S.dmu, p_subject: subject, p_body: body });
       btn.disabled = false;
       if (error) return toast('Erreur : ' + error.message, 'error');
+      logAct('direct_message', 'À ' + (S.own[S.dmu].email || '-') + ' · ' + subject);
       toast('Message envoyé à ' + (S.own[S.dmu].email || 'l\'utilisateur') + '.'); S.dm = false; S.dmu = null; return inbox();
     }
     if (g('data-bcsend')) {
+      if (!need('msg')) return;
       const f = $('bc-f').value, min = $('bc-min').value.trim(), max = $('bc-max').value.trim();
       const subject = $('bc-subject').value.trim(), body = $('bc-body').value.trim();
       if (!subject || !body) return toast('Remplissez le sujet et le message.', 'error');
@@ -1390,10 +1559,12 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       const { data, error } = await supabaseClient.rpc('sw_admin_broadcast', { p_subject: subject, p_body: body, p_filter: f, p_min: min === '' ? null : Number(min), p_max: max === '' ? null : Number(max) });
       btn.disabled = false;
       if (error) return toast('Erreur : ' + error.message, 'error');
+      logAct('broadcast', subject + ' (' + data + ' destinataire(s))');
       toast('Annonce envoyée à ' + data + ' utilisateur(s).'); S.bc = false; return inbox();
     }
     if ((el = g('data-cf'))) { S.cf = el.dataset.cf; return cancelV(); }
     if ((el = g('data-cxok')) || (el = g('data-cxno'))) {
+      if (!need('cancel')) return;
       const ap = !!el.dataset.cxok, id = ap ? el.dataset.cxok : el.dataset.cxno, n = $('cn-' + id);
       if (!confirm(ap ? 'Annuler ce colis ? Aucun remboursement du reçu.' : 'Rejeter cette demande ?')) return;
       return rpc('sw_admin_review_cancel', { p_id: id, p_approve: ap, p_note: (n && n.value.trim()) || null }, ap ? 'Colis annulé.' : 'Demande rejetée.');
@@ -1402,6 +1573,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
     if ((el = g('data-rf'))) { S.rf = el.dataset.rf; return cash(); }
     if ((el = g('data-mf'))) { S.mf = el.dataset.mf; return inbox(); }
     if ((el = g('data-mrep')) || (el = g('data-mres')) || (el = g('data-mre'))) {
+      if (!need('msg')) return;
       const id = el.dataset.mrep || el.dataset.mres || el.dataset.mre, ta = $('mr-' + id), r = ta ? ta.value.trim() : null;
       let upd;
       if (el.dataset.mrep) { if (!r) return toast('Écrivez une réponse.', 'error'); upd = { admin_reply: r }; }
@@ -1409,9 +1581,13 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       else upd = { status: 'open', resolved_at: null };
       const { error } = await supabaseClient.from('sw_messages').update(upd).eq('id', id);
       if (error) return toast('Erreur : ' + error.message, 'error');
+      const mm = (S.msgs || []).find(x => x.id === id) || {};
+      logAct(el.dataset.mrep ? 'msg_reply' : el.dataset.mres ? 'msg_resolve' : 'msg_reopen', (mm.subject || '') + ' · ' + ((S.own[mm.user_id] || {}).email || '-'));
       toast(el.dataset.mrep ? 'Réponse envoyée.' : el.dataset.mres ? 'Message résolu.' : 'Message rouvert.'); await loadAll(); return draw();
     }
+    // ---- Suppressions définitives / vidage d'historique : monopole du Super Admin Suprême ----
     if ((el = g('data-rdel')) || (el = g('data-rclear'))) {
+      if (!needSuper()) return;
       const both = el.dataset.both === '1', where = both ? ' chez moi ET chez le client' : ' chez moi seulement (le client garde son journal)';
       let ids;
       if (el.dataset.rdel) { ids = [el.dataset.rdel]; if (!confirm('Supprimer cette demande' + where + ' ?')) return; }
@@ -1419,52 +1595,64 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       return delRecharges(ids, both);
     }
     if ((el = g('data-mdel')) || (el = g('data-mclear'))) {
+      if (!needSuper()) return;
       const both = el.dataset.both === '1', where = both ? ' chez moi ET chez le client' : ' chez moi seulement (le client le garde)';
       let ids;
       if (el.dataset.mdel) { ids = [el.dataset.mdel]; if (!confirm('Supprimer ce message' + where + ' ?')) return; }
       else { ids = (S.msgs || []).filter(m => m.status === 'resolved' && (!S.mf || m.status === S.mf)).map(m => m.id); if (!ids.length) return; if (!confirm('Supprimer ' + ids.length + ' message(s) résolu(s)' + where + ' ?')) return; }
       return delMessages(ids, both);
     }
-    if ((el = g('data-proof'))) return openProof(el.dataset.proof);
+    if ((el = g('data-proof'))) { if (!need('rech')) return; logAct('proof_view', el.dataset.proof); return openProof(el.dataset.proof); }
     if (g('data-price')) {
+      if (!needSuper()) return;
       const p = Number($('cfg-price').value);
       if (isNaN(p) || p < 0) return toast('Prix invalide.', 'error');
       return rpc('sw_admin_set_price', { p_price: p }, 'Prix du reçu mis à jour.');
     }
     if (g('data-pnadd')) {
+      if (!need('pay')) return;
       const ph = $('pn-phone').value.trim(), nm = $('pn-name').value.trim();
       if (!ph || !nm) return toast('Numéro et nom requis.', 'error');
       const { error } = await supabaseClient.from('sw_pay_numbers').insert({ operator: $('pn-op').value, phone: ph, holder_name: nm });
       if (error) return toast('Erreur : ' + error.message, 'error');
+      logAct('paynum_add', $('pn-op').value.toUpperCase() + ' ' + ph + ' · ' + nm);
       toast('Numéro ajouté.'); await loadAll(); return draw();
     }
-    if ((el = g('data-pedit'))) { S.pe = el.dataset.pedit; return cfg(); }
+    if ((el = g('data-pedit'))) { if (!need('pay')) return; S.pe = el.dataset.pedit; return cfg(); }
     if (g('data-pecancel')) { S.pe = null; return cfg(); }
     if ((el = g('data-pesave'))) {
+      if (!need('pay')) return;
       const ph = $('pe-phone').value.trim(), nm = $('pe-name').value.trim();
       if (!ph || !nm) return toast('Numéro et nom requis.', 'error');
       const { error } = await supabaseClient.from('sw_pay_numbers').update({ operator: $('pe-op').value, phone: ph, holder_name: nm }).eq('id', el.dataset.pesave);
       if (error) return toast('Erreur : ' + error.message, 'error');
+      logAct('paynum_edit', $('pe-op').value.toUpperCase() + ' ' + ph + ' · ' + nm);
       S.pe = null; toast('Numéro modifié.'); await loadAll(); return draw();
     }
     if ((el = g('data-pntog'))) {
+      if (!need('pay')) return;
+      const pnx = (S.pn || []).find(x => x.id === el.dataset.pntog) || {};
       const { error } = await supabaseClient.from('sw_pay_numbers').update({ is_active: el.dataset.on === '1' }).eq('id', el.dataset.pntog);
       if (error) return toast('Erreur : ' + error.message, 'error');
+      logAct('paynum_toggle', (pnx.phone || '') + ' · ' + (el.dataset.on === '1' ? 'affiché' : 'masqué'));
       await loadAll(); return draw();
     }
     if ((el = g('data-pndel'))) {
+      if (!needSuper()) return;
       if (!confirm('Supprimer ce numéro ?')) return;
       const { error } = await supabaseClient.from('sw_pay_numbers').delete().eq('id', el.dataset.pndel);
       if (error) return toast('Erreur : ' + error.message, 'error');
       await loadAll(); return draw();
     }
     if ((el = g('data-adj'))) {
+      if (!need('rech')) return;
       const id = el.dataset.id, sign = Number(el.dataset.adj), v = Number($('aj-' + id).value), note = $('an-' + id).value.trim();
       if (!v || v <= 0) return toast('Entrez un montant valide.', 'error');
       if (!confirm((sign > 0 ? 'Ajouter ' : 'Retirer ') + fmtMoney(v) + (sign > 0 ? ' au' : ' du') + ' portefeuille de ce client ?')) return;
       return rpc('sw_admin_adjust_wallet', { p_recharge_id: id, p_delta: sign * v, p_note: note || null }, sign > 0 ? 'Montant ajouté.' : 'Montant retiré.');
     }
     if ((el = g('data-rv'))) {
+      if (!need('rech')) return;
       const ap = el.dataset.rv === '1';
       const am = $('ra-' + el.dataset.id), amount = ap && am ? Number(am.value) : null;
       if (ap && (!amount || amount <= 0)) return toast('Montant invalide.', 'error');
@@ -1474,15 +1662,20 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
       const n = $('rn-' + el.dataset.id);
       return rpc('sw_admin_review_recharge2', { p_id: el.dataset.id, p_approve: ap, p_note: n ? n.value.trim() || null : null, p_amount: amount }, ap ? 'Recharge approuvée, solde crédité.' : 'Recharge rejetée.');
     }
-    if ((el = g('data-us'))) { const id = el.dataset.us;
-      return rpc('sw_admin_set_user', { p_id: id, p_role: $('ur-' + id).value, p_active: $('ua-' + id).value === '1' }, 'Compte mis à jour.'); }
+    if ((el = g('data-us'))) {
+      if (!need('acct')) return;
+      const id = el.dataset.us, t = S.own[id] || {};
+      if (isSupU(t)) return toast('Le Super Admin Suprême est protégé : modification impossible.', 'error');
+      if (t.role === 'admin') return toast('Action non autorisée pour votre rôle.', 'error');
+      return rpc('sw_admin_set_user', { p_id: id, p_role: 'user', p_active: $('ua-' + id).value === '1' }, 'Compte mis à jour.'); }
     if ((el = g('data-save'))) {
+      if (!need('ship')) return;
       const id = el.dataset.save, s = S.ship.find(x => x.id === id), st = $('d-st').value, note = $('d-note').value.trim();
       if (st === s.status) { if (!note) return toast('Choisissez un statut ou écrivez une note.', 'error'); return rpc('sw_admin_add_note', { p_id: id, p_note: note }); }
       return rpc('sw_admin_update_status', { p_id: id, p_status: st, p_note: note || null });
     }
-    if ((el = g('data-auto'))) return rpc('sw_admin_set_auto', { p_id: el.dataset.id, p_auto: el.dataset.auto === '1' });
-    if ((el = g('data-win'))) { const h = parseInt($('d-win').value, 10); if (!h || h < 1) return toast('Délai invalide.', 'error'); return rpc('sw_admin_set_window', { p_id: el.dataset.win, p_hours: h }); }
+    if ((el = g('data-auto'))) { if (!need('ship')) return; return rpc('sw_admin_set_auto', { p_id: el.dataset.id, p_auto: el.dataset.auto === '1' }); }
+    if ((el = g('data-win'))) { if (!need('ship')) return; const h = parseInt($('d-win').value, 10); if (!h || h < 1) return toast('Délai invalide.', 'error'); return rpc('sw_admin_set_window', { p_id: el.dataset.win, p_hours: h }); }
   });
 
   A.addEventListener('input', e => { if (e.target.id === 'dm-q') dmRefresh(); if (e.target.closest && e.target.closest('#bc-box')) bcUpdate(); });
@@ -1495,6 +1688,7 @@ else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) sho
   A.addEventListener('drop', e => {
     const c = e.target.closest('.x-col'); if (!c || !dragId) return;
     e.preventDefault(); c.classList.remove('over');
+    if (!can('ship')) { dragId = null; return toast('Action non autorisée pour votre rôle.', 'error'); }
     const s = S.ship.find(x => x.id === dragId), to = c.dataset.drop; dragId = null;
     if (!s || s.status === to) return;
     if (confirm('Passer ' + s.tracking_code + ' à « ' + STATUS[to].label + ' » ?')) rpc('sw_admin_update_status', { p_id: s.id, p_status: to, p_note: null }, 'Statut mis à jour.');
