@@ -1665,6 +1665,7 @@ if (QS.has('t') || QS.has('suivi')) {
       <p style="font-size:11px;color:#5b6b7c;margin:4px 0">${esc(MCAT[m.category] || m.category)} · ${fmtDate(m.created_at)}${m.user_hidden ? ' · <span style="color:#ffb020">supprimé par le client</span>' : ''}</p>
       <p style="white-space:pre-wrap;color:#e9f1f8;font-size:13px;margin:8px 0">${esc(m.body)}</p>
       <div style="font-size:11px;color:#7d8da0;border-top:1px dashed #1b2530;padding-top:8px;margin-bottom:8px">EXPÉDITEUR<br><span style="color:#e9f1f8;word-break:break-all">${esc(u.email || '-')}</span><br>${esc(u.phone || 'sans téléphone')}<br>Solde ${fmtMoney(S.bal[m.user_id] || 0)} · ${cnt[m.user_id] || 0} colis · compte ${u.is_active === false ? 'coupé' : 'actif'}</div>
+      ${waNum(u.phone) ? `<button class="x-btn go" style="margin-bottom:8px;width:100%" data-mwa="${esc(m.id)}">💬 ÉCRIRE À L'UTILISATEUR SUR WHATSAPP</button>` : '<p style="font-size:11px;color:#ffb020;margin:0 0 8px">// numéro WhatsApp indisponible pour cet utilisateur</p>'}
       ${m.admin_reply ? `<p style="font-size:11px;color:#7d8da0;margin:0 0 8px">RÉPONSE ENVOYÉE : ${rcpt(m, 'reply_read_at')}</p>` : ''}
       ${op ? `<textarea id="mr-${esc(m.id)}" rows="3" class="x-in" placeholder="réponse au client (facultatif)" style="margin-bottom:8px">${esc(m.admin_reply || '')}</textarea>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="x-btn" data-mrep="${esc(m.id)}">ENVOYER LA RÉPONSE</button><button class="x-btn go" data-mres="${esc(m.id)}">MARQUER RÉSOLU</button></div>`
@@ -1990,6 +1991,16 @@ if (QS.has('t') || QS.has('suivi')) {
       const ap = !!el.dataset.cxok, id = ap ? el.dataset.cxok : el.dataset.cxno, n = $('cn-' + id);
       if (!confirm(ap ? 'Annuler ce colis ? Aucun remboursement du reçu.' : 'Rejeter cette demande ?')) return;
       return rpc('sw_admin_review_cancel', { p_id: id, p_approve: ap, p_note: (n && n.value.trim()) || null }, ap ? 'Colis annulé.' : 'Demande rejetée.');
+    }
+    // ---- Boîte de réception : écrire directement au client sur WhatsApp ----
+    if ((el = g('data-mwa'))) {
+      if (!need('msg')) return;
+      const mm = (S.msgs || []).find(x => x.id === el.dataset.mwa), u = mm ? S.own[mm.user_id] : null, n = u ? waNum(u.phone) : '';
+      if (!n) return toast('Numéro de téléphone indisponible pour cet utilisateur.', 'error');
+      const txt = 'Bonjour, ici l\'équipe SwiftWay Logistics. Suite à votre message « ' + (mm.subject || '') + ' » :';
+      window.open('https://wa.me/' + n + '?text=' + encodeURIComponent(txt), '_blank', 'noopener');
+      logAct('wa_contact', (u.email || '-') + ' · +' + n + ' · ' + (mm.subject || ''));
+      return;
     }
     if ((el = g('data-open'))) return openDrawer(el.dataset.open);
     if ((el = g('data-rf'))) { S.rf = el.dataset.rf; return cash(); }
