@@ -2,7 +2,10 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0047AB">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <title>SwiftWay Logistics</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -22,6 +25,38 @@
   #receipt-overlay > div:not(.no-print) { overflow: visible !important; }
   #receipt-sheet, #receipt-sheet * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+</style>
+<style>
+/* ===== THÈME CLIENT (n'affecte pas la console admin) ===== */
+body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased;background:radial-gradient(1100px 520px at 8% -8%,#d9e7ff 0,transparent 60%),radial-gradient(900px 480px at 100% 0,#ece6ff 0,transparent 55%),#f5f7fb;background-attachment:fixed}
+.brand-mark{width:60px;height:60px;margin:0 auto 12px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:30px;background:linear-gradient(135deg,#0047AB,#2a7bff);box-shadow:0 12px 26px -8px rgba(0,71,171,.7)}
+.brand-mark.sm{width:42px;height:42px;margin:0;border-radius:14px;font-size:21px}
+#auth-view{background:linear-gradient(160deg,#071d4d 0%,#0047AB 48%,#2a7bff 100%)}
+#auth-view>div.bg-white{border:0;border-radius:30px;box-shadow:0 40px 90px -25px rgba(0,15,70,.65);animation:swIn .5s ease both}
+#auth-view #lang-toggle{background:rgba(255,255,255,.95)}
+#dash-view>header{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(15,23,42,.06)}
+#dash-view>header #logout-btn{border-radius:999px;background:#fff}
+#dash-view main{padding-bottom:120px}
+#dtabs{position:fixed;left:50%;bottom:max(12px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(560px,calc(100% - 20px));z-index:45;margin:0!important;padding:6px;gap:4px;background:rgba(255,255,255,.92)!important;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(15,23,42,.07);border-radius:24px!important;box-shadow:0 20px 44px -14px rgba(15,23,42,.38)}
+#dtabs .dtab{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px!important;border-radius:18px!important;font-size:10.5px!important;background:transparent;box-shadow:none!important;transition:all .2s ease}
+#dtabs .dtab .ic{font-size:19px;line-height:1}
+#dtabs .dtab.text-swiftblue{background-image:linear-gradient(135deg,#0047AB,#2a7bff)!important;color:#fff!important;box-shadow:0 10px 20px -8px rgba(0,71,171,.65)!important}
+#dash-view .bg-white.rounded-3xl,#dash-view .bg-white.rounded-2xl{border:1px solid rgba(15,23,42,.06);box-shadow:0 1px 2px rgba(15,23,42,.04),0 14px 34px -18px rgba(15,23,42,.2);transition:transform .2s ease,box-shadow .2s ease}
+#dash-view .bg-white.rounded-2xl:hover{transform:translateY(-1px);box-shadow:0 18px 38px -18px rgba(15,23,42,.28)}
+#dash-view input:not([type=checkbox]):not([type=file]),#dash-view select,#dash-view textarea,#auth-view input{border-radius:14px;background-color:#f8fafc;font-size:16px;transition:all .15s ease}
+#dash-view input:not([type=checkbox]):not([type=file]):focus,#dash-view select:focus,#dash-view textarea:focus,#auth-view input:focus{background-color:#fff;border-color:#2a7bff;box-shadow:0 0 0 4px rgba(42,123,255,.16)}
+#dash-view button.bg-swiftblue,#auth-view button.bg-swiftblue{background-image:linear-gradient(135deg,#0047AB,#2a7bff);box-shadow:0 12px 24px -10px rgba(0,71,171,.7);transition:transform .12s ease,box-shadow .2s ease}
+#dash-view button.bg-swiftblue:active,#auth-view button.bg-swiftblue:active{transform:scale(.98)}
+#dash-view button:disabled{opacity:.6}
+.wallet-hero{position:relative;overflow:hidden;border-radius:28px;padding:26px 24px;color:#fff;background:linear-gradient(135deg,#071d4d,#0047AB 55%,#2a7bff);box-shadow:0 26px 50px -22px rgba(0,71,171,.75)}
+.wallet-hero::after{content:"";position:absolute;right:-50px;top:-50px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.12)}
+.wallet-hero::before{content:"";position:absolute;right:30px;bottom:-70px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.08)}
+.wallet-hero p{position:relative;z-index:1}
+#price-box{background:linear-gradient(135deg,#eef4ff,#f6f0ff)!important;border:1px solid #dbe6ff!important;border-radius:20px!important}
+#d-alert{border-radius:16px;box-shadow:0 10px 24px -14px rgba(15,23,42,.3)}
+@keyframes swIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+#dash-view section:not(.hidden){animation:swIn .35s ease both}
+@media (prefers-reduced-motion:reduce){#dash-view section,#auth-view>div{animation:none!important}}
 </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -46,7 +81,7 @@
     <button id="lang-toggle" type="button" class="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition cursor-pointer">🌐 <span id="current-lang-text">EN</span></button>
   </div>
   <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border border-gray-100">
-    <div class="text-center mb-6 pt-2">
+    <div class="text-center mb-6 pt-2"><div class="brand-mark">📦</div>
       <h1 class="text-3xl font-extrabold text-swiftblue tracking-tight">SwiftWay Logistics</h1>
       <p id="t-subtitle" class="text-base text-gray-500 mt-2 font-medium">Gérez vos expéditions facilement</p>
     </div>
@@ -83,17 +118,17 @@
 <div id="dash-view" class="hidden">
   <header class="bg-white border-b border-gray-200">
     <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-      <div><h1 class="text-xl font-extrabold text-swiftblue tracking-tight">SwiftWay Logistics</h1><p id="user-email" class="text-xs text-gray-500 break-all"></p></div>
+      <div class="flex items-center gap-3"><div class="brand-mark sm">📦</div><div><h1 class="text-xl font-extrabold text-swiftblue tracking-tight">SwiftWay Logistics</h1><p id="user-email" class="text-xs text-gray-500 break-all"></p></div></div>
       <button id="logout-btn" type="button" class="text-sm font-semibold text-gray-600 hover:text-red-600 border border-gray-200 rounded-full px-4 py-2 bg-white transition cursor-pointer">Se déconnecter</button>
     </div>
   </header>
   <main class="max-w-3xl mx-auto px-4 py-6">
-    <div class="grid grid-cols-5 gap-1 bg-gray-100 p-1 rounded-xl mb-6">
-      <button data-tab="list" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer">Mes colis</button>
-      <button data-tab="new" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer">Nouvelle</button>
-      <button data-tab="track" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer">Suivre</button>
-      <button data-tab="wallet" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer">Portefeuille</button>
-      <button data-tab="help" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer">Assistance</button>
+    <div id="dtabs" class="grid grid-cols-5 gap-1 bg-gray-100 p-1 rounded-xl mb-6">
+      <button data-tab="list" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">📦</span><span>Mes colis</span></button>
+      <button data-tab="new" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">➕</span><span>Nouvelle</span></button>
+      <button data-tab="track" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">🔎</span><span>Suivre</span></button>
+      <button data-tab="wallet" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">💳</span><span>Portefeuille</span></button>
+      <button data-tab="help" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">💬</span><span>Assistance</span></button>
     </div>
     <div id="d-alert" class="hidden mb-4 p-4 rounded-xl text-sm text-center font-medium"></div>
     <section id="view-list"><div id="list-container"></div></section>
@@ -107,9 +142,10 @@
       <div id="track-result"></div>
     </section>
     <section id="view-wallet" class="hidden space-y-4">
-      <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-        <p class="text-xs font-semibold text-gray-500">Solde du portefeuille</p>
-        <p id="wallet-balance" class="text-3xl font-extrabold text-swiftblue mt-1">0 FCFA</p>
+      <div class="wallet-hero">
+        <p class="text-xs font-semibold" style="opacity:.8">Solde du portefeuille</p>
+        <p id="wallet-balance" class="text-4xl font-extrabold mt-1">0 FCFA</p>
+        <p class="text-xs mt-3" style="opacity:.75">💳 Rechargez par Mobile Money ci-dessous</p>
       </div>
       <form id="recharge-form" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
         <h2 class="text-lg font-bold text-gray-900">Demander une recharge</h2>
