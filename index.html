@@ -118,6 +118,47 @@ body.bg-gray-50{background:radial-gradient(900px 420px at 100% 0,#d3e3ff 0,trans
 #auth-view h1.text-swiftblue{background:linear-gradient(90deg,#071d4d,#0047AB,#2a7bff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 #auth-view .bg-gray-100{background:#eaf1ff}
 </style>
+<style>
+/* ===== FORMULAIRE « NOUVELLE EXPÉDITION » : blocs colorés & champs lisibles ===== */
+#new-form{counter-reset:nfstep}
+#new-form>div:nth-of-type(1){--c:#0047AB;--c2:#5b9bff;--t:#eaf2ff;--b:#b9d3ff;--r:rgba(0,71,171,.18)}
+#new-form>div:nth-of-type(2){--c:#047857;--c2:#34d399;--t:#e8faf2;--b:#a7ebcf;--r:rgba(4,120,87,.18)}
+#new-form>div:nth-of-type(3){--c:#6d28d9;--c2:#a78bfa;--t:#f3eeff;--b:#d4c2ff;--r:rgba(109,40,217,.18)}
+#new-form>div:nth-of-type(4){--c:#c2410c;--c2:#fb923c;--t:#fff4e8;--b:#fbd2a6;--r:rgba(194,65,12,.18)}
+#new-form>div:nth-of-type(5){--c:#334155;--c2:#94a3b8;--t:#f1f5f9;--b:#c5d0de;--r:rgba(51,65,85,.18)}
+#new-form>div.rounded-3xl{background:var(--t);border:1.5px solid var(--b);box-shadow:0 2px 4px rgba(15,23,42,.04),0 26px 50px -28px var(--c)}
+#new-form>div.rounded-3xl::before{height:7px;background:linear-gradient(90deg,var(--c),var(--c2))}
+/* Titre de bloc avec numéro et étiquette */
+#new-form>div.rounded-3xl h3.text-base{color:var(--c);font-size:19px;font-weight:800;letter-spacing:-.01em;gap:12px}
+#new-form>div.rounded-3xl h3.text-base::before{counter-increment:nfstep;content:counter(nfstep);width:32px;height:32px;border-radius:11px;background:linear-gradient(135deg,var(--c),var(--c2));color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 16px -6px var(--c)}
+#new-form>div.rounded-3xl h3.text-base::after{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.12em;color:var(--c);background:#fff;border:1.5px solid var(--b);padding:4px 10px;border-radius:999px}
+#new-form>div:nth-of-type(1) h3.text-base::after{content:"DÉPART"}
+#new-form>div:nth-of-type(2) h3.text-base::after{content:"ARRIVÉE"}
+#new-form>div:nth-of-type(3) h3.text-base::after{content:"CONTENU"}
+#new-form>div:nth-of-type(4) h3.text-base::after{content:"SERVICE"}
+#new-form>div:nth-of-type(5) h3.text-base::after{content:"VALIDATION"}
+#new-form>div.rounded-3xl .text-gray-500{color:var(--c);opacity:.8;font-weight:500}
+/* Libellés */
+#new-form>div.rounded-3xl label.block,#new-form>div.rounded-3xl p.block{color:var(--c);font-weight:700;font-size:12.5px;letter-spacing:.01em;margin-bottom:6px}
+#new-form>div.rounded-3xl label.block span,#new-form>div.rounded-3xl p.block span{color:#64748b}
+/* Champs : fond blanc net, contour coloré */
+#new-form>div.rounded-3xl input:not([type=checkbox]),#new-form>div.rounded-3xl select,#new-form>div.rounded-3xl textarea{background-color:#fff;border:1.5px solid var(--b);color:#0f172a;font-weight:500;box-shadow:0 2px 6px -2px rgba(15,23,42,.1)}
+#new-form>div.rounded-3xl input:not([type=checkbox]):focus,#new-form>div.rounded-3xl select:focus,#new-form>div.rounded-3xl textarea:focus{border-color:var(--c);box-shadow:0 0 0 4px var(--r),0 2px 6px -2px rgba(15,23,42,.1)}
+#new-form>div.rounded-3xl ::placeholder{color:#a3aec0;font-weight:400}
+/* Éléments spéciaux */
+#new-form .bg-gray-50.rounded-xl{background:#fff;border:1.5px dashed var(--b)}
+#new-form .bg-gray-50 .text-gray-500{color:#475569;opacity:1}
+#new-form #dur-total{color:var(--c)}
+#new-form #eta-note{background:#fff;border:1.5px solid var(--b);color:var(--c);padding:10px 14px;border-radius:14px}
+#new-form label.flex.items-center{background:#fff;border:1.5px solid var(--b);border-radius:14px;padding:13px 14px;color:var(--c)}
+#new-form input[type=checkbox]{accent-color:var(--c)}
+#new-form>div.rounded-3xl canvas{border:2px dashed var(--c)!important;background:#fff!important;box-shadow:0 2px 8px -3px rgba(15,23,42,.15)}
+#new-form .sig-clear{color:var(--c);font-weight:700}
+#new-form .text-gray-400{color:#64748b}
+/* Bloc prix + bouton final */
+#price-box{box-shadow:0 20px 40px -24px rgba(0,71,171,.6)}
+#new-btn{padding-top:17px;padding-bottom:17px;font-size:16px}
+</style>
 </head>
 <body class="bg-gray-50 min-h-screen">
 <div id="toast" class="hidden"></div>
