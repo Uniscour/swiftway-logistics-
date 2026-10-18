@@ -192,16 +192,16 @@ body.bg-gray-50{background:radial-gradient(900px 420px at 100% 0,#d3e3ff 0,trans
     </div>
     <div id="alert-box" class="hidden mb-6 p-4 rounded-xl text-sm text-center font-medium"></div>
     <form id="login-form" class="space-y-5">
-      <div><label id="t-login-email" class="block text-sm font-semibold text-gray-700 mb-1.5">Email</label>
-        <input type="email" id="login-email" required placeholder="votre@email.com" class="w-full px-5 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50"></div>
+      <div><label id="t-login-email" class="block text-sm font-semibold text-gray-700 mb-1.5">Email ou Numéro de téléphone</label>
+        <input type="text" id="login-email" required autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="votre@gmail.com ou 6XXXXXXXX" class="w-full px-5 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50"></div>
       <div><label id="t-login-pass" class="block text-sm font-semibold text-gray-700 mb-1.5">Mot de passe</label>
         <div class="relative"><input type="password" id="login-password" required placeholder="••••••••" class="w-full px-5 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
         <button type="button" class="toggle-password absolute right-4 top-3.5 text-gray-400 hover:text-swiftblue transition cursor-pointer">👁️</button></div></div>
       <button type="submit" id="login-btn" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition duration-200 shadow-md cursor-pointer">Se connecter</button>
     </form>
     <form id="signup-form" class="space-y-4 hidden">
-      <div><label id="t-signup-email" class="block text-xs font-semibold text-gray-700 mb-1">Email</label>
-        <input type="email" id="signup-email" required placeholder="votre@email.com" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50"></div>
+      <div><label id="t-signup-email" class="block text-xs font-semibold text-gray-700 mb-1">Gmail</label>
+        <input type="email" id="signup-email" required autocapitalize="none" spellcheck="false" placeholder="votre@gmail.com" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50"></div>
       <div><label id="t-signup-phone" class="block text-xs font-semibold text-gray-700 mb-1">Numéro de téléphone</label>
         <input type="tel" id="signup-phone" required placeholder="Ex: +237 6XXXXXXXX" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50"></div>
       <div><label id="t-signup-pass" class="block text-xs font-semibold text-gray-700 mb-1">Mot de passe</label>
@@ -256,7 +256,7 @@ body.bg-gray-50{background:radial-gradient(900px 420px at 100% 0,#d3e3ff 0,trans
             <option value="mtn">MTN Money</option><option value="orange">Orange Money</option></select></div>
         <div id="rc-numbers" class="space-y-2"></div>
         <div><label class="block text-xs font-semibold text-gray-700 mb-1">Montant (FCFA)</label>
-          <input id="rc-amount" type="number" min="100" step="1" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50"></div>
+          <input id="rc-amount" type="number" min="1100" step="1" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50"></div>
         <div><label class="block text-xs font-semibold text-gray-700 mb-1">ID de la transaction</label>
           <input id="rc-ref" required placeholder="Ex: MP240101.1234.A56789" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50"></div>
         <div><label class="block text-xs font-semibold text-gray-700 mb-1">Capture d'écran de la preuve de paiement</label>
@@ -343,16 +343,17 @@ tabLogin.addEventListener('click', () => { tabLogin.className = TON; tabSignup.c
 tabSignup.addEventListener('click', () => { tabSignup.className = TON; tabLogin.className = TOFF; signupForm.classList.remove('hidden'); loginForm.classList.add('hidden'); hideAlert(); });
 
 const translations = {
-  fr: { subtitle: "Gérez vos expéditions facilement", loginTab: "Connexion", signupTab: "S'inscrire", email: "Email", password: "Mot de passe", confirmPassword: "Confirmer le mot de passe", phone: "Numéro de téléphone", loginBtn: "Se connecter", signupBtn: "S'inscrire", langToggleDisplay: "EN", processing: "Traitement en cours...", confirmEmail: "Compte créé ! Vérifiez votre email pour confirmer votre compte, puis connectez-vous.", passMismatch: "Les mots de passe ne correspondent pas." },
-  en: { subtitle: "Manage your shipments easily", loginTab: "Login", signupTab: "Sign up", email: "Email", password: "Password", confirmPassword: "Confirm Password", phone: "Phone Number", loginBtn: "Login", signupBtn: "Sign up", langToggleDisplay: "FR", processing: "Processing...", confirmEmail: "Account created! Check your email to confirm your account, then log in.", passMismatch: "Passwords do not match." }
+  fr: { subtitle: "Gérez vos expéditions facilement", loginTab: "Connexion", signupTab: "S'inscrire", email: "Email", emailOrPhone: "Email ou Numéro de téléphone", emailOrPhonePh: "votre@gmail.com ou 6XXXXXXXX", password: "Mot de passe", confirmPassword: "Confirmer le mot de passe", phone: "Numéro de téléphone", loginBtn: "Se connecter", signupBtn: "S'inscrire", langToggleDisplay: "EN", processing: "Traitement en cours...", confirmEmail: "Compte créé ! Vérifiez votre email pour confirmer votre compte, puis connectez-vous.", passMismatch: "Les mots de passe ne correspondent pas.", gmailOnly: "Veuillez utiliser une adresse Gmail valide se terminant par @gmail.com", phoneShort: "Le numéro de téléphone doit contenir au moins 9 chiffres", badPhoneLogin: "Numéro de téléphone ou mot de passe incorrect" },
+  en: { subtitle: "Manage your shipments easily", loginTab: "Login", signupTab: "Sign up", email: "Email", emailOrPhone: "Email or Phone number", emailOrPhonePh: "your@gmail.com or 6XXXXXXXX", password: "Password", confirmPassword: "Confirm Password", phone: "Phone Number", loginBtn: "Login", signupBtn: "Sign up", langToggleDisplay: "FR", processing: "Processing...", confirmEmail: "Account created! Check your email to confirm your account, then log in.", passMismatch: "Passwords do not match.", gmailOnly: "Please use a valid Gmail address ending with @gmail.com", phoneShort: "The phone number must contain at least 9 digits", badPhoneLogin: "Incorrect phone number or password" }
 };
 let currentLang = 'fr';
 function updateLanguage(lang) {
   currentLang = lang; const t = translations[lang];
   $('current-lang-text').textContent = t.langToggleDisplay; $('t-subtitle').textContent = t.subtitle;
   tabLogin.textContent = t.loginTab; tabSignup.textContent = t.signupTab;
-  $('t-login-email').textContent = t.email; $('t-login-pass').textContent = t.password; $('login-btn').textContent = t.loginBtn;
-  $('t-signup-email').textContent = t.email; $('t-signup-phone').textContent = t.phone; $('t-signup-pass').textContent = t.password;
+  $('t-login-email').textContent = t.emailOrPhone; $('login-email').placeholder = t.emailOrPhonePh;
+  $('t-login-pass').textContent = t.password; $('login-btn').textContent = t.loginBtn;
+  $('t-signup-email').textContent = 'Gmail'; $('signup-email').placeholder = 'votre@gmail.com'; $('t-signup-phone').textContent = t.phone; $('t-signup-pass').textContent = t.password;
   $('t-signup-pass-confirm').textContent = t.confirmPassword; $('signup-btn').textContent = t.signupBtn;
 }
 $('lang-toggle').addEventListener('click', (e) => { e.preventDefault(); updateLanguage(currentLang === 'fr' ? 'en' : 'fr'); });
@@ -365,16 +366,54 @@ function showAlert(message, type = 'error') {
   alertBox.className = `mb-6 p-4 rounded-xl text-sm text-center font-medium ${type === 'error' ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-green-50 text-green-700 border border-green-100'}`;
   alertBox.classList.remove('hidden');
 }
+
+// Retrouve l'e-mail rattaché à un numéro de téléphone (9 derniers chiffres comparés, quel que soit le format enregistré).
+async function emailFromPhone(digits) {
+  const last9 = digits.slice(-9);
+  // 1) Fonction SQL facultative (SECURITY DEFINER) : fonctionne même si la table des profils n'est pas lisible avant connexion.
+  try {
+    const r = await supabaseClient.rpc('sw_email_by_phone', { p_phone: digits });
+    if (!r.error && r.data) {
+      const v = Array.isArray(r.data) ? r.data[0] : r.data;
+      const em = typeof v === 'string' ? v : (v && v.email);
+      if (em) return String(em).trim();
+    }
+  } catch (e) {}
+  // 2) Recherche directe dans sw_profiles : les chiffres séparés par des jokers couvrent espaces, tirets et « + ».
+  try {
+    const pattern = '%' + last9.split('').join('%') + '%';
+    const { data, error } = await supabaseClient.from('sw_profiles').select('email,phone').ilike('phone', pattern).limit(20);
+    if (!error && data) {
+      const hit = data.find(p => p.email && String(p.phone || '').replace(/\D/g, '').slice(-9) === last9);
+      if (hit) return String(hit.email).trim();
+    }
+  } catch (e) {}
+  return null;
+}
+
 loginForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const email = $('login-email').value.trim(), password = $('login-password').value, t = translations[currentLang];
+  const ident = $('login-email').value.trim(), password = $('login-password').value, t = translations[currentLang];
   showAlert(t.processing, 'success');
+  let email = ident;
+  if (!ident.includes('@')) {
+    // Connexion par numéro de téléphone
+    const digits = ident.replace(/\D/g, '');
+    if (digits.length < 9) { showAlert(t.badPhoneLogin); return; }
+    email = await emailFromPhone(digits);
+    if (!email) { showAlert(t.badPhoneLogin); return; }
+  }
   const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-  if (error) showAlert(error.message); else { hideAlert(); showDashView(data.user); }
+  if (error) showAlert(ident.includes('@') ? error.message : t.badPhoneLogin);
+  else { hideAlert(); showDashView(data.user); }
 });
 signupForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const email = $('signup-email').value.trim(), phone = $('signup-phone').value.trim(), password = $('signup-password').value, t = translations[currentLang];
+  // Validation stricte : Gmail uniquement
+  if (!/^[^\s@]+@gmail\.com$/i.test(email)) { showAlert(t.gmailOnly); return; }
+  // Validation stricte : au moins 9 chiffres (espaces, tirets et + ignorés)
+  if (phone.replace(/\D/g, '').length < 9) { showAlert(t.phoneShort); return; }
   if (password !== $('signup-password-confirm').value) { showAlert(t.passMismatch); return; }
   showAlert(t.processing, 'success');
   const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { phone_number: phone } } });
@@ -1045,7 +1084,7 @@ $('recharge-form').addEventListener('submit', async (e) => {
   const btn = $('rc-btn'), f = $('rc-file').files[0];
   const amt = Number($('rc-amount').value), ref = $('rc-ref').value.trim();
   if (!PAYNUMS.length) { toast('Aucun numéro de dépôt disponible pour le moment.', 'error'); return; }
-  if (!amt || amt < 100) { toast('Montant minimum : 100 FCFA.', 'error'); return; }
+  if (!amt || amt < 1100) { toast('Montant minimum : 1 100 FCFA', 'error'); return; }
   if (!ref) { toast("Indiquez l'ID de la transaction.", 'error'); return; }
   if (!f) { toast("Ajoutez la capture d'écran de la preuve de paiement.", 'error'); return; }
   if (!f.type.startsWith('image/')) { toast('Le fichier doit être une image.', 'error'); return; }
