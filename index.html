@@ -1157,11 +1157,13 @@ async function markHelpRead(rows) {
   setHelpBadge(0);
 }
 const newTag = (m) => (NEWSET.has(m.id) || NEWSET.has(m.id + ':r')) ? '<span class="newtag">NOUVEAU</span>' : '';
+// Date d'envoi de la réponse de l'assistant (colonne replied_at, ajoutée par la migration SQL)
+const replyStamp = (m) => m.replied_at ? `<span class="text-gray-400 font-normal"> · ${fmtDate(m.replied_at)}</span>` : '';
 
 // Message supprimé par le client mais avec une réponse de l'admin : on n'affiche que la réponse.
 function replyOnlyCard(m) {
   return `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3"><div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
-    <p class="text-xs font-bold text-swiftblue mb-1">Réponse de l'assistant${newTag(m)}</p><p class="text-sm text-gray-800 whitespace-pre-wrap">${esc(m.admin_reply)}</p></div>
+    <p class="text-xs font-bold text-swiftblue mb-1">Réponse de l'assistant${replyStamp(m)}${newTag(m)}</p><p class="text-sm text-gray-800 whitespace-pre-wrap">${esc(m.admin_reply)}</p></div>
     <button type="button" data-udel="${esc(m.id)}" class="u-mdel mt-3 text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button></div>`;
 }
 function broadcastCard(m) {
@@ -1185,7 +1187,7 @@ async function loadHelp(silent) {
       <p class="text-xs text-gray-400">${esc(MCAT[m.category] || m.category)} · ${fmtDate(m.created_at)}</p></div>
       <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold ${m.status === 'resolved' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}">${m.status === 'resolved' ? 'Résolu' : 'En cours'}</span></div>
       <p class="text-sm text-gray-700 mt-2 whitespace-pre-wrap">${esc(m.body)}</p>
-      ${m.admin_reply ? `<div class="mt-3 bg-blue-50 border border-blue-100 rounded-xl p-3"><p class="text-xs font-bold text-swiftblue mb-1">Réponse de l'assistant</p><p class="text-sm text-gray-800 whitespace-pre-wrap">${esc(m.admin_reply)}</p></div>` : ''}<button type="button" data-udel="${esc(m.id)}" class="u-mdel mt-3 text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button></div>`).join('');
+      ${m.admin_reply ? `<div class="mt-3 bg-blue-50 border border-blue-100 rounded-xl p-3"><p class="text-xs font-bold text-swiftblue mb-1">Réponse de l'assistant${replyStamp(m)}</p><p class="text-sm text-gray-800 whitespace-pre-wrap">${esc(m.admin_reply)}</p></div>` : ''}<button type="button" data-udel="${esc(m.id)}" class="u-mdel mt-3 text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button></div>`).join('');
   const hideM = async (ids) => { const { error } = await supabaseClient.rpc('sw_user_hide_messages', { p_ids: ids.map(String) }); if (error) { toast('Erreur : ' + error.message, 'error'); return; } toast('Supprimé de votre journal.'); loadHelp(); };
   list.querySelectorAll('.u-mdel').forEach(b => b.addEventListener('click', () => { if (confirm('Supprimer ce message de votre journal ?')) hideM([b.dataset.udel]); }));
   const umc = $('u-mclear'); if (umc) umc.addEventListener('click', () => { if (confirm('Supprimer tous vos messages de votre journal ?')) hideM(msgs.map(x => x.id)); });
@@ -1396,6 +1398,49 @@ select.x-in{cursor:pointer}
 #admin-view [style*="background:#0f1a12"]{background:#eaf1ff!important;border-left-color:#0047AB!important}
 #admin-view [style*="border:1px solid #1b2530"]{border:1px solid var(--line)!important;border-radius:12px}
 #admin-view [style*="border-top:1px dashed #1b2530"]{border-top:1px solid #edf2fa!important}
+
+/* ===== MISE EN PAGE AÉRÉE : Caisse, Messages, Annulations, Comptes, Offre promotionnelle ===== */
+.x-wrap{max-width:880px;margin:0 auto}
+.x-wrap>.x-h{margin-bottom:6px}
+.x-lead{color:var(--mut);font-size:12.5px;line-height:1.5;margin:0 0 18px}
+.x-lead b{color:var(--ink)}
+.x-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+/* Filtres segmentés avec compteurs */
+.x-segs{display:flex;gap:4px;padding:4px;background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:18px;overflow-x:auto;box-shadow:0 12px 26px -22px rgba(10,58,154,.5)}
+.x-sg{flex:1 0 auto;display:flex;align-items:center;justify-content:center;gap:7px;background:none;border:0;border-radius:10px;padding:9px 14px;font:inherit;font-size:12px;font-weight:700;color:#5b6b86;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+.x-sg:hover{background:var(--soft);color:var(--brand)}
+.x-sg.on{background:linear-gradient(135deg,#0047AB,#2a7bff);color:#fff;box-shadow:0 8px 16px -10px rgba(0,71,171,.8)}
+.x-sg em{font-style:normal;font-size:10.5px;font-weight:800;padding:1px 7px;border-radius:999px;background:#eaf1ff;color:var(--brand)}
+.x-sg.on em{background:rgba(255,255,255,.25);color:#fff}
+/* Cartes de liste */
+.x-c2{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px 20px;margin-bottom:14px;box-shadow:0 1px 2px rgba(10,58,154,.05),0 18px 36px -28px rgba(10,58,154,.45)}
+.x-c2.sm{padding:14px 16px;margin-bottom:10px;border-radius:16px}
+.x-c2h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.x-c2h>div{min-width:0}
+.x-amt{display:block;font-size:20px;font-weight:800;color:var(--ink);letter-spacing:-.01em;word-break:break-all}
+.x-sub{display:block;font-size:12px;color:var(--mut);margin-top:3px;line-height:1.5}
+.x-meta{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12px;color:var(--mut);margin:12px 0 0}
+.x-meta b{color:var(--ink);font-weight:600}
+.x-body{white-space:pre-wrap;color:var(--ink);font-size:13.5px;line-height:1.55;margin:12px 0 0;word-break:break-word}
+.x-quote{margin:12px 0 0;padding:10px 14px;background:#f7f9fe;border-left:3px solid #cbd8ee;border-radius:0 10px 10px 0;font-size:13px;color:var(--ink);white-space:pre-wrap;word-break:break-word}
+.x-form{margin-top:14px;padding-top:14px;border-top:1px solid #edf2fa;display:grid;gap:10px}
+.x-form label{font-size:11px;color:var(--mut);font-weight:600;letter-spacing:.02em}
+.x-acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.x-hint{font-size:11.5px;color:var(--mut);margin:8px 0 0;line-height:1.5}
+.x-empty{text-align:center;color:var(--mut);padding:44px 12px;background:rgba(255,255,255,.7);border:1px dashed #cbd8ee;border-radius:18px;font-size:13px}
+/* Zones repliables */
+.x-sec{margin-top:12px;border-top:1px solid #edf2fa;padding-top:2px}
+.x-sec summary{cursor:pointer;font-size:12px;font-weight:600;color:var(--mut);padding:9px 0;list-style:none}
+.x-sec summary::-webkit-details-marker{display:none}
+.x-sec summary::before{content:"▸ ";color:var(--brand2)}
+.x-sec[open] summary::before{content:"▾ "}
+.x-sec>div{padding:2px 0 10px}
+/* Réponse de l'administrateur + accusé de lecture */
+.x-reply{margin-top:14px;padding:12px 14px;background:#f2f7ff;border:1px solid #dbe6ff;border-left:4px solid var(--brand);border-radius:12px}
+.x-reply-h{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:11.5px;font-weight:700;color:var(--brand)}
+.x-reply p{margin:8px 0 0;font-size:13px;white-space:pre-wrap;word-break:break-word;color:var(--ink)}
+.x-prog{height:6px;border-radius:999px;background:#e8eef8;overflow:hidden;margin:12px 0 6px}
+.x-prog i{display:block;height:100%;background:linear-gradient(90deg,#0047AB,#2a7bff)}
 </style>
 <script>
 (() => {
@@ -1416,15 +1461,21 @@ select.x-in{cursor:pointer}
   $('x-exit').onclick = doLogout;
   setInterval(() => { const c = $('x-clock'); if (c) c.textContent = new Date().toLocaleTimeString('fr-FR'); }, 1000);
 
-  const S = { ship: [], users: [], usr: [], admins: [], rech: [], bal: {}, own: {}, v: 'radar', q: '', rf: 'pending', open: null, ev: [], cx: [], st: null, af: 'users', adv: null, logs: [], sent: [] };
+  const S = { ship: [], users: [], usr: [], admins: [], rech: [], bal: {}, own: {}, v: 'radar', q: '', rf: 'pending', open: null, ev: [], cx: [], st: null, af: 'users', adv: null, logs: [], sent: [], uf: 'all', us: 'recent', ulim: 60, grants: [], grantsOk: false };
   // Filtres & file d'envoi de l'onglet WhatsApp
   const WA = { q: '', act: 'all', bal: 'all', min: '', max: '', shp: 'all', reg: 'all', msg: '', done: {}, list: [] };
+  // Offre promotionnelle (Paramètres) : reçu offert à un groupe filtré
+  const PR = { seg: 'never_zero', camp: 'Offre promotionnelle', msg: '', excl: {}, list: [] };
   const COL = { pending: '#7d8da0', picked_up: '#4da3ff', in_transit: '#a78bfa', out_for_delivery: '#ffb020', delivered: '#c6ff3d', cancelled: '#ff5a5f' };
   const M = $('x-main');
   const win = s => s.delivery_window_hours || 48;
   const hrs = s => (Date.now() - new Date(s.created_at)) / 3600000;
   const live = s => s.status !== 'delivered' && s.status !== 'cancelled';
   const late = s => live(s) && hrs(s) > win(s);
+  // Date + heure exactes (avec secondes) pour les dates d'émission et les accusés de lecture
+  const fmtFull = (d) => new Date(d).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'medium' });
+  // Filtre segmenté avec compteurs
+  const segs = (items, cur, attr) => `<div class="x-segs">${items.map(([v, l, n]) => `<button class="x-sg ${cur === v ? 'on' : ''}" ${attr}="${v}">${l}${n != null ? `<em>${n}</em>` : ''}</button>`).join('')}</div>`;
 
   // ---------- PERMISSIONS & RÔLES ----------
   // Le Super Admin Suprême possède tout. Un admin secondaire n'a que les cases cochées.
@@ -1467,7 +1518,7 @@ select.x-in{cursor:pointer}
     msg_reply: 'Réponse à un message', msg_resolve: 'Message résolu', msg_reopen: 'Message rouvert', direct_message: 'Message direct envoyé',
     broadcast: 'Annonce globale envoyée', paynum_add: 'Numéro de paiement ajouté', paynum_edit: 'Numéro de paiement modifié', paynum_toggle: 'Numéro de paiement masqué/affiché',
     sw_admin_send_direct: 'Message direct envoyé', sw_admin_broadcast: 'Annonce globale envoyée', sw_admin_set_active: 'Compte utilisateur activé/coupé', sw_admin_review_recharge: 'Traitement de recharge',
-    wa_contact: 'Discussion WhatsApp ouverte'
+    wa_contact: 'Discussion WhatsApp ouverte', acct_export: 'Export de la liste des comptes', sw_admin_grant_free_receipts: 'Reçu offert (offre promotionnelle)'
   };
   function logAct(action, details) {
     if (isSuper) return;
@@ -1520,6 +1571,9 @@ select.x-in{cursor:pointer}
     cb.textContent = ncx; cb.style.display = ncx && can('cancel') ? 'block' : 'none';
     S.st = null;
     if (isSuper) { try { const st = await supabaseClient.rpc('sw_admin_stats'); S.st = st.error ? null : st.data; } catch (e) { S.st = null; } }
+    // Historique des reçus offerts (table créée par la migration SQL ; ignorée si absente)
+    S.grants = []; S.grantsOk = false;
+    if (isSuper) { try { const gr = await supabaseClient.from('sw_free_grants').select('user_id,created_at,campaign').order('created_at', { ascending: false }).limit(5000); if (!gr.error) { S.grants = gr.data || []; S.grantsOk = true; } } catch (e) {} }
   }
 
   async function loadLogs(id) {
@@ -1585,40 +1639,96 @@ select.x-in{cursor:pointer}
     const qi = $('x-q'); qi.oninput = () => { S.q = qi.value; const p = qi.selectionStart; pipe(); const n = $('x-q'); n.focus(); n.setSelectionRange(p, p); };
   }
 
+  // ---------- CAISSE (recharges) : version aérée ----------
   function cash() {
-    const rows = S.rech.filter(r => !S.rf || r.status === S.rf);
     const col = { pending: '#ffb020', approved: '#c6ff3d', rejected: '#ff5a5f' };
+    const cnt = (k) => S.rech.filter(r => !k || r.status === k).length;
+    const rows = S.rech.filter(r => !S.rf || r.status === S.rf);
     const clr = rows.filter(r => r.status !== 'pending');
-    const clrBar = (isSuper && clr.length) ? `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-4px 0 12px"><button class="x-btn no" data-rclear="${S.rf}">VIDER CHEZ MOI (${clr.length})</button><button class="x-btn no" data-rclear="${S.rf}" data-both="1">VIDER AUSSI CHEZ LES CLIENTS</button><span style="font-size:11px;color:#5b6b7c">Auto : masqué chez moi 5 jours après le traitement (le journal du client est conservé)</span></div>` : '';
-    M.innerHTML = `<p class="x-h"><b>●</b> CAISSE // demandes de recharge</p>
-    <div class="x-chips">${[['pending', 'EN ATTENTE'], ['', 'TOUTES'], ['approved', 'APPROUVÉES'], ['rejected', 'REJETÉES']].map(([v, l]) => `<button class="x-btn ${S.rf === v ? 'on' : ''}" data-rf="${v}">${l}</button>`).join('')}</div>
-    ${clrBar}
-    ${rows.length ? rows.map(r => { const u = S.own[r.user_id] || {}; const adjH = (S.adj || []).filter(a => a.recharge_id === r.id).map(a => `<p style="font-size:11px;margin:2px 0;color:${a.delta > 0 ? '#c6ff3d' : '#ff5a5f'}">${a.delta > 0 ? '+' : ''}${fmtMoney(a.delta)} · ${fmtDate(a.created_at)}${a.note ? ' · ' + esc(a.note) : ''}</p>`).join(''); return `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-size:20px;color:#e9f1f8">${fmtMoney(r.status === 'approved' && r.approved_amount != null ? r.approved_amount : r.amount)}${r.status === 'approved' && r.approved_amount != null && Number(r.approved_amount) !== Number(r.amount) ? ` <span style="font-size:11px;font-weight:400;color:#5b6b7c">(demandé : ${fmtMoney(r.amount)})</span>` : ''}</strong><span class="x-tag" style="color:${col[r.status]}">${esc(RSTATUS[r.status].label.toUpperCase())}</span></div>
-      <p style="font-size:12px;color:#7d8da0;margin:6px 0">${esc(METHODS[r.method] || r.method)} · ID transaction : <span style="color:#e9f1f8">${esc(r.reference)}</span><br>${esc(u.email || '-')} ${u.phone ? '· ' + esc(u.phone) : ''}<br>${fmtDate(r.created_at)}${r.admin_note ? '<br>note : ' + esc(r.admin_note) : ''}</p>
-      ${r.proof_path ? `<button class="x-btn" style="margin-bottom:8px" data-proof="${esc(r.proof_path)}">VOIR LA CAPTURE</button>` : '<p style="font-size:11px;color:#ff5a5f;margin-bottom:8px">// aucune capture jointe</p>'}
-      ${r.status === 'pending' ? `<label style="font-size:11px;color:#5b6b7c">MONTANT À CRÉDITER (FCFA) · demandé : ${fmtMoney(r.amount)}</label>
-        <input id="ra-${esc(r.id)}" type="number" min="1" step="1" class="x-in" value="${esc(r.amount)}" style="margin:4px 0 8px">
-        <input id="rn-${esc(r.id)}" class="x-in" placeholder="motif / note (OBLIGATOIRE pour rejeter)" style="margin-bottom:8px"><div style="display:flex;gap:8px">
-        <button class="x-btn go" data-rv="1" data-id="${esc(r.id)}">APPROUVER</button><button class="x-btn no" data-rv="0" data-id="${esc(r.id)}">REJETER</button></div>`
-      : (r.status === 'approved' && isSuper) ? `${adjH}<input id="aj-${esc(r.id)}" type="number" min="1" step="1" class="x-in" placeholder="montant à ajouter / retirer (FCFA)" style="margin:8px 0">
-        <input id="an-${esc(r.id)}" class="x-in" placeholder="motif (facultatif)" style="margin-bottom:8px"><div style="display:flex;gap:8px">
-        <button class="x-btn go" data-adj="1" data-id="${esc(r.id)}">AJOUTER</button><button class="x-btn no" data-adj="-1" data-id="${esc(r.id)}">RETIRER</button></div>` : ''}${(isSuper && r.status !== 'pending') ? `<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="x-btn no" data-rdel="${esc(r.id)}">SUPPRIMER CHEZ MOI</button><button class="x-btn no" data-rdel="${esc(r.id)}" data-both="1">SUPPRIMER AUSSI CHEZ LE CLIENT</button></div>` : ''}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucune demande</p>'}`;
+    const clrBar = (isSuper && clr.length) ? `<details class="x-sec" style="margin:-8px 0 16px;border-top:0"><summary>Nettoyer l'historique (${clr.length} ligne(s) traitée(s))</summary><div><div class="x-acts"><button class="x-btn no" data-rclear="${S.rf}">VIDER CHEZ MOI</button><button class="x-btn no" data-rclear="${S.rf}" data-both="1">VIDER AUSSI CHEZ LES CLIENTS</button></div><p class="x-hint">Auto : masqué chez moi 5 jours après le traitement (le journal du client est conservé).</p></div></details>` : '';
+    const card = (r) => {
+      const u = S.own[r.user_id] || {};
+      const amt = r.status === 'approved' && r.approved_amount != null ? r.approved_amount : r.amount;
+      const diff = r.status === 'approved' && r.approved_amount != null && Number(r.approved_amount) !== Number(r.amount) ? ` <span class="x-sub" style="display:inline;margin-left:6px;font-weight:400">(demandé : ${fmtMoney(r.amount)})</span>` : '';
+      const adjH = (S.adj || []).filter(a => a.recharge_id === r.id).map(a => `<p class="x-hint" style="margin:2px 0;color:${a.delta > 0 ? '#059669' : '#dc2626'}">${a.delta > 0 ? '+' : ''}${fmtMoney(a.delta)} · ${fmtDate(a.created_at)}${a.note ? ' · ' + esc(a.note) : ''}</p>`).join('');
+      const proof = r.proof_path ? `<div class="x-acts" style="margin-top:14px"><button class="x-btn" data-proof="${esc(r.proof_path)}">VOIR LA CAPTURE</button></div>` : '<p class="x-hint" style="color:#dc2626">Aucune capture jointe.</p>';
+      let act = '';
+      if (r.status === 'pending') {
+        act = `<div class="x-form"><div><label>MONTANT À CRÉDITER (FCFA) · demandé : ${fmtMoney(r.amount)}</label>
+          <input id="ra-${esc(r.id)}" type="number" min="1" step="1" class="x-in" value="${esc(r.amount)}" style="margin-top:4px"></div>
+          <div><label>MOTIF / NOTE (obligatoire pour rejeter)</label><input id="rn-${esc(r.id)}" class="x-in" placeholder="Ex : paiement vérifié" style="margin-top:4px"></div>
+          <div class="x-acts"><button class="x-btn go" data-rv="1" data-id="${esc(r.id)}">APPROUVER</button><button class="x-btn no" data-rv="0" data-id="${esc(r.id)}">REJETER</button></div></div>`;
+      } else if (isSuper) {
+        const adjBox = r.status === 'approved' ? `${adjH}<div class="x-form" style="border-top:0;margin-top:6px;padding-top:0"><input id="aj-${esc(r.id)}" type="number" min="1" step="1" class="x-in" placeholder="Montant à ajouter / retirer (FCFA)">
+          <input id="an-${esc(r.id)}" class="x-in" placeholder="Motif (facultatif)"><div class="x-acts"><button class="x-btn go" data-adj="1" data-id="${esc(r.id)}">AJOUTER</button><button class="x-btn no" data-adj="-1" data-id="${esc(r.id)}">RETIRER</button></div></div>` : '';
+        act = `<details class="x-sec"><summary>Options avancées</summary><div>${adjBox}<div class="x-acts" style="margin-top:10px"><button class="x-btn no" data-rdel="${esc(r.id)}">SUPPRIMER CHEZ MOI</button><button class="x-btn no" data-rdel="${esc(r.id)}" data-both="1">SUPPRIMER AUSSI CHEZ LE CLIENT</button></div></div></details>`;
+      }
+      return `<div class="x-c2">
+        <div class="x-c2h"><div><strong class="x-amt">${fmtMoney(amt)}${diff}</strong><span class="x-sub">${esc(METHODS[r.method] || r.method)} · ID transaction : <b style="color:var(--ink)">${esc(r.reference)}</b></span></div><span class="x-tag" style="color:${col[r.status]}">${esc(RSTATUS[r.status].label.toUpperCase())}</span></div>
+        <div class="x-meta"><span><b>${esc(u.email || '-')}</b></span>${u.phone ? `<span>${esc(u.phone)}</span>` : ''}<span>Demandée le <b>${fmtFull(r.created_at)}</b></span></div>
+        ${r.admin_note ? `<div class="x-quote">Note : ${esc(r.admin_note)}</div>` : ''}
+        ${proof}${act}</div>`;
+    };
+    M.innerHTML = `<div class="x-wrap"><p class="x-h"><b>●</b> CAISSE // demandes de recharge</p>
+      <p class="x-lead">Vérifiez la capture et l'ID de transaction, puis créditez le portefeuille du client.</p>
+      ${segs([['pending', 'En attente', cnt('pending')], ['approved', 'Approuvées', cnt('approved')], ['rejected', 'Rejetées', cnt('rejected')], ['', 'Toutes', cnt('')]], S.rf, 'data-rf')}
+      ${clrBar}
+      ${rows.length ? rows.map(card).join('') : '<div class="x-empty">Aucune demande pour ce filtre.</div>'}</div>`;
   }
 
+  // ---------- COMPTES : tableau de bord filtrable + export ----------
+  function acctMeta() {
+    const cnt = {}, last = {};
+    S.ship.forEach(s => { cnt[s.user_id] = (cnt[s.user_id] || 0) + 1; const t = new Date(s.created_at).getTime(); if (!last[s.user_id] || t > last[s.user_id]) last[s.user_id] = t; });
+    return { cnt, last };
+  }
+  // Inactif = compte actif, ouvert depuis plus de 30 jours, sans colis depuis 30 jours
+  function isDormant(u, mt) {
+    const now = Date.now(), ls = mt.last[u.id], age = now - new Date(u.created_at).getTime();
+    return u.is_active !== false && age > 30 * 864e5 && (!ls || now - ls > 30 * 864e5);
+  }
+  function acctStatus(u, mt) { return u.is_active === false ? ['BLOQUÉ', '#ff5a5f'] : isDormant(u, mt) ? ['INACTIF', '#ffb020'] : ['ACTIF', '#c6ff3d']; }
+  function acctFilter(u, k, mt) {
+    const bal = Number(S.bal[u.id] || 0);
+    if (k === 'new') return Date.now() - new Date(u.created_at).getTime() <= 7 * 864e5;
+    if (k === 'active') return u.is_active !== false;
+    if (k === 'zero') return bal <= 0;
+    if (k === 'blocked') return u.is_active === false || isDormant(u, mt);
+    return true;
+  }
+  function acctRows() {
+    const mt = acctMeta(), q = (S.uq || '').toLowerCase();
+    const rows = S.usr.filter(u => acctFilter(u, S.uf, mt) && (!q || [u.email, u.phone].some(v => String(v || '').toLowerCase().includes(q))));
+    const bal = (u) => Number(S.bal[u.id] || 0), tm = (u) => new Date(u.created_at).getTime();
+    if (S.us === 'bal_desc') rows.sort((a, b) => bal(b) - bal(a));
+    else if (S.us === 'bal_asc') rows.sort((a, b) => bal(a) - bal(b));
+    else if (S.us === 'ship_desc') rows.sort((a, b) => (mt.cnt[b.id] || 0) - (mt.cnt[a.id] || 0));
+    else rows.sort((a, b) => tm(b) - tm(a));
+    return { rows, mt };
+  }
+  function acctExport() {
+    const { rows, mt } = acctRows();
+    if (!rows.length) return toast('Aucun compte à exporter.', 'error');
+    const q = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const head = ['Email', 'Téléphone', 'Inscription', 'Solde (FCFA)', 'Colis', 'Dernier colis', 'Statut'];
+    const lines = rows.map(u => [u.email || '', u.phone || '', fmtDay(u.created_at), Number(S.bal[u.id] || 0), mt.cnt[u.id] || 0, mt.last[u.id] ? fmtDay(mt.last[u.id]) : 'jamais', acctStatus(u, mt)[0]].map(q).join(';'));
+    const blob = new Blob(['\ufeff' + [head.map(q).join(';'), ...lines].join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'comptes-swiftway-' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+    logAct('acct_export', rows.length + ' compte(s) · filtre ' + S.uf);
+    toast(rows.length + ' compte(s) exporté(s).');
+  }
   function acct() {
     if (!isSuper) S.af = 'users';
     if (S.af === 'admins' && S.adv) return admDetail();
     const q = (S.uq || '').toLowerCase();
-    const base = S.af === 'admins' ? S.admins : S.usr;
-    const rows = base.filter(u => !q || [u.email, u.phone].some(v => String(v || '').toLowerCase().includes(q)));
-    const cnt = {}; S.ship.forEach(s => cnt[s.user_id] = (cnt[s.user_id] || 0) + 1);
     const chips = isSuper ? `<div class="x-chips"><button class="x-btn ${S.af === 'users' ? 'on' : ''}" data-af="users">UTILISATEURS (${S.usr.length})</button><button class="x-btn ${S.af === 'admins' ? 'on' : ''}" data-af="admins">ADMINISTRATEURS (${S.admins.length})</button></div>` : '';
     const head = `<p class="x-h"><b>●</b> COMPTES // ${S.af === 'admins' ? 'ADMINISTRATEURS ' + S.admins.length : 'UTILISATEURS ' + S.usr.length}</p>${chips}`;
-    const search = `<input id="x-uq" class="x-in" style="margin-bottom:12px" placeholder="> Gmail ou téléphone" value="${esc(S.uq || '')}">`;
-    let body = '';
+    let tools = '', body = '';
     if (S.af === 'admins') {
+      const rows = S.admins.filter(u => !q || [u.email, u.phone].some(v => String(v || '').toLowerCase().includes(q)));
       const cands = S.usr.slice().sort((a, b) => String(a.email || '').localeCompare(String(b.email || '')));
+      tools = `<input id="x-uq" class="x-in" style="margin-bottom:12px" placeholder="> Gmail ou téléphone" value="${esc(S.uq || '')}">`;
       body = `<div class="x-panel" style="margin-top:0;margin-bottom:14px;border-color:#c6ff3d"><p class="x-h"><b>●</b> NOMMER UN ADMINISTRATEUR</p>
         <select id="nm-user" class="x-in" style="margin-bottom:8px"><option value="">— choisir un utilisateur —</option>${cands.map(u => `<option value="${esc(u.id)}" ${S.nm === u.id ? 'selected' : ''}>${esc(u.email || '-')} ${u.phone ? '· ' + esc(u.phone) : ''}</option>`).join('')}</select>
         ${permsHtml('nm', {})}
@@ -1629,15 +1739,30 @@ select.x-in{cursor:pointer}
           <div style="margin-bottom:8px">${permTags(u.permissions)}</div>
           <button class="x-btn go" data-admopen="${esc(u.id)}">OUVRIR : TABLEAU DE BORD & JOURNAL</button></div>`).join('') : '<p style="color:#5b6b7c">// aucun administrateur secondaire</p>');
     } else {
-      body = rows.map(u => `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
-        <strong style="color:#e9f1f8;word-break:break-all">${esc(u.email || '-')}</strong>
-        <p style="font-size:12px;color:#7d8da0;margin:4px 0 10px">${esc(u.phone || 'sans téléphone')} · ${fmtMoney(S.bal[u.id] || 0)} · ${cnt[u.id] || 0} colis</p>
-        <div style="display:grid;grid-template-columns:1fr auto;gap:8px">
-          <select id="ua-${esc(u.id)}" class="x-in"><option value="1" ${u.is_active ? 'selected' : ''}>ACTIF</option><option value="0" ${!u.is_active ? 'selected' : ''}>COUPÉ</option></select>
-          <button class="x-btn go" data-us="${esc(u.id)}">OK</button></div>${can('msg') ? `<button class="x-btn" style="margin-top:8px" data-dmto="${esc(u.id)}">✉ ÉCRIRE À CET UTILISATEUR</button>` : ''}${isSuper ? ` <button class="x-btn" style="margin-top:8px" data-mkadm="${esc(u.id)}">★ NOMMER ADMINISTRATEUR</button>` : ''}</div>`).join('');
+      const { rows, mt } = acctRows();
+      const cnt = (k) => S.usr.filter(u => acctFilter(u, k, mt)).length;
+      const shown = rows.slice(0, S.ulim), totBal = rows.reduce((a, u) => a + Number(S.bal[u.id] || 0), 0);
+      const sortOpts = [['recent', 'Plus récents'], ['bal_desc', 'Solde : du plus haut'], ['bal_asc', 'Solde : du plus bas'], ['ship_desc', 'Plus de colis']];
+      tools = segs([['all', 'Tous', cnt('all')], ['new', 'Nouveaux (7j)', cnt('new')], ['active', 'Actifs', cnt('active')], ['zero', 'Solde 0 FCFA', cnt('zero')], ['blocked', 'Bloqués / Inactifs', cnt('blocked')]], S.uf, 'data-uf') +
+        `<div class="x-bar"><input id="x-uq" class="x-in" style="flex:1 1 220px;width:auto" placeholder="> Gmail ou téléphone" value="${esc(S.uq || '')}">
+          <select id="x-usort" class="x-in" style="flex:0 0 auto;width:auto">${sortOpts.map(([v, l]) => `<option value="${v}" ${S.us === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+        <div class="x-bar" style="justify-content:space-between"><span class="x-lead" style="margin:0"><b>${rows.length}</b> compte(s) · solde cumulé <b>${fmtMoney(totBal)}</b></span>
+          <span class="x-acts"><button class="x-btn go" data-uexp="1" ${rows.length ? '' : 'disabled'}>⭳ EXPORTER (CSV)</button><button class="x-btn" data-ucopy="mail" ${rows.length ? '' : 'disabled'}>COPIER LES E-MAILS</button><button class="x-btn" data-ucopy="tel" ${rows.length ? '' : 'disabled'}>COPIER LES NUMÉROS</button></span></div>`;
+      body = (shown.length ? shown.map(u => {
+        const b = Number(S.bal[u.id] || 0), c = mt.cnt[u.id] || 0, ls = mt.last[u.id], st = acctStatus(u, mt);
+        return `<div class="x-c2 sm">
+          <div class="x-c2h"><div><strong class="x-amt" style="font-size:15px">${esc(u.email || '-')}</strong><span class="x-sub">${esc(u.phone || 'sans téléphone')}</span></div><span class="x-tag" style="color:${st[1]}">${st[0]}</span></div>
+          <div class="x-meta"><span>Solde <b>${fmtMoney(b)}</b></span><span><b>${c}</b> colis</span><span>Inscrit le <b>${fmtDay(u.created_at)}</b></span><span>Dernier colis <b>${ls ? fmtDay(ls) : 'jamais'}</b></span></div>
+          <details class="x-sec"><summary>Gérer ce compte</summary><div>
+            <div style="display:grid;grid-template-columns:1fr auto;gap:8px">
+              <select id="ua-${esc(u.id)}" class="x-in"><option value="1" ${u.is_active ? 'selected' : ''}>ACTIF</option><option value="0" ${!u.is_active ? 'selected' : ''}>COUPÉ</option></select>
+              <button class="x-btn go" data-us="${esc(u.id)}">OK</button></div>
+            <div class="x-acts" style="margin-top:10px">${can('msg') ? `<button class="x-btn" data-dmto="${esc(u.id)}">✉ ÉCRIRE À CET UTILISATEUR</button>` : ''}${isSuper ? `<button class="x-btn" data-mkadm="${esc(u.id)}">★ NOMMER ADMINISTRATEUR</button>` : ''}</div></div></details></div>`;
+      }).join('') : '<div class="x-empty">Aucun compte ne correspond à ce filtre.</div>') +
+        (rows.length > shown.length ? `<div class="x-acts" style="justify-content:center;margin:6px 0 10px"><button class="x-btn" data-umore="1">AFFICHER PLUS (${rows.length - shown.length} restant(s))</button></div>` : '');
     }
-    M.innerHTML = head + search + body;
-    const qi = $('x-uq'); qi.oninput = () => { S.uq = qi.value; const p = qi.selectionStart; acct(); const n = $('x-uq'); n.focus(); n.setSelectionRange(p, p); };
+    M.innerHTML = `<div class="x-wrap">${head}${tools}${body}</div>`;
+    const qi = $('x-uq'); qi.oninput = () => { S.uq = qi.value; S.ulim = 60; const p = qi.selectionStart; acct(); const n = $('x-uq'); n.focus(); n.setSelectionRange(p, p); };
   }
 
   // Tableau de bord personnel + journal complet d'un administrateur secondaire (Super Admin uniquement)
@@ -1665,69 +1790,91 @@ select.x-in{cursor:pointer}
       ${L.length ? L.map(l => `<div class="x-row" style="cursor:default;flex-direction:column;gap:2px"><span style="color:#e9f1f8">${esc(ACT_LABEL[l.action] || l.action)}</span><span style="color:#7d8da0;font-size:12px;white-space:pre-wrap;word-break:break-word">${esc(l.detail || l.details || '')}</span><span style="color:#5b6b7c;font-size:10px">${fmtDate(l.created_at)}</span></div>`).join('') : '<p style="color:#5b6b7c">// journal vide</p>'}</div>`;
   }
 
+  // ---------- ANNULATIONS : version aérée ----------
   function cancelV() {
     if (S.cf === undefined) S.cf = 'pending';
-    const rows = (S.cx || []).filter(r => !S.cf || r.status === S.cf);
+    const all = S.cx || [], cnt = (k) => all.filter(r => !k || r.status === k).length;
+    const rows = all.filter(r => !S.cf || r.status === S.cf);
     const col = { pending: '#ffb020', approved: '#c6ff3d', rejected: '#ff5a5f' }, lab = { pending: 'EN ATTENTE', approved: 'ACCEPTÉE', rejected: 'REJETÉE' };
-    M.innerHTML = `<p class="x-h"><b>●</b> ANNULATIONS // demandes des clients</p>
-    <div class="x-chips">${[['pending', 'EN ATTENTE'], ['', 'TOUTES'], ['approved', 'ACCEPTÉES'], ['rejected', 'REJETÉES']].map(([v, l]) => `<button class="x-btn ${S.cf === v ? 'on' : ''}" data-cf="${v}">${l}</button>`).join('')}</div>
-    ${rows.length ? rows.map(r => { const s = S.ship.find(x => x.id === r.shipment_id) || {}, u = S.own[r.user_id] || {}; return `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="color:#e9f1f8;word-break:break-all">${esc(s.tracking_code ? fmtCode(s.tracking_code) : '-')}</strong><span class="x-tag" style="color:${col[r.status]}">${lab[r.status] || esc(r.status)}</span></div>
-      <p style="font-size:12px;color:#7d8da0;margin:6px 0">${esc(s.origin || '')} → ${esc(s.destination || '')} · ${esc(u.email || '-')}<br>${fmtDate(r.created_at)}</p>
-      <p style="font-size:13px;color:#e9f1f8;white-space:pre-wrap;margin:6px 0">${r.reason ? 'Motif : ' + esc(r.reason) : '// aucun motif'}</p>
-      ${r.admin_note ? `<p style="font-size:11px;color:#7d8da0">note : ${esc(r.admin_note)}</p>` : ''}
-      ${r.status === 'pending' ? `<input id="cn-${esc(r.id)}" class="x-in" placeholder="note (facultatif)" style="margin:8px 0"><div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="x-btn go" data-cxok="${esc(r.id)}">ACCEPTER</button><button class="x-btn no" data-cxno="${esc(r.id)}">REJETER</button>
-        ${s.id ? `<button class="x-btn" data-open="${esc(s.id)}">VOIR LE COLIS</button>` : ''}</div>` : ''}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucune demande</p>'}`;
+    const card = (r) => {
+      const s = S.ship.find(x => x.id === r.shipment_id) || {}, u = S.own[r.user_id] || {};
+      return `<div class="x-c2">
+        <div class="x-c2h"><div><strong class="x-amt" style="font-size:16px">${esc(s.tracking_code ? fmtCode(s.tracking_code) : '-')}</strong><span class="x-sub">${esc(s.origin || '')} → ${esc(s.destination || '')}</span></div><span class="x-tag" style="color:${col[r.status]}">${lab[r.status] || esc(r.status)}</span></div>
+        <div class="x-meta"><span><b>${esc(u.email || '-')}</b></span><span>Demandée le <b>${fmtFull(r.created_at)}</b></span></div>
+        <div class="x-quote">${r.reason ? 'Motif : ' + esc(r.reason) : 'Aucun motif indiqué.'}</div>
+        ${r.admin_note ? `<p class="x-hint">Note de l'administrateur : ${esc(r.admin_note)}</p>` : ''}
+        ${r.status === 'pending' ? `<div class="x-form"><input id="cn-${esc(r.id)}" class="x-in" placeholder="Note (facultatif)"><div class="x-acts">
+          <button class="x-btn go" data-cxok="${esc(r.id)}">ACCEPTER</button><button class="x-btn no" data-cxno="${esc(r.id)}">REJETER</button>
+          ${s.id ? `<button class="x-btn" data-open="${esc(s.id)}">VOIR LE COLIS</button>` : ''}</div></div>` : (s.id ? `<div class="x-acts" style="margin-top:12px"><button class="x-btn" data-open="${esc(s.id)}">VOIR LE COLIS</button></div>` : '')}</div>`;
+    };
+    M.innerHTML = `<div class="x-wrap"><p class="x-h"><b>●</b> ANNULATIONS // demandes des clients</p>
+      <p class="x-lead">Accepter une demande annule le colis. Aucun remboursement du reçu n'est prévu.</p>
+      ${segs([['pending', 'En attente', cnt('pending')], ['approved', 'Acceptées', cnt('approved')], ['rejected', 'Rejetées', cnt('rejected')], ['', 'Toutes', cnt('')]], S.cf, 'data-cf')}
+      ${rows.length ? rows.map(card).join('') : '<div class="x-empty">Aucune demande pour ce filtre.</div>'}</div>`;
   }
 
   // ---------- ACCUSÉS DE RÉCEPTION (Lu / Non lu) ----------
   // Affiche « ✓ LU · date/heure » en vert ou « NON LU » en gris. Rien si la colonne n'existe pas encore (migration SQL non exécutée).
   function rcpt(m, field) {
     if (!m || !(field in m)) return '';
-    return m[field] ? `<span class="x-tag" style="color:#c6ff3d;white-space:nowrap">✓ LU · ${fmtDate(m[field])}</span>` : '<span class="x-tag" style="color:#7d8da0;white-space:nowrap">NON LU</span>';
+    return m[field] ? `<span class="x-tag" style="color:#c6ff3d;white-space:nowrap">✓ LU · ${fmtFull(m[field])}</span>` : '<span class="x-tag" style="color:#7d8da0;white-space:nowrap">NON LU</span>';
   }
+  // Date d'envoi de la réponse de l'administrateur (colonne replied_at)
+  function replyDate(m) { return ('replied_at' in m && m.replied_at) ? fmtFull(m.replied_at) : ''; }
   // Annonces et messages directs envoyés : regroupés par envoi, avec le détail de lecture par utilisateur
-  function sentHtml() {
+  function sentGroups() {
     const g = {};
     (S.sent || []).forEach(m => { const k = (m.category || '') + '|' + m.subject + '|' + String(m.created_at).slice(0, 16); (g[k] = g[k] || []).push(m); });
-    const arr = Object.values(g).sort((a, b) => new Date(b[0].created_at) - new Date(a[0].created_at));
-    if (!arr.length) return '<p style="color:#5b6b7c">// aucun message envoyé</p>';
+    return Object.values(g).sort((a, b) => new Date(b[0].created_at) - new Date(a[0].created_at));
+  }
+  function sentHtml() {
+    const arr = sentGroups();
+    if (!arr.length) return '<div class="x-empty">Aucun message envoyé pour le moment.</div>';
     return arr.map(list => {
-      const m = list[0], direct = m.category === 'direct', has = 'read_at' in m, rd = list.filter(x => x.read_at).length;
-      return `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-size:16px;color:#e9f1f8">${esc(m.subject)}</strong><span class="x-tag" style="color:${direct ? '#4da3ff' : '#ffb020'}">${direct ? 'DIRECT' : 'ANNONCE'}</span></div>
-        <p style="font-size:11px;color:#5b6b7c;margin:4px 0">${fmtDate(m.created_at)} · ${list.length} destinataire(s)</p>
-        <p style="white-space:pre-wrap;color:#e9f1f8;font-size:13px;margin:8px 0">${esc(m.body)}</p>
-        ${has ? `<p style="font-size:12px;margin:6px 0;color:${rd === list.length ? '#c6ff3d' : '#7d8da0'}">✓ Lu par ${rd} / ${list.length}</p>` : '<p style="font-size:11px;color:#ffb020;margin:6px 0">// suivi de lecture indisponible : exécutez la migration SQL fournie</p>'}
-        <details><summary style="cursor:pointer;font-size:11px;color:#7d8da0;letter-spacing:.1em">DÉTAIL PAR UTILISATEUR</summary>
-        ${list.map(x => { const u = S.own[x.user_id] || {}; return `<div class="x-row" style="cursor:default;align-items:center"><span style="word-break:break-all;font-size:12px">${esc(u.email || '-')}</span>${has ? rcpt(x, 'read_at') : ''}</div>`; }).join('')}</details></div>`;
+      const m = list[0], direct = m.category === 'direct', has = 'read_at' in m, rd = list.filter(x => x.read_at).length, pct = list.length ? Math.round(rd / list.length * 100) : 0;
+      const sorted = list.slice().sort((a, b) => (b.read_at ? 1 : 0) - (a.read_at ? 1 : 0) || new Date(b.read_at || 0) - new Date(a.read_at || 0));
+      return `<div class="x-c2">
+        <div class="x-c2h"><div><strong class="x-amt" style="font-size:16px">${esc(m.subject)}</strong><span class="x-sub">Envoyé le <b style="color:var(--ink)">${fmtFull(m.created_at)}</b> · ${list.length} destinataire(s)</span></div><span class="x-tag" style="color:${direct ? '#4da3ff' : '#ffb020'}">${direct ? 'DIRECT' : 'ANNONCE'}</span></div>
+        <p class="x-body">${esc(m.body)}</p>
+        ${has ? `<div class="x-prog"><i style="width:${pct}%"></i></div><p class="x-hint" style="margin:0;color:${rd === list.length ? '#059669' : 'var(--mut)'}">✓ Lu par ${rd} / ${list.length}</p>` : '<p class="x-hint" style="color:#d97706">Suivi de lecture indisponible : exécutez la migration SQL fournie.</p>'}
+        <details class="x-sec"><summary>Détail de lecture par utilisateur</summary><div>
+        ${sorted.map(x => { const u = S.own[x.user_id] || {}; return `<div class="x-row" style="cursor:default;align-items:center"><span style="word-break:break-all;font-size:12px">${esc(u.email || '-')}</span>${has ? rcpt(x, 'read_at') : ''}</div>`; }).join('')}</div></details></div>`;
     }).join('');
   }
 
+  // ---------- MESSAGES : version aérée ----------
   function inbox() {
     if (S.mf === undefined) S.mf = 'open';
-    const isSent = S.mf === 'sent';
-    const rows = isSent ? [] : (S.msgs || []).filter(m => !S.mf || m.status === S.mf);
-    const cnt = {}; S.ship.forEach(s => cnt[s.user_id] = (cnt[s.user_id] || 0) + 1);
+    const isSent = S.mf === 'sent', all = S.msgs || [];
+    const cnt = {}; S.ship.forEach(s => { cnt[s.user_id] = (cnt[s.user_id] || 0) + 1; });
+    const n = (k) => all.filter(m => !k || m.status === k).length;
+    const rows = isSent ? [] : all.filter(m => !S.mf || m.status === S.mf);
     const rsv = rows.filter(m => m.status === 'resolved');
-    const mBar = (isSuper && rsv.length) ? `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-4px 0 12px"><button class="x-btn no" data-mclear="1">VIDER CHEZ MOI (${rsv.length})</button><button class="x-btn no" data-mclear="1" data-both="1">VIDER AUSSI CHEZ LES CLIENTS</button><span style="font-size:11px;color:#5b6b7c">Auto : masqué chez moi 5 jours après la résolution (le client le garde)</span></div>` : '';
-    const list = rows.length ? rows.map(m => { const u = S.own[m.user_id] || {}, op = m.status === 'open'; return `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-size:16px;color:#e9f1f8">${esc(m.subject)}</strong><span class="x-tag" style="color:${op ? '#ffb020' : '#c6ff3d'}">${op ? 'OUVERT' : 'RÉSOLU'}</span></div>
-      <p style="font-size:11px;color:#5b6b7c;margin:4px 0">${esc(MCAT[m.category] || m.category)} · ${fmtDate(m.created_at)}${m.user_hidden ? ' · <span style="color:#ffb020">supprimé par le client</span>' : ''}</p>
-      <p style="white-space:pre-wrap;color:#e9f1f8;font-size:13px;margin:8px 0">${esc(m.body)}</p>
-      <div style="font-size:11px;color:#7d8da0;border-top:1px dashed #1b2530;padding-top:8px;margin-bottom:8px">EXPÉDITEUR<br><span style="color:#e9f1f8;word-break:break-all">${esc(u.email || '-')}</span><br>${esc(u.phone || 'sans téléphone')}<br>Solde ${fmtMoney(S.bal[m.user_id] || 0)} · ${cnt[m.user_id] || 0} colis · compte ${u.is_active === false ? 'coupé' : 'actif'}</div>
-      ${waNum(u.phone) ? `<button class="x-btn go" style="margin-bottom:8px;width:100%" data-mwa="${esc(m.id)}">💬 ÉCRIRE À L'UTILISATEUR SUR WHATSAPP</button>` : '<p style="font-size:11px;color:#ffb020;margin:0 0 8px">// numéro WhatsApp indisponible pour cet utilisateur</p>'}
-      ${m.admin_reply ? `<p style="font-size:11px;color:#7d8da0;margin:0 0 8px">RÉPONSE ENVOYÉE : ${rcpt(m, 'reply_read_at')}</p>` : ''}
-      ${op ? `<textarea id="mr-${esc(m.id)}" rows="3" class="x-in" placeholder="réponse au client (facultatif)" style="margin-bottom:8px">${esc(m.admin_reply || '')}</textarea>
-        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="x-btn" data-mrep="${esc(m.id)}">ENVOYER LA RÉPONSE</button><button class="x-btn go" data-mres="${esc(m.id)}">MARQUER RÉSOLU</button></div>`
-      : `${m.admin_reply ? `<p style="font-size:12px;color:#7d8da0;white-space:pre-wrap">réponse : ${esc(m.admin_reply)}</p>` : ''}<button class="x-btn" style="margin-top:8px" data-mre="${esc(m.id)}">ROUVRIR</button>${isSuper ? ` <button class="x-btn no" style="margin-top:8px" data-mdel="${esc(m.id)}">SUPPRIMER CHEZ MOI</button> <button class="x-btn no" style="margin-top:8px" data-mdel="${esc(m.id)}" data-both="1">SUPPRIMER AUSSI CHEZ LE CLIENT</button>` : ''}`}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucun message</p>';
-    M.innerHTML = `<p class="x-h"><b>●</b> BOÎTE DE RÉCEPTION // messages des clients</p>
-    <div style="margin-bottom:12px"><button class="x-btn ${S.bc ? 'on' : 'go'}" data-bcopen="1">${S.bc ? 'FERMER LA DIFFUSION ✕' : '📢 DIFFUSION / ANNONCE GLOBALE'}</button> <button class="x-btn ${S.dm ? 'on' : 'go'}" data-dmopen="1">${S.dm ? 'FERMER ✕' : '✉ ÉCRIRE À UN UTILISATEUR'}</button></div>
-    ${S.dm ? dmPanel() : ''}
-    ${S.bc ? bcPanel() : ''}
-    <div class="x-chips">${[['open', 'OUVERTS'], ['', 'TOUS'], ['resolved', 'RÉSOLUS'], ['sent', 'ENVOYÉS (LECTURE)']].map(([v, l]) => `<button class="x-btn ${S.mf === v ? 'on' : ''}" data-mf="${v}">${l}</button>`).join('')}</div>
-    ${isSent ? sentHtml() : mBar + list}`;
+    const mBar = (isSuper && rsv.length) ? `<details class="x-sec" style="margin:-8px 0 16px;border-top:0"><summary>Nettoyer les messages résolus (${rsv.length})</summary><div><div class="x-acts"><button class="x-btn no" data-mclear="1">VIDER CHEZ MOI</button><button class="x-btn no" data-mclear="1" data-both="1">VIDER AUSSI CHEZ LES CLIENTS</button></div><p class="x-hint">Auto : masqué chez moi 5 jours après la résolution (le client le garde).</p></div></details>` : '';
+    const card = (m) => {
+      const u = S.own[m.user_id] || {}, op = m.status === 'open', rdt = replyDate(m);
+      const hasRd = 'replied_at' in m;
+      const reply = m.admin_reply ? `<div class="x-reply"><div class="x-reply-h"><span>RÉPONSE ENVOYÉE${rdt ? ' LE ' + rdt : (hasRd ? ' · date non enregistrée' : '')}</span>${rcpt(m, 'reply_read_at')}</div><p>${esc(m.admin_reply)}</p></div>` : '';
+      const info = `<details class="x-sec"><summary>Infos de l'expéditeur</summary><div class="x-meta" style="margin-top:0"><span>Solde <b>${fmtMoney(S.bal[m.user_id] || 0)}</b></span><span><b>${cnt[m.user_id] || 0}</b> colis</span><span>Compte <b>${u.is_active === false ? 'coupé' : 'actif'}</b></span></div></details>`;
+      const wa = waNum(u.phone) ? `<button class="x-btn" data-mwa="${esc(m.id)}">💬 WHATSAPP</button>` : '';
+      let act;
+      if (op) act = `<div class="x-form"><textarea id="mr-${esc(m.id)}" rows="3" class="x-in" placeholder="Réponse au client (facultatif)">${esc(m.admin_reply || '')}</textarea>
+        <div class="x-acts"><button class="x-btn" data-mrep="${esc(m.id)}">ENVOYER LA RÉPONSE</button><button class="x-btn go" data-mres="${esc(m.id)}">MARQUER RÉSOLU</button>${wa}</div></div>`;
+      else act = `<div class="x-acts" style="margin-top:14px"><button class="x-btn" data-mre="${esc(m.id)}">ROUVRIR</button>${wa}</div>` +
+        (isSuper ? `<details class="x-sec"><summary>Options avancées</summary><div class="x-acts"><button class="x-btn no" data-mdel="${esc(m.id)}">SUPPRIMER CHEZ MOI</button><button class="x-btn no" data-mdel="${esc(m.id)}" data-both="1">SUPPRIMER AUSSI CHEZ LE CLIENT</button></div></details>` : '');
+      return `<div class="x-c2">
+        <div class="x-c2h"><div><strong class="x-amt" style="font-size:16px">${esc(m.subject)}</strong><span class="x-sub">${esc(MCAT[m.category] || m.category)} · Reçu le <b style="color:var(--ink)">${fmtFull(m.created_at)}</b>${m.status === 'resolved' && m.resolved_at ? ' · Résolu le ' + fmtFull(m.resolved_at) : ''}${m.user_hidden ? ' · <span style="color:#d97706">supprimé par le client</span>' : ''}</span></div><span class="x-tag" style="color:${op ? '#ffb020' : '#c6ff3d'}">${op ? 'OUVERT' : 'RÉSOLU'}</span></div>
+        <div class="x-meta"><span><b>${esc(u.email || '-')}</b></span><span>${esc(u.phone || 'sans téléphone')}</span></div>
+        <p class="x-body">${esc(m.body)}</p>
+        ${reply}${info}${act}</div>`;
+    };
+    M.innerHTML = `<div class="x-wrap"><p class="x-h"><b>●</b> MESSAGES // assistance & annonces</p>
+      <p class="x-lead">Répondez aux clients, diffusez des annonces et suivez qui a lu vos messages (date et heure exactes).</p>
+      <div class="x-bar"><button class="x-btn ${S.bc ? 'on' : 'go'}" data-bcopen="1">${S.bc ? 'FERMER LA DIFFUSION ✕' : '📢 ANNONCE GLOBALE'}</button> <button class="x-btn ${S.dm ? 'on' : 'go'}" data-dmopen="1">${S.dm ? 'FERMER ✕' : '✉ ÉCRIRE À UN UTILISATEUR'}</button></div>
+      ${S.dm ? dmPanel() : ''}
+      ${S.bc ? bcPanel() : ''}
+      ${segs([['open', 'Ouverts', n('open')], ['', 'Tous', n('')], ['resolved', 'Résolus', n('resolved')], ['sent', 'Envoyés · lecture', sentGroups().length]], S.mf, 'data-mf')}
+      ${isSent ? sentHtml() : mBar + (rows.length ? rows.map(card).join('') : '<div class="x-empty">Aucun message pour ce filtre.</div>')}</div>`;
   }
 
   // ---------- DIFFUSION DE MESSAGES ----------
@@ -1875,12 +2022,61 @@ select.x-in{cursor:pointer}
   A.addEventListener('input', waInput);
   A.addEventListener('change', waInput);
 
+  // ---------- OFFRE PROMOTIONNELLE : reçu offert à un groupe filtré (Super Admin) ----------
+  function prTargets() {
+    const mt = acctMeta(), now = Date.now(), got = new Set((S.grants || []).map(g => g.user_id));
+    return S.usr.filter(u => {
+      if (u.is_active === false || got.has(u.id)) return false;
+      const bal = Number(S.bal[u.id] || 0), shipped = !!mt.cnt[u.id];
+      if (PR.seg === 'never_zero') return !shipped && bal <= 0;
+      if (PR.seg === 'never') return !shipped;
+      if (PR.seg === 'zero') return bal <= 0;
+      if (PR.seg === 'new7') return now - new Date(u.created_at).getTime() <= 7 * 864e5;
+      if (PR.seg === 'dormant') return isDormant(u, mt);
+      return true;
+    }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  }
+  function prRead() {
+    const v = (id) => { const e = $(id); return e ? e.value : ''; };
+    PR.seg = v('pr-seg') || PR.seg; PR.camp = v('pr-camp'); PR.msg = v('pr-msg');
+  }
+  function prList() {
+    const box = $('pr-res'); if (!box) return;
+    const mt = acctMeta(), all = prTargets(), shown = all.slice(0, 150);
+    PR.list = all.filter(u => !PR.excl[u.id]);
+    const rows = shown.map(u => `<label class="x-row" style="cursor:pointer;align-items:center"><span style="display:flex;gap:10px;align-items:center;min-width:0"><input type="checkbox" data-prx="${esc(u.id)}" ${PR.excl[u.id] ? '' : 'checked'}><span style="word-break:break-all;font-size:12.5px"><b>${esc(u.email || '-')}</b><br><span style="color:var(--mut)">${esc(u.phone || 'sans téléphone')} · ${fmtMoney(S.bal[u.id] || 0)} · ${mt.cnt[u.id] || 0} colis · inscrit le ${fmtDay(u.created_at)}</span></span></span></label>`).join('');
+    box.innerHTML = `<div class="x-bar" style="justify-content:space-between;margin:14px 0 8px"><span class="x-lead" style="margin:0"><b>${PR.list.length}</b> / ${all.length} sélectionné(s) · valeur offerte <b>${fmtMoney(PR.list.length * RECEIPT_PRICE)}</b></span>
+        <span class="x-acts"><button class="x-btn" data-prall="1">TOUT COCHER</button><button class="x-btn" data-prnone="1">TOUT DÉCOCHER</button></span></div>
+      ${all.length ? `<div style="max-height:300px;overflow-y:auto;border:1px solid var(--line);border-radius:12px;padding:0 10px;background:#fff">${rows}</div>${all.length > shown.length ? `<p class="x-hint">Affichage limité aux ${shown.length} premiers : les autres restent inclus dans l'offre.</p>` : ''}` : '<div class="x-empty">Aucun utilisateur ne correspond à ce segment (ou tous ont déjà reçu l\'offre).</div>'}
+      <button class="x-btn go" style="width:100%;margin-top:12px" data-prsend="1" ${PR.list.length ? '' : 'disabled'}>🎁 OFFRIR UN REÇU GRATUIT À ${PR.list.length} UTILISATEUR(S)</button>`;
+  }
+  function promoHtml() {
+    if (!isSuper) return '';
+    const segOpts = [['never_zero', "Jamais généré d'expédition ET solde à 0 FCFA (prioritaire)"], ['never', "Jamais généré d'expédition"], ['zero', 'Solde à 0 FCFA'], ['new7', 'Nouveaux inscrits (7 jours)'], ['dormant', 'Inactifs depuis plus de 30 jours']];
+    return `<div class="x-panel" id="pr-box" style="margin-top:0;margin-bottom:12px"><p class="x-h">🎁 OFFRE PROMOTIONNELLE // reçu offert à un groupe</p>
+      <p class="x-lead" style="margin-bottom:14px">Crédite le prix d'un reçu (<b>${fmtMoney(RECEIPT_PRICE)}</b>) sur le portefeuille des utilisateurs sélectionnés : ils génèrent leur première expédition sans payer. Seuls les comptes actifs sont ciblés, et un utilisateur ne reçoit l'offre qu'une seule fois${S.grantsOk ? ' (' + new Set(S.grants.map(g => g.user_id)).size + ' déjà gratifié(s))' : ''}.</p>
+      ${S.grantsOk ? '' : '<p class="x-hint" style="color:#d97706;margin:0 0 12px">Migration SQL non exécutée : l\'envoi sera refusé tant que la fonction « sw_admin_grant_free_receipts » n\'existe pas.</p>'}
+      <div style="display:grid;gap:12px">
+        <div><label style="font-size:11px;color:var(--mut);font-weight:600">SEGMENT CIBLÉ</label><select id="pr-seg" class="x-in" style="margin-top:4px">${segOpts.map(([v, l]) => `<option value="${v}" ${PR.seg === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+        <div><label style="font-size:11px;color:var(--mut);font-weight:600">NOM DE L'OFFRE</label><input id="pr-camp" class="x-in" maxlength="80" style="margin-top:4px" value="${esc(PR.camp)}" placeholder="Ex : Offre de lancement"></div>
+        <div><label style="font-size:11px;color:var(--mut);font-weight:600">MESSAGE D'ANNONCE AUX BÉNÉFICIAIRES (facultatif)</label><textarea id="pr-msg" rows="3" maxlength="1000" class="x-in" style="margin-top:4px" placeholder="Ex : Bonne nouvelle ! Votre premier reçu est offert, créez votre expédition dès maintenant.">${esc(PR.msg)}</textarea></div>
+      </div>
+      <div id="pr-res"></div></div>`;
+  }
+  const prInput = (e) => {
+    const t = e.target; if (!t.closest || !t.closest('#pr-box')) return;
+    if (t.dataset && t.dataset.prx) { if (t.checked) delete PR.excl[t.dataset.prx]; else PR.excl[t.dataset.prx] = 1; return prList(); }
+    prRead(); if (t.id === 'pr-seg') { PR.excl = {}; prList(); }
+  };
+  A.addEventListener('change', prInput);
+
   function cfg() {
     const priceHtml = isSuper ? `<div class="x-panel" style="margin-top:0"><p class="x-h">PRIX DU REÇU A5 / CODE DE SUIVI (FCFA)</p>
       <p style="font-size:12px;color:#7d8da0;margin:0 0 10px">Montant débité du portefeuille du client à la première génération du reçu d'une expédition. Prix actuel : <span style="color:#c6ff3d">${fmtMoney(RECEIPT_PRICE)}</span></p>
       <div style="display:flex;gap:8px"><input id="cfg-price" type="number" min="0" step="1" class="x-in" value="${esc(RECEIPT_PRICE)}"><button class="x-btn go" data-price="1">ENREGISTRER</button></div></div>` : '';
-    M.innerHTML = `<p class="x-h"><b>●</b> PARAMÈTRES // ${isSuper ? 'TARIFICATION' : 'NUMÉROS DE PAIEMENT'}</p>
+    M.innerHTML = `<p class="x-h"><b>●</b> PARAMÈTRES // ${isSuper ? 'TARIFICATION & OFFRES' : 'NUMÉROS DE PAIEMENT'}</p>
     ${priceHtml}
+    ${promoHtml()}
     <div class="x-panel" ${isSuper ? '' : 'style="margin-top:0"'}><p class="x-h">NUMÉROS DE RECHARGE (affichés aux clients)</p>
       <div style="display:grid;gap:8px;margin-bottom:12px">
         <select id="pn-op" class="x-in"><option value="mtn">MTN Money</option><option value="orange">Orange Money</option></select>
@@ -1894,6 +2090,7 @@ select.x-in{cursor:pointer}
           <input id="pe-name" class="x-in" value="${esc(p.holder_name)}" placeholder="Nom du titulaire">
           <div style="display:flex;gap:8px"><button class="x-btn go" data-pesave="${esc(p.id)}">ENREGISTRER</button><button class="x-btn" data-pecancel="1">ANNULER</button></div></div></div>`
       : `<div class="x-row" style="cursor:default;flex-wrap:wrap"><span><span class="x-tag" style="color:${p.operator === 'mtn' ? '#ffb020' : '#ff7a1a'}">${p.operator === 'mtn' ? 'MTN' : 'ORANGE'}</span> ${esc(p.phone)} · ${esc(p.holder_name)}${p.is_active ? '' : ' <span style="color:#ff5a5f">(masqué)</span>'}</span><span><button class="x-btn" data-pedit="${esc(p.id)}">MODIFIER</button> <button class="x-btn" data-pntog="${esc(p.id)}" data-on="${p.is_active ? 0 : 1}">${p.is_active ? 'MASQUER' : 'AFFICHER'}</button>${isSuper ? ` <button class="x-btn no" data-pndel="${esc(p.id)}">SUPPRIMER</button>` : ''}</span></div>`).join('') || '<p style="color:#5b6b7c">// aucun numéro</p>'}</div>`;
+    prList();
   }
 
   async function openDrawer(id, keep) {
@@ -1953,6 +2150,33 @@ select.x-in{cursor:pointer}
     if (g('data-v')) return showSub(g('data-v').dataset.v);
     if ((el = g('data-go'))) return showSub(el.dataset.go);
     if (g('data-close') || e.target.id === 'x-veil') return closeDrawer();
+    // ---- Comptes : filtres, pagination, export ----
+    if ((el = g('data-uf'))) { S.uf = el.dataset.uf; S.ulim = 60; return acct(); }
+    if (g('data-umore')) { S.ulim += 60; return acct(); }
+    if (g('data-uexp')) return acctExport();
+    if ((el = g('data-ucopy'))) {
+      const { rows } = acctRows();
+      const txt = rows.map(u => el.dataset.ucopy === 'mail' ? (u.email || '') : (u.phone || '')).filter(Boolean).join('\n');
+      if (!txt) return toast('Rien à copier pour ce filtre.', 'error');
+      try { await navigator.clipboard.writeText(txt); toast(txt.split('\n').length + ' élément(s) copié(s).'); } catch (er) { prompt('Copiez cette liste :', txt); }
+      return;
+    }
+    // ---- Offre promotionnelle (Super Admin) ----
+    if (g('data-prall')) { PR.excl = {}; return prList(); }
+    if (g('data-prnone')) { prTargets().forEach(u => { PR.excl[u.id] = 1; }); return prList(); }
+    if (g('data-prsend')) {
+      if (!needSuper()) return;
+      prRead();
+      const ids = PR.list.map(u => u.id);
+      if (!ids.length) return toast('Aucun destinataire sélectionné.', 'error');
+      if (!confirm('Offrir un reçu gratuit (' + fmtMoney(RECEIPT_PRICE) + ') à ' + ids.length + ' utilisateur(s) ?\nLeur portefeuille sera crédité de ce montant.')) return;
+      const btn = g('data-prsend'); btn.disabled = true;
+      const { data, error } = await supabaseClient.rpc('sw_admin_grant_free_receipts', { p_user_ids: ids, p_campaign: PR.camp.trim() || null, p_message: PR.msg.trim() || null, p_once: true });
+      btn.disabled = false;
+      if (error) return toast('Erreur : ' + error.message, 'error');
+      toast('Reçu offert à ' + data + ' utilisateur(s).'); PR.excl = {}; PR.msg = '';
+      await loadAll(); return cfg();
+    }
     // ---- WhatsApp : file d'envoi, ouverture individuelle, copie des numéros ----
     if ((el = g('data-wasend'))) {
       if (!(can('msg') || can('acct'))) return toast('Action non autorisée pour votre rôle.', 'error');
@@ -2060,14 +2284,17 @@ select.x-in{cursor:pointer}
     if ((el = g('data-mrep')) || (el = g('data-mres')) || (el = g('data-mre'))) {
       if (!need('msg')) return;
       const id = el.dataset.mrep || el.dataset.mres || el.dataset.mre, ta = $('mr-' + id), r = ta ? ta.value.trim() : null;
-      let upd;
-      if (el.dataset.mrep) { if (!r) return toast('Écrivez une réponse.', 'error'); upd = { admin_reply: r }; }
-      else if (el.dataset.mres) upd = { status: 'resolved', resolved_at: new Date().toISOString(), admin_reply: r || null };
+      const mm0 = (S.msgs || []).find(x => x.id === id) || {};
+      let upd, newReply = false;
+      if (el.dataset.mrep) { if (!r) return toast('Écrivez une réponse.', 'error'); upd = { admin_reply: r }; newReply = true; }
+      else if (el.dataset.mres) { upd = { status: 'resolved', resolved_at: new Date().toISOString(), admin_reply: r || null }; newReply = !!r && r !== (mm0.admin_reply || ''); }
       else upd = { status: 'open', resolved_at: null };
-      const { error } = await supabaseClient.from('sw_messages').update(upd).eq('id', id);
+      // Date d'émission de la réponse (colonne replied_at) et remise à « non lu » pour une nouvelle réponse
+      if (newReply) { upd.replied_at = new Date().toISOString(); if ('reply_read_at' in mm0) upd.reply_read_at = null; }
+      let { error } = await supabaseClient.from('sw_messages').update(upd).eq('id', id);
+      if (error && newReply && /replied_at/i.test(error.message || '')) { delete upd.replied_at; ({ error } = await supabaseClient.from('sw_messages').update(upd).eq('id', id)); }
       if (error) return toast('Erreur : ' + error.message, 'error');
-      const mm = (S.msgs || []).find(x => x.id === id) || {};
-      logAct(el.dataset.mrep ? 'msg_reply' : el.dataset.mres ? 'msg_resolve' : 'msg_reopen', (mm.subject || '') + ' · ' + ((S.own[mm.user_id] || {}).email || '-'));
+      logAct(el.dataset.mrep ? 'msg_reply' : el.dataset.mres ? 'msg_resolve' : 'msg_reopen', (mm0.subject || '') + ' · ' + ((S.own[mm0.user_id] || {}).email || '-'));
       toast(el.dataset.mrep ? 'Réponse envoyée.' : el.dataset.mres ? 'Message résolu.' : 'Message rouvert.'); await loadAll(); return draw();
     }
     // ---- Suppressions définitives / vidage d'historique : monopole du Super Admin Suprême ----
@@ -2165,6 +2392,8 @@ select.x-in{cursor:pointer}
 
   A.addEventListener('input', e => { if (e.target.id === 'dm-q') dmRefresh(); if (e.target.closest && e.target.closest('#bc-box')) bcUpdate(); });
   A.addEventListener('change', e => { if (e.target.closest && e.target.closest('#bc-box')) bcUpdate(); });
+  // Tri de la liste des comptes
+  A.addEventListener('change', e => { if (e.target.id === 'x-usort') { S.us = e.target.value; S.ulim = 60; acct(); } });
 
   let dragId = null;
   A.addEventListener('dragstart', e => { const c = e.target.closest('.x-card'); if (c) dragId = c.dataset.id; });
