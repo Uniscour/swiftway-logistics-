@@ -1477,6 +1477,44 @@ select.x-in{cursor:pointer}
   // Filtre segmenté avec compteurs
   const segs = (items, cur, attr) => `<div class="x-segs">${items.map(([v, l, n]) => `<button class="x-sg ${cur === v ? 'on' : ''}" ${attr}="${v}">${l}${n != null ? `<em>${n}</em>` : ''}</button>`).join('')}</div>`;
 
+  // ---------- FILTRES COMMUNS (période, recherche, client) : FLUX, CAISSE, MESSAGES, ANNULATIONS ----------
+  const PER_OPTS = [['today', "Aujourd'hui"], ['7', '7 derniers jours'], ['30', '30 derniers jours'], ['180', '6 mois'], ['all', 'Tout le temps'], ['custom', 'Plage personnalisée']];
+  const flDef = {
+    fx: () => ({ q: '', per: 'all', usr: '', st: 'all', from: '', to: '' }),
+    cash: () => ({ q: '', per: 'all', m: '', from: '', to: '' }),
+    msg: () => ({ q: '', per: 'all', cat: '', from: '', to: '' }),
+    cx: () => ({ q: '', per: 'all', from: '', to: '' })
+  };
+  const FL = {}; Object.keys(flDef).forEach(k => { FL[k] = flDef[k](); });
+  const REDRAW = { fx: () => pipe(), cash: () => cash(), msg: () => msgRefresh(), cx: () => cancelV() };
+  const flLb = (t) => `<label style="font-size:11px;color:var(--mut);font-weight:600;letter-spacing:.04em">${t}</label>`;
+  // Le colis / la demande tombe-t-il dans la période choisie ?
+  function perOk(d, f) {
+    if (!f || f.per === 'all') return true;
+    const t = new Date(d).getTime(), now = Date.now();
+    if (f.per === 'today') { const z = new Date(); z.setHours(0, 0, 0, 0); return t >= z.getTime(); }
+    if (f.per === 'custom') {
+      if (f.from && t < new Date(f.from + 'T00:00:00').getTime()) return false;
+      if (f.to && t > new Date(f.to + 'T23:59:59').getTime()) return false;
+      return true;
+    }
+    return now - t <= Number(f.per) * 864e5;
+  }
+  // Recherche texte : au moins un champ contient le texte saisi
+  const hit = (q, arr) => { q = String(q || '').trim().toLowerCase(); return !q || arr.some(v => String(v == null ? '' : v).toLowerCase().includes(q)); };
+  // Panneau de filtres réutilisable (recherche + période + champs supplémentaires + compteur + réinitialiser)
+  function fbar(key, ph, extra, info) {
+    const f = FL[key];
+    return `<div class="x-panel" style="margin-top:0;margin-bottom:16px">
+      <p class="x-h" style="margin-bottom:10px"><b>●</b> FILTRES</p>
+      <input id="fl-${key}-q" type="text" class="x-in" data-fl="${key}" data-fk="q" autocomplete="off" placeholder="${esc(ph)}" value="${esc(f.q)}" style="margin-bottom:12px">
+      ${flLb('PÉRIODE')}
+      <div class="x-segs" style="margin:6px 0 12px">${PER_OPTS.map(([v, l]) => `<button type="button" class="x-sg ${f.per === v ? 'on' : ''}" data-flper="${key}" data-pv="${v}">${l}</button>`).join('')}</div>
+      ${f.per === 'custom' ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"><div>${flLb('DU')}<input type="date" class="x-in" data-fl="${key}" data-fk="from" value="${esc(f.from)}" style="margin-top:4px"></div><div>${flLb('AU')}<input type="date" class="x-in" data-fl="${key}" data-fk="to" value="${esc(f.to)}" style="margin-top:4px"></div></div>` : ''}
+      ${extra || ''}
+      <div class="x-bar" style="justify-content:space-between;margin:12px 0 0"><span class="x-lead" style="margin:0">${info || ''}</span><button type="button" class="x-btn" data-flreset="${key}">↺ RÉINITIALISER</button></div></div>`;
+  }
+
   // ---------- PERMISSIONS & RÔLES ----------
   // Le Super Admin Suprême possède tout. Un admin secondaire n'a que les cases cochées.
   const PERMS = [
@@ -1624,27 +1662,53 @@ select.x-in{cursor:pointer}
     <div class="x-panel"><p class="x-h">ALERTES RETARD (+${48} h)</p>${lt.length ? lt.slice(0, 8).map(s => `<button class="x-row" data-open="${esc(s.id)}"><span style="word-break:break-all">${esc(fmtCode(s.tracking_code))} <span style="color:#7d8da0">${esc(s.origin)} → ${esc(s.destination)}</span></span><span style="color:#ff5a5f">+${hoursText(hrs(s) - win(s))}</span></button>`).join('') : '<span style="color:#c6ff3d">RAS : aucun retard.</span>'}</div>`;
   }
 
+  // ---------- FLUX (kanban) : filtres période / client / statut / recherche + nettoyage des colis anciens ----------
   function pipe() {
-    const q = S.q.toLowerCase();
-    const rows = S.ship.filter(s => !q || [s.tracking_code, s.receiver_name, s.sender_name, s.origin, s.destination, s.receiver_phone, s.agency_name, (S.own[s.user_id] || {}).email].some(v => String(v || '').toLowerCase().includes(q)) || String(s.tracking_code || '').toLowerCase().includes(q.replace(/-/g, '')));
+    const f = FL.fx, q = f.q.trim().toLowerCase(), now = Date.now();
+    const old = (s) => now - new Date(s.created_at).getTime() > 30 * 864e5;
+    const stOk = (s, k) => k === 'live' ? live(s) : k === 'done' ? !live(s) : k === 'late' ? late(s) : k === 'old' ? old(s) : true;
+    const base = S.ship.filter(s => perOk(s.created_at, f) && (!f.usr || s.user_id === f.usr) &&
+      (!q || [s.tracking_code, s.receiver_name, s.sender_name, s.origin, s.destination, s.receiver_phone, s.agency_name, (S.own[s.user_id] || {}).email].some(v => String(v || '').toLowerCase().includes(q)) || String(s.tracking_code || '').toLowerCase().includes(q.replace(/-/g, ''))));
+    const rows = base.filter(s => stOk(s, f.st));
+    const cand = rows.filter(old);
+    S.fxClean = cand.map(s => s.id);
+    // Clients ayant au moins un colis
+    const cu = {}; S.ship.forEach(s => { cu[s.user_id] = (cu[s.user_id] || 0) + 1; });
+    const ulist = Object.keys(cu).map(id => ({ id, email: (S.own[id] || {}).email || ('Compte ' + String(id).slice(0, 6)) })).sort((a, b) => String(a.email).localeCompare(String(b.email)));
+    const extra = `${flLb('UTILISATEUR / CLIENT')}<select class="x-in" data-fl="fx" data-fk="usr" style="margin-top:4px"><option value="">Tous les clients (${ulist.length})</option>${ulist.map(u => `<option value="${esc(u.id)}" ${f.usr === u.id ? 'selected' : ''}>${esc(u.email)} · ${cu[u.id]} colis</option>`).join('')}</select>`;
+    const info = `<b>${rows.length}</b> colis affiché(s) sur ${S.ship.length}`;
+    const stSegs = segs([['all', 'Tous', base.length], ['live', 'En cours', base.filter(live).length], ['done', 'Terminés', base.filter(s => !live(s)).length], ['late', 'En retard', base.filter(late).length], ['old', 'Anciens (+30 j)', base.filter(old).length]], f.st, 'data-fxst');
+    const row = (s) => `<div class="x-row" style="cursor:default;align-items:center;gap:10px"><span style="min-width:0;word-break:break-all;font-size:12px"><b>${esc(fmtCode(s.tracking_code))}</b> <span class="x-tag" style="color:${COL[s.status] || '#7d8da0'}">${esc((STATUS[s.status] || { label: s.status }).label.toUpperCase())}</span><br><span style="color:var(--mut)">${esc(s.origin)} → ${esc(s.destination)} · ${esc((S.own[s.user_id] || {}).email || '-')} · créé le ${fmtDay(s.created_at)} (${Math.floor((now - new Date(s.created_at).getTime()) / 864e5)} j)</span></span>
+      <span class="x-acts" style="flex-shrink:0"><button type="button" class="x-btn" data-open="${esc(s.id)}">VOIR</button>${isSuper ? `<button type="button" class="x-btn no" data-shdel="${esc(s.id)}">SUPPRIMER</button>` : ''}</span></div>`;
+    const clean = `<details class="x-sec" ${f.st === 'old' ? 'open' : ''} style="margin:0 0 16px"><summary>🧹 Nettoyage : colis anciens de plus de 30 jours (${cand.length})</summary><div>
+      ${cand.length ? `<div class="x-acts" style="margin-bottom:10px"><button type="button" class="x-btn" data-fxold="1">N'AFFICHER QUE LES ANCIENS</button>${isSuper ? `<button type="button" class="x-btn no" data-shbulk="1">SUPPRIMER LES ${cand.length} COLIS LISTÉS</button>` : ''}</div>
+        ${cand.slice(0, 100).map(row).join('')}${cand.length > 100 ? `<p class="x-hint">Affichage limité aux 100 premiers : le bouton de suppression groupée concerne bien les ${cand.length} colis.</p>` : ''}` : '<p class="x-hint">Aucun colis ancien pour les filtres actuels.</p>'}
+      <p class="x-hint">${isSuper ? 'La suppression est définitive (aucun remboursement) et demande une confirmation de sécurité.' : 'La suppression définitive est réservée au Super Admin Suprême.'}</p></div></details>`;
     M.innerHTML = `<p class="x-h"><b>●</b> FLUX // glissez une carte pour changer son statut</p>
-    <input id="x-q" class="x-in" style="margin-bottom:12px" placeholder="> filtrer : code, nom, ville, téléphone, agence" value="${esc(S.q)}">
+    ${fbar('fx', '> filtrer : code, nom, ville, téléphone, agence', extra, info)}
+    ${stSegs}
+    ${clean}
     <div class="x-board">${Object.keys(STATUS).map(k => {
       const c = rows.filter(s => s.status === k);
       return `<div class="x-col" data-drop="${k}"><h4 style="color:${COL[k]}"><span>${esc(STATUS[k].label.toUpperCase())}</span><span>${c.length}</span></h4>
       ${c.map(s => `<div class="x-card" draggable="true" data-id="${esc(s.id)}" data-open="${esc(s.id)}" style="--c:${COL[k]}">
         <b style="word-break:break-all">${esc(fmtCode(s.tracking_code))}</b><span>${esc(s.origin)} → ${esc(s.destination)}</span><span>${esc(s.receiver_name)}</span>
-        ${late(s) ? `<span class="late">▲ retard ${hoursText(hrs(s) - win(s))}</span>` : ''}</div>`).join('')}</div>`;
+        ${late(s) ? `<span class="late">▲ retard ${hoursText(hrs(s) - win(s))}</span>` : ''}${old(s) ? `<span style="color:#d97706;font-weight:600">ancien · ${Math.floor((now - new Date(s.created_at).getTime()) / 864e5)} j</span>` : ''}</div>`).join('')}</div>`;
     }).join('')}</div>`;
-    const qi = $('x-q'); qi.oninput = () => { S.q = qi.value; const p = qi.selectionStart; pipe(); const n = $('x-q'); n.focus(); n.setSelectionRange(p, p); };
   }
 
-  // ---------- CAISSE (recharges) : version aérée ----------
+  // ---------- CAISSE (recharges) : version aérée + filtres ----------
   function cash() {
+    const f = FL.cash;
     const col = { pending: '#ffb020', approved: '#c6ff3d', rejected: '#ff5a5f' };
-    const cnt = (k) => S.rech.filter(r => !k || r.status === k).length;
-    const rows = S.rech.filter(r => !S.rf || r.status === S.rf);
+    const base = S.rech.filter(r => { const u = S.own[r.user_id] || {}; return perOk(r.created_at, f) && (!f.m || r.method === f.m) && hit(f.q, [u.email, u.phone, r.reference, r.amount, r.admin_note]); });
+    const cnt = (k) => base.filter(r => !k || r.status === k).length;
+    const rows = base.filter(r => !S.rf || r.status === S.rf);
     const clr = rows.filter(r => r.status !== 'pending');
+    S.rclr = clr.map(r => r.id);
+    const sum = rows.reduce((a, r) => a + Number(r.status === 'approved' && r.approved_amount != null ? r.approved_amount : r.amount || 0), 0);
+    const extra = `${flLb('OPÉRATEUR')}<select class="x-in" data-fl="cash" data-fk="m" style="margin-top:4px"><option value="">Tous les opérateurs</option>${Object.keys(METHODS).map(k => `<option value="${esc(k)}" ${f.m === k ? 'selected' : ''}>${esc(METHODS[k])}</option>`).join('')}</select>`;
+    const info = `<b>${rows.length}</b> demande(s) · total <b>${fmtMoney(sum)}</b>`;
     const clrBar = (isSuper && clr.length) ? `<details class="x-sec" style="margin:-8px 0 16px;border-top:0"><summary>Nettoyer l'historique (${clr.length} ligne(s) traitée(s))</summary><div><div class="x-acts"><button class="x-btn no" data-rclear="${S.rf}">VIDER CHEZ MOI</button><button class="x-btn no" data-rclear="${S.rf}" data-both="1">VIDER AUSSI CHEZ LES CLIENTS</button></div><p class="x-hint">Auto : masqué chez moi 5 jours après le traitement (le journal du client est conservé).</p></div></details>` : '';
     const card = (r) => {
       const u = S.own[r.user_id] || {};
@@ -1671,6 +1735,7 @@ select.x-in{cursor:pointer}
     };
     M.innerHTML = `<div class="x-wrap"><p class="x-h"><b>●</b> CAISSE // demandes de recharge</p>
       <p class="x-lead">Vérifiez la capture et l'ID de transaction, puis créditez le portefeuille du client.</p>
+      ${fbar('cash', '> rechercher : Gmail, téléphone, ID de transaction, montant', extra, info)}
       ${segs([['pending', 'En attente', cnt('pending')], ['approved', 'Approuvées', cnt('approved')], ['rejected', 'Rejetées', cnt('rejected')], ['', 'Toutes', cnt('')]], S.rf, 'data-rf')}
       ${clrBar}
       ${rows.length ? rows.map(card).join('') : '<div class="x-empty">Aucune demande pour ce filtre.</div>'}</div>`;
@@ -1790,10 +1855,15 @@ select.x-in{cursor:pointer}
       ${L.length ? L.map(l => `<div class="x-row" style="cursor:default;flex-direction:column;gap:2px"><span style="color:#e9f1f8">${esc(ACT_LABEL[l.action] || l.action)}</span><span style="color:#7d8da0;font-size:12px;white-space:pre-wrap;word-break:break-word">${esc(l.detail || l.details || '')}</span><span style="color:#5b6b7c;font-size:10px">${fmtDate(l.created_at)}</span></div>`).join('') : '<p style="color:#5b6b7c">// journal vide</p>'}</div>`;
   }
 
-  // ---------- ANNULATIONS : version aérée ----------
+  // ---------- ANNULATIONS : version aérée + filtres ----------
   function cancelV() {
     if (S.cf === undefined) S.cf = 'pending';
-    const all = S.cx || [], cnt = (k) => all.filter(r => !k || r.status === k).length;
+    const f = FL.cx;
+    const all = (S.cx || []).filter(r => {
+      const s = S.ship.find(x => x.id === r.shipment_id) || {}, u = S.own[r.user_id] || {};
+      return perOk(r.created_at, f) && hit(f.q, [s.tracking_code, s.tracking_code ? fmtCode(s.tracking_code) : '', s.origin, s.destination, r.reason, u.email, u.phone]);
+    });
+    const cnt = (k) => all.filter(r => !k || r.status === k).length;
     const rows = all.filter(r => !S.cf || r.status === S.cf);
     const col = { pending: '#ffb020', approved: '#c6ff3d', rejected: '#ff5a5f' }, lab = { pending: 'EN ATTENTE', approved: 'ACCEPTÉE', rejected: 'REJETÉE' };
     const card = (r) => {
@@ -1809,6 +1879,7 @@ select.x-in{cursor:pointer}
     };
     M.innerHTML = `<div class="x-wrap"><p class="x-h"><b>●</b> ANNULATIONS // demandes des clients</p>
       <p class="x-lead">Accepter une demande annule le colis. Aucun remboursement du reçu n'est prévu.</p>
+      ${fbar('cx', '> rechercher : code de suivi, ville, Gmail, téléphone, motif', '', `<b>${rows.length}</b> demande(s) affichée(s)`)}
       ${segs([['pending', 'En attente', cnt('pending')], ['approved', 'Acceptées', cnt('approved')], ['rejected', 'Rejetées', cnt('rejected')], ['', 'Toutes', cnt('')]], S.cf, 'data-cf')}
       ${rows.length ? rows.map(card).join('') : '<div class="x-empty">Aucune demande pour ce filtre.</div>'}</div>`;
   }
@@ -1823,9 +1894,9 @@ select.x-in{cursor:pointer}
   function replyDate(m) { return ('replied_at' in m && m.replied_at) ? fmtFull(m.replied_at) : ''; }
   // Annonces et messages directs envoyés : regroupés par envoi, avec le détail de lecture par utilisateur
   function sentGroups() {
-    const g = {};
+    const g = {}, f = FL.msg;
     (S.sent || []).forEach(m => { const k = (m.category || '') + '|' + m.subject + '|' + String(m.created_at).slice(0, 16); (g[k] = g[k] || []).push(m); });
-    return Object.values(g).sort((a, b) => new Date(b[0].created_at) - new Date(a[0].created_at));
+    return Object.values(g).filter(list => perOk(list[0].created_at, f) && hit(f.q, [list[0].subject, list[0].body])).sort((a, b) => new Date(b[0].created_at) - new Date(a[0].created_at));
   }
   function sentHtml() {
     const arr = sentGroups();
@@ -1842,20 +1913,25 @@ select.x-in{cursor:pointer}
     }).join('');
   }
 
-  // ---------- MESSAGES : version aérée ----------
-  function inbox() {
+  // ---------- MESSAGES : version aérée + filtres ----------
+  // La zone « filtres + liste » est rendue à part (#msg-fl) pour ne pas effacer un message en cours de rédaction.
+  function msgFlHtml() {
     if (S.mf === undefined) S.mf = 'open';
-    const isSent = S.mf === 'sent', all = S.msgs || [];
+    const f = FL.msg, isSent = S.mf === 'sent', all = S.msgs || [];
     const cnt = {}; S.ship.forEach(s => { cnt[s.user_id] = (cnt[s.user_id] || 0) + 1; });
-    const n = (k) => all.filter(m => !k || m.status === k).length;
-    const rows = isSent ? [] : all.filter(m => !S.mf || m.status === S.mf);
+    const base = all.filter(m => { const u = S.own[m.user_id] || {}; return perOk(m.created_at, f) && (!f.cat || m.category === f.cat) && hit(f.q, [m.subject, m.body, m.admin_reply, u.email, u.phone]); });
+    const n = (k) => base.filter(m => !k || m.status === k).length;
+    const rows = isSent ? [] : base.filter(m => !S.mf || m.status === S.mf);
     const rsv = rows.filter(m => m.status === 'resolved');
+    S.mclr = rsv.map(m => m.id);
+    const extra = `${flLb('CATÉGORIE')}<select class="x-in" data-fl="msg" data-fk="cat" style="margin-top:4px"><option value="">Toutes les catégories</option>${Object.keys(MCAT).map(k => `<option value="${esc(k)}" ${f.cat === k ? 'selected' : ''}>${esc(MCAT[k])}</option>`).join('')}</select>`;
+    const info = isSent ? `<b>${sentGroups().length}</b> envoi(s) affiché(s)` : `<b>${rows.length}</b> message(s) affiché(s)`;
     const mBar = (isSuper && rsv.length) ? `<details class="x-sec" style="margin:-8px 0 16px;border-top:0"><summary>Nettoyer les messages résolus (${rsv.length})</summary><div><div class="x-acts"><button class="x-btn no" data-mclear="1">VIDER CHEZ MOI</button><button class="x-btn no" data-mclear="1" data-both="1">VIDER AUSSI CHEZ LES CLIENTS</button></div><p class="x-hint">Auto : masqué chez moi 5 jours après la résolution (le client le garde).</p></div></details>` : '';
     const card = (m) => {
       const u = S.own[m.user_id] || {}, op = m.status === 'open', rdt = replyDate(m);
       const hasRd = 'replied_at' in m;
       const reply = m.admin_reply ? `<div class="x-reply"><div class="x-reply-h"><span>RÉPONSE ENVOYÉE${rdt ? ' LE ' + rdt : (hasRd ? ' · date non enregistrée' : '')}</span>${rcpt(m, 'reply_read_at')}</div><p>${esc(m.admin_reply)}</p></div>` : '';
-      const info = `<details class="x-sec"><summary>Infos de l'expéditeur</summary><div class="x-meta" style="margin-top:0"><span>Solde <b>${fmtMoney(S.bal[m.user_id] || 0)}</b></span><span><b>${cnt[m.user_id] || 0}</b> colis</span><span>Compte <b>${u.is_active === false ? 'coupé' : 'actif'}</b></span></div></details>`;
+      const info2 = `<details class="x-sec"><summary>Infos de l'expéditeur</summary><div class="x-meta" style="margin-top:0"><span>Solde <b>${fmtMoney(S.bal[m.user_id] || 0)}</b></span><span><b>${cnt[m.user_id] || 0}</b> colis</span><span>Compte <b>${u.is_active === false ? 'coupé' : 'actif'}</b></span></div></details>`;
       const wa = waNum(u.phone) ? `<button class="x-btn" data-mwa="${esc(m.id)}">💬 WHATSAPP</button>` : '';
       let act;
       if (op) act = `<div class="x-form"><textarea id="mr-${esc(m.id)}" rows="3" class="x-in" placeholder="Réponse au client (facultatif)">${esc(m.admin_reply || '')}</textarea>
@@ -1866,15 +1942,20 @@ select.x-in{cursor:pointer}
         <div class="x-c2h"><div><strong class="x-amt" style="font-size:16px">${esc(m.subject)}</strong><span class="x-sub">${esc(MCAT[m.category] || m.category)} · Reçu le <b style="color:var(--ink)">${fmtFull(m.created_at)}</b>${m.status === 'resolved' && m.resolved_at ? ' · Résolu le ' + fmtFull(m.resolved_at) : ''}${m.user_hidden ? ' · <span style="color:#d97706">supprimé par le client</span>' : ''}</span></div><span class="x-tag" style="color:${op ? '#ffb020' : '#c6ff3d'}">${op ? 'OUVERT' : 'RÉSOLU'}</span></div>
         <div class="x-meta"><span><b>${esc(u.email || '-')}</b></span><span>${esc(u.phone || 'sans téléphone')}</span></div>
         <p class="x-body">${esc(m.body)}</p>
-        ${reply}${info}${act}</div>`;
+        ${reply}${info2}${act}</div>`;
     };
+    return `${fbar('msg', '> rechercher : sujet, message, Gmail, téléphone', extra, info)}
+      ${segs([['open', 'Ouverts', n('open')], ['', 'Tous', n('')], ['resolved', 'Résolus', n('resolved')], ['sent', 'Envoyés · lecture', sentGroups().length]], S.mf, 'data-mf')}
+      ${isSent ? sentHtml() : mBar + (rows.length ? rows.map(card).join('') : '<div class="x-empty">Aucun message pour ce filtre.</div>')}`;
+  }
+  function msgRefresh() { const b = $('msg-fl'); if (b) b.innerHTML = msgFlHtml(); else inbox(); }
+  function inbox() {
     M.innerHTML = `<div class="x-wrap"><p class="x-h"><b>●</b> MESSAGES // assistance & annonces</p>
       <p class="x-lead">Répondez aux clients, diffusez des annonces et suivez qui a lu vos messages (date et heure exactes).</p>
       <div class="x-bar"><button class="x-btn ${S.bc ? 'on' : 'go'}" data-bcopen="1">${S.bc ? 'FERMER LA DIFFUSION ✕' : '📢 ANNONCE GLOBALE'}</button> <button class="x-btn ${S.dm ? 'on' : 'go'}" data-dmopen="1">${S.dm ? 'FERMER ✕' : '✉ ÉCRIRE À UN UTILISATEUR'}</button></div>
       ${S.dm ? dmPanel() : ''}
       ${S.bc ? bcPanel() : ''}
-      ${segs([['open', 'Ouverts', n('open')], ['', 'Tous', n('')], ['resolved', 'Résolus', n('resolved')], ['sent', 'Envoyés · lecture', sentGroups().length]], S.mf, 'data-mf')}
-      ${isSent ? sentHtml() : mBar + (rows.length ? rows.map(card).join('') : '<div class="x-empty">Aucun message pour ce filtre.</div>')}</div>`;
+      <div id="msg-fl">${msgFlHtml()}</div></div>`;
   }
 
   // ---------- DIFFUSION DE MESSAGES ----------
@@ -2070,14 +2151,13 @@ select.x-in{cursor:pointer}
   };
   A.addEventListener('change', prInput);
 
+  // ---------- PARAMÈTRES : sous-onglets (Tarification / Numéros de dépôt / Offres promotionnelles) ----------
   function cfg() {
+    if (!isSuper) S.cs = 'pay'; else if (!S.cs) S.cs = 'price';
     const priceHtml = isSuper ? `<div class="x-panel" style="margin-top:0"><p class="x-h">PRIX DU REÇU A5 / CODE DE SUIVI (FCFA)</p>
       <p style="font-size:12px;color:#7d8da0;margin:0 0 10px">Montant débité du portefeuille du client à la première génération du reçu d'une expédition. Prix actuel : <span style="color:#c6ff3d">${fmtMoney(RECEIPT_PRICE)}</span></p>
       <div style="display:flex;gap:8px"><input id="cfg-price" type="number" min="0" step="1" class="x-in" value="${esc(RECEIPT_PRICE)}"><button class="x-btn go" data-price="1">ENREGISTRER</button></div></div>` : '';
-    M.innerHTML = `<p class="x-h"><b>●</b> PARAMÈTRES // ${isSuper ? 'TARIFICATION & OFFRES' : 'NUMÉROS DE PAIEMENT'}</p>
-    ${priceHtml}
-    ${promoHtml()}
-    <div class="x-panel" ${isSuper ? '' : 'style="margin-top:0"'}><p class="x-h">NUMÉROS DE RECHARGE (affichés aux clients)</p>
+    const payHtml = `<div class="x-panel" style="margin-top:0"><p class="x-h">NUMÉROS DE RECHARGE (affichés aux clients)</p>
       <div style="display:grid;gap:8px;margin-bottom:12px">
         <select id="pn-op" class="x-in"><option value="mtn">MTN Money</option><option value="orange">Orange Money</option></select>
         <input id="pn-phone" class="x-in" placeholder="Numéro (ex : 6XX XX XX XX)">
@@ -2090,6 +2170,20 @@ select.x-in{cursor:pointer}
           <input id="pe-name" class="x-in" value="${esc(p.holder_name)}" placeholder="Nom du titulaire">
           <div style="display:flex;gap:8px"><button class="x-btn go" data-pesave="${esc(p.id)}">ENREGISTRER</button><button class="x-btn" data-pecancel="1">ANNULER</button></div></div></div>`
       : `<div class="x-row" style="cursor:default;flex-wrap:wrap"><span><span class="x-tag" style="color:${p.operator === 'mtn' ? '#ffb020' : '#ff7a1a'}">${p.operator === 'mtn' ? 'MTN' : 'ORANGE'}</span> ${esc(p.phone)} · ${esc(p.holder_name)}${p.is_active ? '' : ' <span style="color:#ff5a5f">(masqué)</span>'}</span><span><button class="x-btn" data-pedit="${esc(p.id)}">MODIFIER</button> <button class="x-btn" data-pntog="${esc(p.id)}" data-on="${p.is_active ? 0 : 1}">${p.is_active ? 'MASQUER' : 'AFFICHER'}</button>${isSuper ? ` <button class="x-btn no" data-pndel="${esc(p.id)}">SUPPRIMER</button>` : ''}</span></div>`).join('') || '<p style="color:#5b6b7c">// aucun numéro</p>'}</div>`;
+    const nPay = (S.pn || []).length, nAct = (S.pn || []).filter(p => p.is_active).length;
+    const gifted = S.grantsOk ? new Set(S.grants.map(g => g.user_id)).size : null;
+    const tabs = segs(isSuper
+      ? [['price', '💰 Tarification des reçus', null], ['pay', '📱 Numéros de dépôt', nPay], ['promo', '🎁 Offres promotionnelles', gifted]]
+      : [['pay', '📱 Numéros de dépôt', nPay]], S.cs, 'data-cs');
+    const sum = isSuper ? `<div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-bottom:18px">
+      <div class="x-read" style="cursor:default"><small>PRIX DU REÇU</small><strong style="font-size:22px">${fmtMoney(RECEIPT_PRICE)}</strong><em>par expédition</em></div>
+      <div class="x-read" style="cursor:default"><small>NUMÉROS ACTIFS</small><strong style="font-size:22px">${nAct} / ${nPay}</strong><em>visibles par les clients</em></div>
+      <div class="x-read" style="cursor:default"><small>REÇUS OFFERTS</small><strong style="font-size:22px">${gifted == null ? '-' : gifted}</strong><em>utilisateurs gratifiés</em></div></div>` : '';
+    const lead = { price: "Fixez le montant débité aux clients pour la génération d'un reçu A5 et d'un code de suivi.", pay: 'Gérez les numéros Mobile Money affichés aux clients lors des demandes de recharge.', promo: "Offrez un reçu gratuit à un groupe ciblé d'utilisateurs." }[S.cs];
+    M.innerHTML = `<div class="x-wrap"><p class="x-h"><b>●</b> PARAMÈTRES // ${isSuper ? 'TARIFICATION & OFFRES' : 'NUMÉROS DE PAIEMENT'}</p>
+      <p class="x-lead">${lead}</p>
+      ${sum}${tabs}
+      ${S.cs === 'price' ? priceHtml : S.cs === 'promo' ? promoHtml() : payHtml}</div>`;
     prList();
   }
 
@@ -2109,10 +2203,12 @@ select.x-in{cursor:pointer}
       <div style="margin-top:10px;padding:12px;background:#fff;border:1px solid #c9d1d9">
         <p style="font-size:12px;font-weight:700">AUTO : ${s.auto_progress ? 'ACTIVÉ' : 'DÉSACTIVÉ'} <button class="x-btn" style="margin-left:8px" data-auto="${s.auto_progress ? 0 : 1}" data-id="${esc(s.id)}">${s.auto_progress ? 'COUPER' : 'RÉACTIVER'}</button></p>
         <div style="display:flex;gap:8px;margin-top:8px"><input id="d-win" type="number" min="1" max="720" class="x-in" value="${esc(win(s))}"><button class="x-btn go" data-win="${esc(s.id)}">DÉLAI (h)</button></div></div>` : '';
+    const delCtl = isSuper ? `<div style="margin-top:10px"><button class="x-btn no" style="width:100%" data-shdel="${esc(s.id)}">SUPPRIMER DÉFINITIVEMENT CE COLIS</button></div>` : '';
     $('x-drawer').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><h3 style="font-weight:800;font-size:16px;word-break:break-all">${esc(fmtCode(s.tracking_code))}</h3><button class="x-btn" data-close="1">FERMER ✕</button></div>
       <p style="font-size:12px;color:#555;margin-top:4px">Compte : ${esc((S.own[s.user_id] || {}).email || '-')}</p>
       ${detailsHtml(s)}
       ${ctl}
+      ${delCtl}
       ${timeline(S.ev, s, true)}`;
     $('x-drawer').classList.add('open'); $('x-veil').style.display = 'block';
   }
@@ -2133,6 +2229,19 @@ select.x-in{cursor:pointer}
     if (error) return toast('Erreur : ' + error.message, 'error');
     toast(both ? 'Supprimé chez moi et chez le client.' : 'Supprimé chez moi (le client garde son message).'); await loadAll(); draw();
   }
+  // Suppression définitive de colis (Super Admin) : par lots pour éviter les requêtes trop longues
+  async function delShipments(ids) {
+    let n = 0;
+    for (let i = 0; i < ids.length; i += 50) {
+      const { data, error } = await supabaseClient.from('sw_shipments').delete().in('id', ids.slice(i, i + 50)).select('id');
+      if (error) { toast('Erreur : ' + error.message, 'error'); break; }
+      n += (data || []).length;
+    }
+    if (!n) return toast('Suppression refusée ou aucun colis supprimé (droits insuffisants côté base).', 'error');
+    toast(n + ' colis supprimé(s).');
+    if (S.open && ids.includes(S.open)) closeDrawer();
+    await loadAll(); draw();
+  }
 
   async function rpc(fn, args, ok) {
     const { error } = await supabaseClient.rpc(fn, args);
@@ -2150,6 +2259,28 @@ select.x-in{cursor:pointer}
     if (g('data-v')) return showSub(g('data-v').dataset.v);
     if ((el = g('data-go'))) return showSub(el.dataset.go);
     if (g('data-close') || e.target.id === 'x-veil') return closeDrawer();
+    // ---- Filtres communs (FLUX, Caisse, Messages, Annulations) ----
+    if ((el = g('data-flper'))) { const f = FL[el.dataset.flper]; f.per = el.dataset.pv; if (f.per !== 'custom') { f.from = ''; f.to = ''; } return REDRAW[el.dataset.flper](); }
+    if ((el = g('data-flreset'))) { const k = el.dataset.flreset; FL[k] = flDef[k](); return REDRAW[k](); }
+    if ((el = g('data-fxst'))) { FL.fx.st = el.dataset.fxst; return pipe(); }
+    if (g('data-fxold')) { FL.fx.st = 'old'; return pipe(); }
+    // ---- Suppression de colis (Super Admin uniquement) ----
+    if ((el = g('data-shdel'))) {
+      if (!needSuper()) return;
+      const s = S.ship.find(x => x.id === el.dataset.shdel); if (!s) return;
+      if (!confirm('Supprimer définitivement le colis ' + fmtCode(s.tracking_code) + ' ?\nCette action est irréversible (aucun remboursement du reçu).')) return;
+      return delShipments([s.id]);
+    }
+    if (g('data-shbulk')) {
+      if (!needSuper()) return;
+      const ids = (S.fxClean || []).slice();
+      if (!ids.length) return;
+      if (!confirm('Supprimer définitivement ' + ids.length + ' colis ancien(s) de plus de 30 jours ?\nCette action est irréversible.')) return;
+      if (prompt('Confirmation de sécurité : tapez SUPPRIMER (en majuscules) pour supprimer ' + ids.length + ' colis.') !== 'SUPPRIMER') return toast('Suppression annulée.');
+      return delShipments(ids);
+    }
+    // ---- Paramètres : sous-onglets ----
+    if ((el = g('data-cs'))) { S.cs = el.dataset.cs; return cfg(); }
     // ---- Comptes : filtres, pagination, export ----
     if ((el = g('data-uf'))) { S.uf = el.dataset.uf; S.ulim = 60; return acct(); }
     if (g('data-umore')) { S.ulim += 60; return acct(); }
@@ -2303,7 +2434,7 @@ select.x-in{cursor:pointer}
       const both = el.dataset.both === '1', where = both ? ' chez moi ET chez le client' : ' chez moi seulement (le client garde son journal)';
       let ids;
       if (el.dataset.rdel) { ids = [el.dataset.rdel]; if (!confirm('Supprimer cette demande' + where + ' ?')) return; }
-      else { const f = el.dataset.rclear; ids = S.rech.filter(r => r.status !== 'pending' && (!f || r.status === f)).map(r => r.id); if (!ids.length) return; if (!confirm('Supprimer ' + ids.length + ' demande(s) traitée(s)' + where + ' ?')) return; }
+      else { ids = (S.rclr || []).slice(); if (!ids.length) return; if (!confirm('Supprimer ' + ids.length + ' demande(s) traitée(s)' + where + ' ?')) return; }
       return delRecharges(ids, both);
     }
     if ((el = g('data-mdel')) || (el = g('data-mclear'))) {
@@ -2311,7 +2442,7 @@ select.x-in{cursor:pointer}
       const both = el.dataset.both === '1', where = both ? ' chez moi ET chez le client' : ' chez moi seulement (le client le garde)';
       let ids;
       if (el.dataset.mdel) { ids = [el.dataset.mdel]; if (!confirm('Supprimer ce message' + where + ' ?')) return; }
-      else { ids = (S.msgs || []).filter(m => m.status === 'resolved' && (!S.mf || m.status === S.mf)).map(m => m.id); if (!ids.length) return; if (!confirm('Supprimer ' + ids.length + ' message(s) résolu(s)' + where + ' ?')) return; }
+      else { ids = (S.mclr || []).slice(); if (!ids.length) return; if (!confirm('Supprimer ' + ids.length + ' message(s) résolu(s)' + where + ' ?')) return; }
       return delMessages(ids, both);
     }
     if ((el = g('data-proof'))) { if (!need('rech')) return; logAct('proof_view', el.dataset.proof); return openProof(el.dataset.proof); }
@@ -2394,6 +2525,20 @@ select.x-in{cursor:pointer}
   A.addEventListener('change', e => { if (e.target.closest && e.target.closest('#bc-box')) bcUpdate(); });
   // Tri de la liste des comptes
   A.addEventListener('change', e => { if (e.target.id === 'x-usort') { S.us = e.target.value; S.ulim = 60; acct(); } });
+  // Filtres communs : texte (au fil de la saisie), listes et dates (au changement)
+  const flEv = (e) => {
+    const t = e.target; if (!t.dataset || !t.dataset.fl) return;
+    const isTxt = t.type === 'text';
+    if (isTxt && e.type !== 'input') return;
+    if (!isTxt && e.type !== 'change') return;
+    const key = t.dataset.fl, f = FL[key]; if (!f) return;
+    f[t.dataset.fk] = t.value;
+    const id = t.id, p = isTxt ? t.selectionStart : 0;
+    REDRAW[key]();
+    if (isTxt && id) { const n = $(id); if (n) { n.focus(); try { n.setSelectionRange(p, p); } catch (er) {} } }
+  };
+  A.addEventListener('input', flEv);
+  A.addEventListener('change', flEv);
 
   let dragId = null;
   A.addEventListener('dragstart', e => { const c = e.target.closest('.x-card'); if (c) dragId = c.dataset.id; });
