@@ -58,6 +58,66 @@ body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sa
 #dash-view section:not(.hidden){animation:swIn .35s ease both}
 @media (prefers-reduced-motion:reduce){#dash-view section,#auth-view>div{animation:none!important}}
 </style>
+<style>
+/* ===== THÈME CLIENT PREMIUM BLEU (v2) ===== */
+body.bg-gray-50{background:radial-gradient(900px 420px at 100% 0,#d3e3ff 0,transparent 60%),radial-gradient(800px 420px at 0 35%,#e3deff 0,transparent 55%),#eef3ff;background-attachment:fixed}
+/* En-tête bleu nuit */
+#dash-view>header{background:linear-gradient(135deg,#071d4d 0%,#0a3a9a 55%,#2a7bff 100%);border-bottom:0;border-radius:0 0 30px 30px;box-shadow:0 22px 44px -22px rgba(0,30,100,.75)}
+#dash-view>header h1{color:#fff!important;text-shadow:0 2px 12px rgba(0,0,0,.25)}
+#dash-view>header #user-email{color:rgba(255,255,255,.78)}
+#dash-view>header #logout-btn{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.35);backdrop-filter:blur(8px)}
+#dash-view>header #logout-btn:hover{background:rgba(255,255,255,.26);color:#fff}
+#dash-view .brand-mark.sm{background:#fff;box-shadow:0 10px 22px -8px rgba(0,0,0,.55),0 0 0 3px rgba(255,255,255,.25)}
+/* Barre de navigation sombre */
+#dtabs{background:linear-gradient(135deg,rgba(7,29,77,.96),rgba(10,58,154,.96))!important;border:1px solid rgba(255,255,255,.14);box-shadow:0 24px 50px -14px rgba(0,20,80,.7)}
+#dtabs .dtab{color:#a9c3ff!important}
+#dtabs .dtab.text-swiftblue{background-image:linear-gradient(135deg,#2a7bff,#7db4ff)!important;color:#fff!important;box-shadow:0 10px 22px -6px rgba(42,123,255,.85),inset 0 1px 0 rgba(255,255,255,.4)!important}
+#dtabs .dtab.text-swiftblue .ic{transform:scale(1.15)}
+/* Cartes avec liseré dégradé */
+#dash-view .bg-white.rounded-3xl{position:relative;overflow:hidden;border:1px solid #dfe9ff;box-shadow:0 2px 4px rgba(10,58,154,.05),0 24px 50px -26px rgba(10,58,154,.45)}
+#dash-view .bg-white.rounded-3xl::before{content:"";position:absolute;left:0;right:0;top:0;height:5px;background:linear-gradient(90deg,#071d4d,#0047AB,#2a7bff,#8cbcff)}
+#dash-view .bg-white.rounded-2xl{border:1px solid #dfe9ff;border-left:5px solid #2a7bff}
+/* Titres */
+#dash-view h2.text-lg{font-size:21px;font-weight:800;letter-spacing:-.01em;background:linear-gradient(90deg,#071d4d,#0047AB 70%,#2a7bff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+#dash-view h3.text-base{color:#071d4d;font-weight:800;display:flex;align-items:center;gap:10px}
+#dash-view h3.text-base::before{content:"";width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#0047AB,#2a7bff);box-shadow:0 0 0 4px rgba(42,123,255,.18)}
+#dash-view h3.text-sm{color:#0a2a6b}
+#dash-view label.block{color:#1e3a8a;font-size:12px;letter-spacing:.02em}
+#dash-view select{background-image:linear-gradient(45deg,transparent 50%,#0047AB 50%),linear-gradient(135deg,#0047AB 50%,transparent 50%);background-position:calc(100% - 20px) 55%,calc(100% - 14px) 55%;background-size:6px 6px;background-repeat:no-repeat;-webkit-appearance:none;appearance:none;padding-right:40px}
+#dash-view input:not([type=checkbox]):not([type=file]),#dash-view select,#dash-view textarea{border:1.5px solid #dbe6ff;background-color:#f6f9ff}
+#dash-view input[type=checkbox]{accent-color:#0047AB}
+/* Boutons principaux plus riches */
+#dash-view button.bg-swiftblue,#auth-view button.bg-swiftblue{letter-spacing:.01em;box-shadow:0 14px 28px -10px rgba(0,71,171,.8),inset 0 1px 0 rgba(255,255,255,.28)}
+/* Liste des colis */
+#dash-view p.font-bold.text-gray-900.break-all{display:inline-block;max-width:100%;background:#eaf1ff;color:#071d4d;font-size:14px;letter-spacing:.03em;padding:5px 11px;border-radius:11px;border:1px solid #cfe0ff;overflow-wrap:anywhere}
+#dash-view span.inline-block.rounded-full.text-xs.font-semibold{white-space:nowrap;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid rgba(0,0,0,.05)}
+#dash-view span.inline-block.rounded-full.text-xs.font-semibold::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+#list-container .details-btn{background:linear-gradient(135deg,#eaf1ff,#dbe8ff);padding:8px 15px;border-radius:999px;border:1px solid #cfe0ff}
+#list-container .receipt-btn:not(.bg-swiftblue),#list-container .copy-btn{background:#fff;color:#0a2a6b!important;border:1.5px solid #cfe0ff!important;padding:8px 14px!important}
+#list-container .cancel-btn{background:#fff8e6;border-color:#fde2a0!important;padding:8px 14px!important}
+#list-container .del-btn{background:#fff1f1;border-color:#fbcaca!important;padding:8px 14px!important}
+#list-container button:not(.bg-swiftblue){transition:transform .12s ease,box-shadow .2s ease}
+#list-container button:not(.bg-swiftblue):active{transform:scale(.97)}
+/* Détails de suivi */
+#dash-view .bg-gray-50.rounded-xl{background:#f2f7ff;border:1px solid #e0eaff}
+#dash-view .bg-white.rounded-xl{border:1px solid #e0eaff}
+#dash-view div.bg-swiftblue.rounded-full{background-image:linear-gradient(90deg,#0047AB,#7db4ff);box-shadow:0 0 12px rgba(42,123,255,.6)}
+#dash-view ol li span.bg-swiftblue{background-image:linear-gradient(135deg,#0047AB,#2a7bff)}
+#dash-view .bg-green-50.border,#dash-view .bg-red-50.border{border-radius:16px}
+/* Portefeuille */
+.wallet-hero{padding:30px 26px;background:linear-gradient(135deg,#050f2e 0%,#0a3a9a 50%,#2a7bff 100%);box-shadow:0 30px 56px -24px rgba(0,71,171,.9),inset 0 1px 0 rgba(255,255,255,.25)}
+.wallet-hero #wallet-balance{font-size:38px;letter-spacing:-.02em;text-shadow:0 4px 20px rgba(0,0,0,.3)}
+#dash-view .bg-blue-50.rounded-xl{background:linear-gradient(135deg,#eaf1ff,#f4f0ff);border:1px solid #cfe0ff}
+#dash-view input[type=file]{padding:8px;border:1.5px dashed #9dbfff;border-radius:14px;background:#f6f9ff}
+/* Toast */
+#toast{background-image:linear-gradient(135deg,#071d4d,#0a3a9a)!important;border-radius:16px!important;box-shadow:0 18px 40px -12px rgba(0,30,100,.6)!important}
+/* Signatures */
+#dash-view canvas{border-color:#8cbcff!important;background:#f8fbff!important}
+/* Écran de connexion encore plus soigné */
+#auth-view>div.bg-white{background:rgba(255,255,255,.97)}
+#auth-view h1.text-swiftblue{background:linear-gradient(90deg,#071d4d,#0047AB,#2a7bff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+#auth-view .bg-gray-100{background:#eaf1ff}
+</style>
 </head>
 <body class="bg-gray-50 min-h-screen">
 <div id="toast" class="hidden"></div>
