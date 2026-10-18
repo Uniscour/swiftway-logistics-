@@ -159,6 +159,15 @@ body.bg-gray-50{background:radial-gradient(900px 420px at 100% 0,#d3e3ff 0,trans
 #price-box{box-shadow:0 20px 40px -24px rgba(0,71,171,.6)}
 #new-btn{padding-top:17px;padding-bottom:17px;font-size:16px}
 </style>
+<style>
+/* ===== BADGE DE MESSAGES NON LUS (onglet Assistance) ===== */
+#dtabs .dtab{position:relative}
+.dbadge{position:absolute;top:0;right:calc(50% - 30px);min-width:21px;height:21px;padding:0 6px;border-radius:999px;background:#ef4444;color:#fff;font-size:11px;font-weight:800;line-height:21px;text-align:center;box-shadow:0 0 0 2px #0a3a9a,0 4px 10px -2px rgba(239,68,68,.75);animation:swPulse 1.8s ease-in-out infinite;pointer-events:none}
+.dbadge.hidden{display:none}
+.newtag{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;letter-spacing:.06em;vertical-align:middle}
+@keyframes swPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+@media (prefers-reduced-motion:reduce){.dbadge{animation:none}}
+</style>
 </head>
 <body class="bg-gray-50 min-h-screen">
 <div id="toast" class="hidden"></div>
@@ -229,7 +238,7 @@ body.bg-gray-50{background:radial-gradient(900px 420px at 100% 0,#d3e3ff 0,trans
       <button data-tab="new" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">➕</span><span>Nouvelle</span></button>
       <button data-tab="track" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">🔎</span><span>Suivre</span></button>
       <button data-tab="wallet" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">💳</span><span>Portefeuille</span></button>
-      <button data-tab="help" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">💬</span><span>Assistance</span></button>
+      <button data-tab="help" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">💬</span><span>Assistance</span><span id="help-badge" class="dbadge hidden"></span></button>
     </div>
     <div id="d-alert" class="hidden mb-4 p-4 rounded-xl text-sm text-center font-medium"></div>
     <section id="view-list"><div id="list-container"></div></section>
@@ -331,7 +340,7 @@ async function showDashView(user) {
   $('admin-view').classList.add('hidden'); document.body.style.background = '';
   $('user-email').textContent = (user && user.email) || '';
   $('dash-view').classList.remove('hidden');
-  loadPrice(); showTab('list');
+  loadPrice(); showTab('list'); refreshHelpBadge();
 }
 
 // ---------- CONNEXION ----------
@@ -800,6 +809,7 @@ function showTab(name) {
   if (name === 'list') loadShipments();
   if (name === 'wallet') loadWallet();
   if (name === 'help') loadHelp();
+  if (name !== 'help') refreshHelpBadge();
   if (name === 'new') loadPrice().then(setNewLabel);
 }
 function setNewLabel() {
@@ -1025,6 +1035,7 @@ $('track-form').addEventListener('submit', async (e) => {
 
 const doLogout = async () => {
   await supabaseClient.auth.signOut(); isAdmin = false; isSuper = false; myPerms = {}; currentUser = null; closeReceipt();
+  const hb = $('help-badge'); if (hb) hb.classList.add('hidden');
   const ov = $('x-drawer'); if (ov) ov.classList.remove('open');
   const vl = $('x-veil'); if (vl) vl.style.display = 'none';
   showAuthView();
@@ -1107,29 +1118,70 @@ $('recharge-form').addEventListener('submit', async (e) => {
 
 // ---------- ASSISTANCE (client -> admin) ----------
 const MCAT = { technical: 'Problème technique', payment: 'Paiement / recharge', shipment: 'Colis / expédition', other: 'Autre' };
+
+// ---------- MESSAGES NON LUS (badge +N sur l'onglet Assistance) ----------
+// Lecture suivie en base (colonnes read_at / reply_read_at, migration SQL fournie). Si ces colonnes n'existent pas encore,
+// un repli local (localStorage) garde le badge fonctionnel sur cet appareil.
+let NEWSET = new Set();
+const msgVisible = (m) => !m.user_hidden || (m.admin_reply && m.reply_visible);
+function seenKey() { return 'sw_seen_' + (currentUser ? currentUser.id : ''); }
+function getSeen() { try { return new Set(JSON.parse(localStorage.getItem(seenKey()) || '[]')); } catch (e) { return new Set(); } }
+function saveSeen(s) { try { localStorage.setItem(seenKey(), JSON.stringify([...s].slice(-500))); } catch (e) {} }
+// Éléments non lus : annonces / messages directs de l'admin (clé = id) et réponses de l'admin à mes messages (clé = id:r)
+function unreadKeys(rows) {
+  rows = (rows || []).filter(msgVisible);
+  const hasDb = rows.length > 0 && ('read_at' in rows[0]), seen = hasDb ? new Set() : getSeen(), out = [];
+  rows.forEach(m => {
+    if (m.is_broadcast) { if (!m.read_at && !seen.has(m.id)) out.push(m.id); }
+    else if (m.admin_reply) { if (!m.reply_read_at && !seen.has(m.id + ':r')) out.push(m.id + ':r'); }
+  });
+  return out;
+}
+function setHelpBadge(n) {
+  const b = $('help-badge'); if (!b) return;
+  if (n > 0) { b.textContent = '+' + n; b.classList.remove('hidden'); } else b.classList.add('hidden');
+}
+async function refreshHelpBadge() {
+  if (!currentUser || isAdmin) return;
+  try {
+    const { data, error } = await supabaseClient.from('sw_messages').select('*').eq('user_id', currentUser.id);
+    if (error) return;
+    setHelpBadge(unreadKeys(data).length);
+  } catch (e) {}
+}
+async function markHelpRead(rows) {
+  const keys = unreadKeys(rows);
+  if (!keys.length) { setHelpBadge(0); return; }
+  try { await supabaseClient.rpc('sw_user_mark_read'); } catch (e) {}
+  const seen = getSeen(); keys.forEach(k => seen.add(k)); saveSeen(seen);
+  setHelpBadge(0);
+}
+const newTag = (m) => (NEWSET.has(m.id) || NEWSET.has(m.id + ':r')) ? '<span class="newtag">NOUVEAU</span>' : '';
+
 // Message supprimé par le client mais avec une réponse de l'admin : on n'affiche que la réponse.
 function replyOnlyCard(m) {
   return `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3"><div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
-    <p class="text-xs font-bold text-swiftblue mb-1">Réponse de l'assistant</p><p class="text-sm text-gray-800 whitespace-pre-wrap">${esc(m.admin_reply)}</p></div>
+    <p class="text-xs font-bold text-swiftblue mb-1">Réponse de l'assistant${newTag(m)}</p><p class="text-sm text-gray-800 whitespace-pre-wrap">${esc(m.admin_reply)}</p></div>
     <button type="button" data-udel="${esc(m.id)}" class="u-mdel mt-3 text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button></div>`;
 }
 function broadcastCard(m) {
   return `<div class="bg-white rounded-2xl shadow-sm border-2 border-blue-200 p-4 mb-3">
-    <div class="flex items-center justify-between gap-2"><span class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-swiftblue text-white">${m.category === 'direct' ? "💬 Message de l'assistant" : '📢 Annonce officielle'}</span><span class="text-xs text-gray-400">${fmtDate(m.created_at)}</span></div>
+    <div class="flex items-center justify-between gap-2"><span class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-swiftblue text-white">${m.category === 'direct' ? "💬 Message de l'assistant" : '📢 Annonce officielle'}${newTag(m)}</span><span class="text-xs text-gray-400">${fmtDate(m.created_at)}</span></div>
     <p class="font-bold text-gray-900 mt-3">${esc(m.subject)}</p>
     <p class="text-sm text-gray-700 mt-1 whitespace-pre-wrap">${esc(m.body)}</p>
     <p class="text-xs text-gray-400 mt-2">— L'équipe SwiftWay Logistics</p>
     <button type="button" data-udel="${esc(m.id)}" class="u-mdel mt-3 text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button></div>`;
 }
-async function loadHelp() {
-  const list = $('help-list'); list.innerHTML = LOADING;
+async function loadHelp(silent) {
+  const list = $('help-list'); if (!silent) list.innerHTML = LOADING;
   const { data, error } = await supabaseClient.from('sw_messages').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
   if (error) { list.innerHTML = ''; dShow('Erreur : ' + error.message); return; }
   const msgs = data.filter(x => !x.user_hidden || (x.admin_reply && x.reply_visible));
-  if (!msgs.length) { list.innerHTML = '<p class="text-center text-sm text-gray-500">Aucun message envoyé pour le moment.</p>'; return; }
+  NEWSET = new Set(unreadKeys(data));
+  if (!msgs.length) { list.innerHTML = '<p class="text-center text-sm text-gray-500">Aucun message envoyé pour le moment.</p>'; setHelpBadge(0); return; }
   list.innerHTML = '<div class="flex items-center justify-between mb-2"><h3 class="text-sm font-bold text-gray-900">Mes messages</h3><button type="button" id="u-mclear" class="text-xs font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Vider mes messages</button></div>' + msgs.map(m => m.is_broadcast ? broadcastCard(m) : m.user_hidden ? replyOnlyCard(m) : `
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3"><div class="flex items-start justify-between gap-2"><div>
-      <p class="font-bold text-gray-900">${esc(m.subject)}</p>
+      <p class="font-bold text-gray-900">${esc(m.subject)}${newTag(m)}</p>
       <p class="text-xs text-gray-400">${esc(MCAT[m.category] || m.category)} · ${fmtDate(m.created_at)}</p></div>
       <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold ${m.status === 'resolved' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}">${m.status === 'resolved' ? 'Résolu' : 'En cours'}</span></div>
       <p class="text-sm text-gray-700 mt-2 whitespace-pre-wrap">${esc(m.body)}</p>
@@ -1137,6 +1189,8 @@ async function loadHelp() {
   const hideM = async (ids) => { const { error } = await supabaseClient.rpc('sw_user_hide_messages', { p_ids: ids.map(String) }); if (error) { toast('Erreur : ' + error.message, 'error'); return; } toast('Supprimé de votre journal.'); loadHelp(); };
   list.querySelectorAll('.u-mdel').forEach(b => b.addEventListener('click', () => { if (confirm('Supprimer ce message de votre journal ?')) hideM([b.dataset.udel]); }));
   const umc = $('u-mclear'); if (umc) umc.addEventListener('click', () => { if (confirm('Supprimer tous vos messages de votre journal ?')) hideM(msgs.map(x => x.id)); });
+  // L'onglet est ouvert : les messages consultés sont marqués comme lus et le badge s'efface.
+  markHelpRead(data);
 }
 $('help-form').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -1228,6 +1282,16 @@ setInterval(() => {
   });
 }, 1000);
 
+// ---------- ACTUALISATION DU BADGE DE MESSAGES (toutes les 30 s) ----------
+setInterval(() => {
+  if (!currentUser || isAdmin || $('dash-view').classList.contains('hidden')) return;
+  if (!$('view-help').classList.contains('hidden')) {
+    const a = document.activeElement;
+    if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return; // ne pas perturber la saisie en cours
+    loadHelp(true);
+  } else refreshHelpBadge();
+}, 30000);
+
 // ---------- DÉMARRAGE ----------
 // Anciens liens / anciens QR codes (?suivi=1&t=CODE) : redirigés vers le site de suivi séparé.
 const QS = new URLSearchParams(location.search);
@@ -1248,10 +1312,12 @@ if (QS.has('t') || QS.has('suivi')) {
 .x-btn{background:transparent;border:1px solid #2a3846;color:#cfd8e3;padding:6px 12px;font:inherit;font-size:11px;letter-spacing:.1em;cursor:pointer}
 .x-btn:hover{border-color:#c6ff3d;color:#c6ff3d}.x-btn.go{background:#c6ff3d;color:#06080b;border-color:#c6ff3d;font-weight:800}
 .x-btn.no{border-color:#ff5a5f;color:#ff5a5f}
+.x-btn:disabled{opacity:.4;cursor:not-allowed}
 .x-rail{position:fixed;z-index:40;bottom:0;left:0;right:0;display:flex;background:#0a0e13;border-top:1px solid #1b2530;padding-bottom:env(safe-area-inset-bottom,0)}
 .x-rail button{flex:1;position:relative;background:none;border:0;color:#5b6b7c;padding:10px 0;font:inherit;font-size:10px;letter-spacing:.12em;cursor:pointer}
 .x-rail button b{display:block;font-size:20px;margin-bottom:2px}.x-rail button.on{color:#c6ff3d;box-shadow:inset 0 2px #c6ff3d}
 .x-rail .n{position:absolute;top:4px;right:18%;background:#ff5a5f;color:#fff;border-radius:9px;font-size:10px;padding:0 5px;display:none}
+@media(max-width:480px){.x-rail button{font-size:8.5px;letter-spacing:.04em}.x-rail button b{font-size:18px}}
 @media(min-width:768px){.x-rail{top:52px;right:auto;width:84px;flex-direction:column;border-top:0;border-right:1px solid #1b2530}
  .x-rail button{flex:none;padding:16px 0}.x-rail button.on{box-shadow:inset 2px 0 #c6ff3d}.x-rail .n{right:16%}#x-main{margin-left:84px}}
 #x-main{padding:18px 14px 96px;max-width:1500px}
@@ -1289,6 +1355,7 @@ if (QS.has('t') || QS.has('suivi')) {
   <nav class="x-rail">
     <button data-v="radar"><b>◉</b>RADAR</button><button data-v="pipe"><b>▦</b>FLUX</button>
     <button data-v="cash"><b>◈</b>CAISSE<span class="n" id="nav-rech-badge"></span></button><button data-v="acct"><b>☷</b>COMPTES</button>
+    <button data-v="wa"><b>✆</b>WHATSAPP</button>
     <button data-v="cancel"><b>⊘</b>ANNUL.<span class="n" id="nav-cx-badge"></span></button>
     <button data-v="msg"><b>✉</b>MESSAGES<span class="n" id="nav-msg-badge"></span></button><button data-v="cfg"><b>⚙</b>PARAMS</button>
   </nav>
@@ -1297,7 +1364,9 @@ if (QS.has('t') || QS.has('suivi')) {
   $('x-exit').onclick = doLogout;
   setInterval(() => { const c = $('x-clock'); if (c) c.textContent = new Date().toLocaleTimeString('fr-FR'); }, 1000);
 
-  const S = { ship: [], users: [], usr: [], admins: [], rech: [], bal: {}, own: {}, v: 'radar', q: '', rf: 'pending', open: null, ev: [], cx: [], st: null, af: 'users', adv: null, logs: [] };
+  const S = { ship: [], users: [], usr: [], admins: [], rech: [], bal: {}, own: {}, v: 'radar', q: '', rf: 'pending', open: null, ev: [], cx: [], st: null, af: 'users', adv: null, logs: [], sent: [] };
+  // Filtres & file d'envoi de l'onglet WhatsApp
+  const WA = { q: '', act: 'all', bal: 'all', min: '', max: '', shp: 'all', reg: 'all', msg: '', done: {}, list: [] };
   const COL = { pending: '#7d8da0', picked_up: '#4da3ff', in_transit: '#a78bfa', out_for_delivery: '#ffb020', delivered: '#c6ff3d', cancelled: '#ff5a5f' };
   const M = $('x-main');
   const win = s => s.delivery_window_hours || 48;
@@ -1320,7 +1389,7 @@ if (QS.has('t') || QS.has('suivi')) {
   const isSupU = (u) => String((u && u.email) || '').toLowerCase() === SUPER_EMAIL;
   const need = (p) => { if (can(p)) return true; toast('Action non autorisée pour votre rôle.', 'error'); return false; };
   const needSuper = () => { if (isSuper) return true; toast('Réservé au Super Admin Suprême.', 'error'); return false; };
-  const navOk = (n) => ({ radar: true, pipe: can('ship'), cash: can('rech'), acct: can('acct'), cancel: can('cancel'), msg: can('msg'), cfg: isSuper || can('pay') })[n] === true;
+  const navOk = (n) => ({ radar: true, pipe: can('ship'), cash: can('rech'), acct: can('acct'), wa: can('msg') || can('acct'), cancel: can('cancel'), msg: can('msg'), cfg: isSuper || can('pay') })[n] === true;
   function applyNav() {
     A.querySelectorAll('.x-rail [data-v]').forEach(b => { b.style.display = navOk(b.dataset.v) ? '' : 'none'; });
   }
@@ -1345,7 +1414,8 @@ if (QS.has('t') || QS.has('suivi')) {
     sw_admin_review_cancel: "Traitement d'annulation", sw_admin_set_user: 'Compte utilisateur modifié', proof_view: 'Capture de paiement consultée',
     msg_reply: 'Réponse à un message', msg_resolve: 'Message résolu', msg_reopen: 'Message rouvert', direct_message: 'Message direct envoyé',
     broadcast: 'Annonce globale envoyée', paynum_add: 'Numéro de paiement ajouté', paynum_edit: 'Numéro de paiement modifié', paynum_toggle: 'Numéro de paiement masqué/affiché',
-    sw_admin_send_direct: 'Message direct envoyé', sw_admin_broadcast: 'Annonce globale envoyée', sw_admin_set_active: 'Compte utilisateur activé/coupé', sw_admin_review_recharge: 'Traitement de recharge'
+    sw_admin_send_direct: 'Message direct envoyé', sw_admin_broadcast: 'Annonce globale envoyée', sw_admin_set_active: 'Compte utilisateur activé/coupé', sw_admin_review_recharge: 'Traitement de recharge',
+    wa_contact: 'Discussion WhatsApp ouverte'
   };
   function logAct(action, details) {
     if (isSuper) return;
@@ -1374,10 +1444,13 @@ if (QS.has('t') || QS.has('suivi')) {
       q('sw_shipments').order('created_at', { ascending: false }).limit(500),
       q('sw_profiles').order('created_at', { ascending: false }),
       q('sw_recharges').order('created_at', { ascending: false }).limit(300),
-      q('sw_wallets', 'user_id,balance'), q('sw_pay_numbers').order('created_at'), q('sw_wallet_adjustments').order('created_at'), q('sw_messages').order('created_at', { ascending: false }).limit(300),
+      q('sw_wallets', 'user_id,balance'), q('sw_pay_numbers').order('created_at'), q('sw_wallet_adjustments').order('created_at'), q('sw_messages').order('created_at', { ascending: false }).limit(1000),
       q('sw_cancel_requests').order('created_at', { ascending: false }).limit(300)]);
     if (sh.error) { toast('Erreur : ' + sh.error.message, 'error'); return; }
-    S.msgs = (mg.data || []).filter(m => !m.admin_hidden && !m.is_broadcast); S.pn = pn.data || []; S.adj = adj.data || []; S.ship = sh.data.map(s => s.status === 'picked_up' ? { ...s, status: 'pending' } : s);
+    S.msgs = (mg.data || []).filter(m => !m.admin_hidden && !m.is_broadcast);
+    // Messages et annonces envoyés par l'admin (suivi des accusés de lecture)
+    S.sent = (mg.data || []).filter(m => m.is_broadcast && !m.admin_hidden);
+    S.pn = pn.data || []; S.adj = adj.data || []; S.ship = sh.data.map(s => s.status === 'picked_up' ? { ...s, status: 'pending' } : s);
     // Cloisonnement : un admin secondaire ne voit JAMAIS le Super Admin ni les autres admins.
     const allP = pr.data || [];
     S.usr = allP.filter(u => u.role !== 'admin' && !isSupU(u));
@@ -1414,7 +1487,7 @@ if (QS.has('t') || QS.has('suivi')) {
     window.scrollTo(0, 0);
     await loadAll(); draw();
   };
-  function draw() { ({ radar, pipe, cash, acct, cfg, msg: inbox, cancel: cancelV })[S.v](); if (S.open) openDrawer(S.open, true); }
+  function draw() { ({ radar, pipe, cash, acct, cfg, msg: inbox, cancel: cancelV, wa: waV })[S.v](); if (S.open) openDrawer(S.open, true); }
 
   function radar() {
     const act = S.ship.filter(live), lt = S.ship.filter(late);
@@ -1556,26 +1629,52 @@ if (QS.has('t') || QS.has('suivi')) {
         ${s.id ? `<button class="x-btn" data-open="${esc(s.id)}">VOIR LE COLIS</button>` : ''}</div>` : ''}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucune demande</p>'}`;
   }
 
+  // ---------- ACCUSÉS DE RÉCEPTION (Lu / Non lu) ----------
+  // Affiche « ✓ LU · date/heure » en vert ou « NON LU » en gris. Rien si la colonne n'existe pas encore (migration SQL non exécutée).
+  function rcpt(m, field) {
+    if (!m || !(field in m)) return '';
+    return m[field] ? `<span class="x-tag" style="color:#c6ff3d;white-space:nowrap">✓ LU · ${fmtDate(m[field])}</span>` : '<span class="x-tag" style="color:#7d8da0;white-space:nowrap">NON LU</span>';
+  }
+  // Annonces et messages directs envoyés : regroupés par envoi, avec le détail de lecture par utilisateur
+  function sentHtml() {
+    const g = {};
+    (S.sent || []).forEach(m => { const k = (m.category || '') + '|' + m.subject + '|' + String(m.created_at).slice(0, 16); (g[k] = g[k] || []).push(m); });
+    const arr = Object.values(g).sort((a, b) => new Date(b[0].created_at) - new Date(a[0].created_at));
+    if (!arr.length) return '<p style="color:#5b6b7c">// aucun message envoyé</p>';
+    return arr.map(list => {
+      const m = list[0], direct = m.category === 'direct', has = 'read_at' in m, rd = list.filter(x => x.read_at).length;
+      return `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-size:16px;color:#e9f1f8">${esc(m.subject)}</strong><span class="x-tag" style="color:${direct ? '#4da3ff' : '#ffb020'}">${direct ? 'DIRECT' : 'ANNONCE'}</span></div>
+        <p style="font-size:11px;color:#5b6b7c;margin:4px 0">${fmtDate(m.created_at)} · ${list.length} destinataire(s)</p>
+        <p style="white-space:pre-wrap;color:#e9f1f8;font-size:13px;margin:8px 0">${esc(m.body)}</p>
+        ${has ? `<p style="font-size:12px;margin:6px 0;color:${rd === list.length ? '#c6ff3d' : '#7d8da0'}">✓ Lu par ${rd} / ${list.length}</p>` : '<p style="font-size:11px;color:#ffb020;margin:6px 0">// suivi de lecture indisponible : exécutez la migration SQL fournie</p>'}
+        <details><summary style="cursor:pointer;font-size:11px;color:#7d8da0;letter-spacing:.1em">DÉTAIL PAR UTILISATEUR</summary>
+        ${list.map(x => { const u = S.own[x.user_id] || {}; return `<div class="x-row" style="cursor:default;align-items:center"><span style="word-break:break-all;font-size:12px">${esc(u.email || '-')}</span>${has ? rcpt(x, 'read_at') : ''}</div>`; }).join('')}</details></div>`;
+    }).join('');
+  }
+
   function inbox() {
     if (S.mf === undefined) S.mf = 'open';
-    const rows = (S.msgs || []).filter(m => !S.mf || m.status === S.mf);
+    const isSent = S.mf === 'sent';
+    const rows = isSent ? [] : (S.msgs || []).filter(m => !S.mf || m.status === S.mf);
     const cnt = {}; S.ship.forEach(s => cnt[s.user_id] = (cnt[s.user_id] || 0) + 1);
     const rsv = rows.filter(m => m.status === 'resolved');
     const mBar = (isSuper && rsv.length) ? `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-4px 0 12px"><button class="x-btn no" data-mclear="1">VIDER CHEZ MOI (${rsv.length})</button><button class="x-btn no" data-mclear="1" data-both="1">VIDER AUSSI CHEZ LES CLIENTS</button><span style="font-size:11px;color:#5b6b7c">Auto : masqué chez moi 5 jours après la résolution (le client le garde)</span></div>` : '';
-    M.innerHTML = `<p class="x-h"><b>●</b> BOÎTE DE RÉCEPTION // messages des clients</p>
-    <div style="margin-bottom:12px"><button class="x-btn ${S.bc ? 'on' : 'go'}" data-bcopen="1">${S.bc ? 'FERMER LA DIFFUSION ✕' : '📢 DIFFUSION / ANNONCE GLOBALE'}</button> <button class="x-btn ${S.dm ? 'on' : 'go'}" data-dmopen="1">${S.dm ? 'FERMER ✕' : '✉ ÉCRIRE À UN UTILISATEUR'}</button></div>
-    ${S.dm ? dmPanel() : ''}
-    ${S.bc ? bcPanel() : ''}
-    <div class="x-chips">${[['open', 'OUVERTS'], ['', 'TOUS'], ['resolved', 'RÉSOLUS']].map(([v, l]) => `<button class="x-btn ${S.mf === v ? 'on' : ''}" data-mf="${v}">${l}</button>`).join('')}</div>
-    ${mBar}
-    ${rows.length ? rows.map(m => { const u = S.own[m.user_id] || {}, op = m.status === 'open'; return `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
+    const list = rows.length ? rows.map(m => { const u = S.own[m.user_id] || {}, op = m.status === 'open'; return `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;gap:8px"><strong style="font-size:16px;color:#e9f1f8">${esc(m.subject)}</strong><span class="x-tag" style="color:${op ? '#ffb020' : '#c6ff3d'}">${op ? 'OUVERT' : 'RÉSOLU'}</span></div>
       <p style="font-size:11px;color:#5b6b7c;margin:4px 0">${esc(MCAT[m.category] || m.category)} · ${fmtDate(m.created_at)}${m.user_hidden ? ' · <span style="color:#ffb020">supprimé par le client</span>' : ''}</p>
       <p style="white-space:pre-wrap;color:#e9f1f8;font-size:13px;margin:8px 0">${esc(m.body)}</p>
       <div style="font-size:11px;color:#7d8da0;border-top:1px dashed #1b2530;padding-top:8px;margin-bottom:8px">EXPÉDITEUR<br><span style="color:#e9f1f8;word-break:break-all">${esc(u.email || '-')}</span><br>${esc(u.phone || 'sans téléphone')}<br>Solde ${fmtMoney(S.bal[m.user_id] || 0)} · ${cnt[m.user_id] || 0} colis · compte ${u.is_active === false ? 'coupé' : 'actif'}</div>
+      ${m.admin_reply ? `<p style="font-size:11px;color:#7d8da0;margin:0 0 8px">RÉPONSE ENVOYÉE : ${rcpt(m, 'reply_read_at')}</p>` : ''}
       ${op ? `<textarea id="mr-${esc(m.id)}" rows="3" class="x-in" placeholder="réponse au client (facultatif)" style="margin-bottom:8px">${esc(m.admin_reply || '')}</textarea>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="x-btn" data-mrep="${esc(m.id)}">ENVOYER LA RÉPONSE</button><button class="x-btn go" data-mres="${esc(m.id)}">MARQUER RÉSOLU</button></div>`
-      : `${m.admin_reply ? `<p style="font-size:12px;color:#7d8da0;white-space:pre-wrap">réponse : ${esc(m.admin_reply)}</p>` : ''}<button class="x-btn" style="margin-top:8px" data-mre="${esc(m.id)}">ROUVRIR</button>${isSuper ? ` <button class="x-btn no" style="margin-top:8px" data-mdel="${esc(m.id)}">SUPPRIMER CHEZ MOI</button> <button class="x-btn no" style="margin-top:8px" data-mdel="${esc(m.id)}" data-both="1">SUPPRIMER AUSSI CHEZ LE CLIENT</button>` : ''}`}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucun message</p>'}`;
+      : `${m.admin_reply ? `<p style="font-size:12px;color:#7d8da0;white-space:pre-wrap">réponse : ${esc(m.admin_reply)}</p>` : ''}<button class="x-btn" style="margin-top:8px" data-mre="${esc(m.id)}">ROUVRIR</button>${isSuper ? ` <button class="x-btn no" style="margin-top:8px" data-mdel="${esc(m.id)}">SUPPRIMER CHEZ MOI</button> <button class="x-btn no" style="margin-top:8px" data-mdel="${esc(m.id)}" data-both="1">SUPPRIMER AUSSI CHEZ LE CLIENT</button>` : ''}`}</div>`; }).join('') : '<p style="color:#5b6b7c">// aucun message</p>';
+    M.innerHTML = `<p class="x-h"><b>●</b> BOÎTE DE RÉCEPTION // messages des clients</p>
+    <div style="margin-bottom:12px"><button class="x-btn ${S.bc ? 'on' : 'go'}" data-bcopen="1">${S.bc ? 'FERMER LA DIFFUSION ✕' : '📢 DIFFUSION / ANNONCE GLOBALE'}</button> <button class="x-btn ${S.dm ? 'on' : 'go'}" data-dmopen="1">${S.dm ? 'FERMER ✕' : '✉ ÉCRIRE À UN UTILISATEUR'}</button></div>
+    ${S.dm ? dmPanel() : ''}
+    ${S.bc ? bcPanel() : ''}
+    <div class="x-chips">${[['open', 'OUVERTS'], ['', 'TOUS'], ['resolved', 'RÉSOLUS'], ['sent', 'ENVOYÉS (LECTURE)']].map(([v, l]) => `<button class="x-btn ${S.mf === v ? 'on' : ''}" data-mf="${v}">${l}</button>`).join('')}</div>
+    ${isSent ? sentHtml() : mBar + list}`;
   }
 
   // ---------- DIFFUSION DE MESSAGES ----------
@@ -1640,6 +1739,88 @@ if (QS.has('t') || QS.has('suivi')) {
       <button class="x-btn go" style="width:100%" data-dmsend="1">ENVOYER À CET UTILISATEUR</button>
       <p style="font-size:11px;color:#5b6b7c;margin-top:8px">Le message apparaît dans l'espace Assistance de l'utilisateur comme « Message de l'assistant ».</p></div>`;
   }
+
+  // ---------- FILTRE UTILISATEURS & CONTACT WHATSAPP ----------
+  // Numéro nettoyé au format international sans « + » (9 chiffres = numéro camerounais, indicatif 237 ajouté).
+  function waNum(p) {
+    let d = String(p || '').replace(/\D/g, '');
+    if (d.startsWith('00')) d = d.slice(2);
+    if (d.length === 9) d = '237' + d;
+    return d.length >= 10 ? d : '';
+  }
+  function waTargets() {
+    const last = {}, now = Date.now();
+    S.ship.forEach(s => { const t = new Date(s.created_at).getTime(); if (!last[s.user_id] || t > last[s.user_id]) last[s.user_id] = t; });
+    const q = WA.q.trim().toLowerCase();
+    return S.usr.filter(u => {
+      if (q && ![u.email, u.phone].some(v => String(v || '').toLowerCase().includes(q))) return false;
+      if (WA.act === 'active' && u.is_active === false) return false;
+      if (WA.act === 'off' && u.is_active !== false) return false;
+      const b = Number(S.bal[u.id] || 0);
+      if (WA.bal === 'positive' && !(b > 0)) return false;
+      if (WA.bal === 'zero' && b > 0) return false;
+      if (WA.bal === 'range') { if (WA.min !== '' && b < Number(WA.min)) return false; if (WA.max !== '' && b > Number(WA.max)) return false; }
+      const ls = last[u.id];
+      if (WA.shp === 'yes' && !ls) return false;
+      if (WA.shp === 'no' && ls) return false;
+      if (WA.shp === 'recent' && !(ls && now - ls <= 30 * 864e5)) return false;
+      if (WA.shp === 'dormant' && !(ls && now - ls > 30 * 864e5)) return false;
+      if (WA.reg !== 'all' && (now - new Date(u.created_at).getTime()) / 864e5 > Number(WA.reg)) return false;
+      return true;
+    });
+  }
+  function waRead() {
+    const v = (id) => { const e = $(id); return e ? e.value : ''; };
+    WA.q = v('wa-q'); WA.act = v('wa-act') || 'all'; WA.bal = v('wa-bal') || 'all'; WA.min = v('wa-min').trim(); WA.max = v('wa-max').trim();
+    WA.shp = v('wa-shp') || 'all'; WA.reg = v('wa-reg') || 'all'; WA.msg = v('wa-msg');
+    const r = $('wa-range'); if (r) r.style.display = WA.bal === 'range' ? 'grid' : 'none';
+  }
+  function waOpen(u) {
+    const n = waNum(u.phone);
+    if (!n) return;
+    const t = WA.msg.trim();
+    window.open('https://wa.me/' + n + (t ? '?text=' + encodeURIComponent(t) : ''), '_blank', 'noopener');
+    WA.done[u.id] = 1;
+    logAct('wa_contact', (u.email || '-') + ' · +' + n);
+  }
+  function waList() {
+    const box = $('wa-res'); if (!box) return;
+    const all = waTargets(), ok = all.filter(u => waNum(u.phone)), bad = all.length - ok.length;
+    WA.list = ok;
+    const done = ok.filter(u => WA.done[u.id]).length;
+    box.innerHTML = `<p style="font-size:12px;color:#c6ff3d;margin:0 0 10px">${all.length} utilisateur(s) correspondant(s) · ${ok.length} avec numéro valide${bad ? ` · <span style="color:#ffb020">${bad} sans numéro exploitable</span>` : ''}</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <button class="x-btn go" data-wanext="1" ${ok.length ? '' : 'disabled'}>💬 Écrire à ces utilisateurs sur WhatsApp</button>
+        <button class="x-btn" data-wacopy="1" ${ok.length ? '' : 'disabled'}>COPIER LES NUMÉROS</button>
+        <button class="x-btn" data-wareset="1">RÉINITIALISER LA FILE</button></div>
+      <p style="font-size:11px;color:#5b6b7c;margin:0 0 10px">WhatsApp n'ouvre qu'une discussion à la fois : chaque clic sur le bouton vert ouvre la suivante (${done} / ${ok.length} déjà ouvertes). Vous pouvez aussi ouvrir un utilisateur précis dans la liste.</p>
+      ${ok.length ? ok.map(u => { const d = !!WA.done[u.id]; return `<div class="x-row" style="cursor:default;align-items:center;${d ? 'opacity:.55' : ''}">
+        <span style="word-break:break-all;font-size:12px"><span style="color:#e9f1f8">${esc(u.email || '-')}</span><br><span style="color:#7d8da0">+${esc(waNum(u.phone))} · ${fmtMoney(S.bal[u.id] || 0)} · ${u.is_active === false ? 'coupé' : 'actif'}</span></span>
+        <button class="x-btn ${d ? '' : 'go'}" data-wasend="${esc(u.id)}">${d ? '✓ OUVERT' : 'WHATSAPP'}</button></div>`; }).join('') : '<p style="color:#5b6b7c">// aucun utilisateur ne correspond aux filtres</p>'}`;
+  }
+  function waV() {
+    const sel = (id, cur, opts) => `<select id="${id}" class="x-in">${opts.map(([v, l]) => `<option value="${v}" ${cur === v ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+    const lb = (t) => `<label style="font-size:11px;color:#5b6b7c;letter-spacing:.1em">${t}</label>`;
+    M.innerHTML = `<p class="x-h"><b>●</b> WHATSAPP // filtrer les utilisateurs et leur écrire</p>
+    <div class="x-panel" id="wa-box" style="margin-top:0;margin-bottom:14px;border-color:#c6ff3d">
+      <p class="x-h">FILTRES</p>
+      <input id="wa-q" class="x-in" style="margin-bottom:10px" placeholder="> Gmail ou téléphone" value="${esc(WA.q)}">
+      <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:10px">
+        <div>${lb('STATUT DU COMPTE')}${sel('wa-act', WA.act, [['all', 'Tous'], ['active', 'Actifs'], ['off', 'Coupés']])}</div>
+        <div>${lb('SOLDE')}${sel('wa-bal', WA.bal, [['all', 'Tous'], ['positive', 'Solde positif (> 0)'], ['zero', 'Solde à zéro'], ['range', 'Tranche personnalisée']])}</div>
+        <div>${lb('ACTIVITÉ COLIS')}${sel('wa-shp', WA.shp, [['all', 'Tous'], ['yes', 'Ont déjà expédié'], ['no', "N'ont jamais expédié"], ['recent', 'Expédié ces 30 derniers jours'], ['dormant', 'Inactifs depuis plus de 30 jours']])}</div>
+        <div>${lb('INSCRIPTION')}${sel('wa-reg', WA.reg, [['all', 'Toutes dates'], ['7', '7 derniers jours'], ['30', '30 derniers jours'], ['90', '90 derniers jours']])}</div></div>
+      <div id="wa-range" style="display:${WA.bal === 'range' ? 'grid' : 'none'};grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <input id="wa-min" type="number" min="0" step="1" class="x-in" placeholder="solde minimum (FCFA)" value="${esc(WA.min)}">
+        <input id="wa-max" type="number" min="0" step="1" class="x-in" placeholder="solde maximum (FCFA)" value="${esc(WA.max)}"></div>
+      ${lb('MESSAGE PRÉ-REMPLI (facultatif)')}
+      <textarea id="wa-msg" rows="4" maxlength="1000" class="x-in" style="margin-top:4px" placeholder="Bonjour, ici l'équipe SwiftWay Logistics...">${esc(WA.msg)}</textarea></div>
+    <div id="wa-res"></div>`;
+    waList();
+  }
+  const waInput = (e) => { if (!e.target.closest || !e.target.closest('#wa-box')) return; waRead(); if (e.target.id !== 'wa-msg') waList(); };
+  A.addEventListener('input', waInput);
+  A.addEventListener('change', waInput);
 
   function cfg() {
     const priceHtml = isSuper ? `<div class="x-panel" style="margin-top:0"><p class="x-h">PRIX DU REÇU A5 / CODE DE SUIVI (FCFA)</p>
@@ -1719,6 +1900,25 @@ if (QS.has('t') || QS.has('suivi')) {
     if (g('data-v')) return showSub(g('data-v').dataset.v);
     if ((el = g('data-go'))) return showSub(el.dataset.go);
     if (g('data-close') || e.target.id === 'x-veil') return closeDrawer();
+    // ---- WhatsApp : file d'envoi, ouverture individuelle, copie des numéros ----
+    if ((el = g('data-wasend'))) {
+      if (!(can('msg') || can('acct'))) return toast('Action non autorisée pour votre rôle.', 'error');
+      const u = S.own[el.dataset.wasend]; if (!u) return;
+      waRead(); waOpen(u); return waList();
+    }
+    if (g('data-wanext')) {
+      if (!(can('msg') || can('acct'))) return toast('Action non autorisée pour votre rôle.', 'error');
+      waRead();
+      const nx = WA.list.find(u => !WA.done[u.id]);
+      if (!nx) return toast('Toutes les discussions de cette liste ont déjà été ouvertes.');
+      waOpen(nx); return waList();
+    }
+    if (g('data-wacopy')) {
+      const txt = WA.list.map(u => '+' + waNum(u.phone)).join('\n');
+      try { await navigator.clipboard.writeText(txt); toast(WA.list.length + ' numéro(s) copié(s).'); } catch (er) { prompt('Copiez ces numéros :', txt); }
+      return;
+    }
+    if (g('data-wareset')) { WA.done = {}; return waList(); }
     // ---- Comptes : sous-onglets, administrateurs (Super Admin uniquement) ----
     if ((el = g('data-af'))) { if (!needSuper()) return; S.af = el.dataset.af; S.adv = null; return acct(); }
     if ((el = g('data-mkadm'))) { if (!needSuper()) return; S.af = 'admins'; S.adv = null; S.nm = el.dataset.mkadm; return acct(); }
