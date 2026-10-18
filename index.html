@@ -343,8 +343,8 @@ tabLogin.addEventListener('click', () => { tabLogin.className = TON; tabSignup.c
 tabSignup.addEventListener('click', () => { tabSignup.className = TON; tabLogin.className = TOFF; signupForm.classList.remove('hidden'); loginForm.classList.add('hidden'); hideAlert(); });
 
 const translations = {
-  fr: { subtitle: "Gérez vos expéditions facilement", loginTab: "Connexion", signupTab: "S'inscrire", email: "Email", emailOrPhone: "Email ou Numéro de téléphone", emailOrPhonePh: "votre@gmail.com ou 6XXXXXXXX", password: "Mot de passe", confirmPassword: "Confirmer le mot de passe", phone: "Numéro de téléphone", loginBtn: "Se connecter", signupBtn: "S'inscrire", langToggleDisplay: "EN", processing: "Traitement en cours...", confirmEmail: "Compte créé ! Vérifiez votre email pour confirmer votre compte, puis connectez-vous.", passMismatch: "Les mots de passe ne correspondent pas.", gmailOnly: "Veuillez utiliser une adresse Gmail valide se terminant par @gmail.com", phoneShort: "Le numéro de téléphone doit contenir au moins 9 chiffres", badPhoneLogin: "Numéro de téléphone ou mot de passe incorrect" },
-  en: { subtitle: "Manage your shipments easily", loginTab: "Login", signupTab: "Sign up", email: "Email", emailOrPhone: "Email or Phone number", emailOrPhonePh: "your@gmail.com or 6XXXXXXXX", password: "Password", confirmPassword: "Confirm Password", phone: "Phone Number", loginBtn: "Login", signupBtn: "Sign up", langToggleDisplay: "FR", processing: "Processing...", confirmEmail: "Account created! Check your email to confirm your account, then log in.", passMismatch: "Passwords do not match.", gmailOnly: "Please use a valid Gmail address ending with @gmail.com", phoneShort: "The phone number must contain at least 9 digits", badPhoneLogin: "Incorrect phone number or password" }
+  fr: { subtitle: "Gérez vos expéditions facilement", loginTab: "Connexion", signupTab: "S'inscrire", email: "Email", emailOrPhone: "Email ou Numéro de téléphone", emailOrPhonePh: "votre@gmail.com ou 6XXXXXXXX", password: "Mot de passe", confirmPassword: "Confirmer le mot de passe", phone: "Numéro de téléphone", loginBtn: "Se connecter", signupBtn: "S'inscrire", langToggleDisplay: "EN", processing: "Traitement en cours...", confirmEmail: "Compte créé ! Vérifiez votre Gmail pour confirmer votre compte, puis connectez-vous.", passMismatch: "Les mots de passe ne correspondent pas.", gmailOnly: "Veuillez utiliser une adresse Gmail valide se terminant par @gmail.com", phoneShort: "Le numéro de téléphone doit contenir au moins 9 chiffres", badPhoneLogin: "Numéro de téléphone ou mot de passe incorrect", emailTaken: "Cette adresse Gmail est déjà utilisée par un autre compte", phoneTaken: "Ce numéro de téléphone est déjà utilisé par un autre compte" },
+  en: { subtitle: "Manage your shipments easily", loginTab: "Login", signupTab: "Sign up", email: "Email", emailOrPhone: "Email or Phone number", emailOrPhonePh: "your@gmail.com or 6XXXXXXXX", password: "Password", confirmPassword: "Confirm Password", phone: "Phone Number", loginBtn: "Login", signupBtn: "Sign up", langToggleDisplay: "FR", processing: "Processing...", confirmEmail: "Account created! Check your Gmail to confirm your account, then log in.", passMismatch: "Passwords do not match.", gmailOnly: "Please use a valid Gmail address ending with @gmail.com", phoneShort: "The phone number must contain at least 9 digits", badPhoneLogin: "Incorrect phone number or password", emailTaken: "This Gmail address is already used by another account", phoneTaken: "This phone number is already used by another account" }
 };
 let currentLang = 'fr';
 function updateLanguage(lang) {
@@ -415,6 +415,11 @@ signupForm.addEventListener('submit', async (e) => {
   // Validation stricte : au moins 9 chiffres (espaces, tirets et + ignorés)
   if (phone.replace(/\D/g, '').length < 9) { showAlert(t.phoneShort); return; }
   if (password !== $('signup-password-confirm').value) { showAlert(t.passMismatch); return; }
+  // Gmail ou numéro déjà utilisé : refus avant la création (fonction SQL sw_signup_exists ; ignorée si elle n'existe pas encore)
+  try {
+    const ck = await supabaseClient.rpc('sw_signup_exists', { p_email: email, p_phone: phone });
+    if (!ck.error && ck.data) { showAlert(ck.data === 'email' ? t.emailTaken : t.phoneTaken); return; }
+  } catch (e) {}
   showAlert(t.processing, 'success');
   const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { phone_number: phone } } });
   if (error) showAlert(error.message);
@@ -1485,7 +1490,7 @@ if (QS.has('t') || QS.has('suivi')) {
     const cnt = {}; S.ship.forEach(s => cnt[s.user_id] = (cnt[s.user_id] || 0) + 1);
     const chips = isSuper ? `<div class="x-chips"><button class="x-btn ${S.af === 'users' ? 'on' : ''}" data-af="users">UTILISATEURS (${S.usr.length})</button><button class="x-btn ${S.af === 'admins' ? 'on' : ''}" data-af="admins">ADMINISTRATEURS (${S.admins.length})</button></div>` : '';
     const head = `<p class="x-h"><b>●</b> COMPTES // ${S.af === 'admins' ? 'ADMINISTRATEURS ' + S.admins.length : 'UTILISATEURS ' + S.usr.length}</p>${chips}`;
-    const search = `<input id="x-uq" class="x-in" style="margin-bottom:12px" placeholder="> email ou téléphone" value="${esc(S.uq || '')}">`;
+    const search = `<input id="x-uq" class="x-in" style="margin-bottom:12px" placeholder="> Gmail ou téléphone" value="${esc(S.uq || '')}">`;
     let body = '';
     if (S.af === 'admins') {
       const cands = S.usr.slice().sort((a, b) => String(a.email || '').localeCompare(String(b.email || '')));
@@ -1627,7 +1632,7 @@ if (QS.has('t') || QS.has('suivi')) {
   function dmPanel() {
     return `<div class="x-panel" id="dm-box" style="margin-top:0;margin-bottom:14px;border-color:#c6ff3d">
       <p class="x-h"><b>●</b> MESSAGE DIRECT // écrire à un seul utilisateur (problème, information, suivi...)</p>
-      <input id="dm-q" class="x-in" placeholder="> rechercher par email ou téléphone (${S.users.length} utilisateurs)" style="margin-bottom:8px">
+      <input id="dm-q" class="x-in" placeholder="> rechercher par Gmail ou téléphone (${S.users.length} utilisateurs)" style="margin-bottom:8px">
       <div id="dm-list" style="max-height:230px;overflow-y:auto;border:1px solid #1b2530;padding:0 8px;margin-bottom:8px">${dmListHtml()}</div>
       <p id="dm-sel" style="font-size:12px;color:#c6ff3d;margin:0 0 10px">${dmLabel()}</p>
       <input id="dm-subject" class="x-in" maxlength="120" placeholder="Sujet / titre du message" style="margin-bottom:8px">
