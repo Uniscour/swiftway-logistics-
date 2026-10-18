@@ -332,6 +332,12 @@ $('new-form').innerHTML =
     `<div><label class="${LB}">Instructions de livraison${OPT}</label><textarea id="p-notes" rows="3" placeholder="Ex: appeler avant de livrer..." class="${IC}"></textarea></div>`) +
   CARD('Signatures', "Signez avec le doigt ou la souris. Elles s'impriment en encre bleue sur le reçu A5.",
     sigPad('sig-s', "Signature de l'expéditeur") + sigPad('sig-a', "Signature de l'agence")) +
+  `<div id="price-box" class="bg-blue-50 border border-blue-100 rounded-2xl p-4 space-y-1">
+    <p class="text-xs font-semibold text-gray-600">Coût de génération du reçu</p>
+    <p id="price-amount" class="text-2xl font-extrabold text-swiftblue">…</p>
+    <p class="text-xs text-gray-600">Votre solde : <b id="price-balance">…</b></p>
+    <p id="price-status" class="text-xs font-semibold"></p>
+  </div>` +
   `<button type="submit" id="new-btn" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition shadow-md cursor-pointer">Créer l'expédition</button>`;
 
 const WIN = { standard: 48, express: 24 };
@@ -615,7 +621,29 @@ function showTab(name) {
   if (name === 'help') loadHelp();
   if (name === 'new') loadPrice().then(setNewLabel);
 }
-function setNewLabel() { const b = $('new-btn'); if (b && !b.disabled) b.textContent = 'Payer ' + fmtMoney(RECEIPT_PRICE) + " et créer l'expédition"; }
+function setNewLabel() {
+  const b = $('new-btn');
+  if (b && !b.disabled) b.textContent = 'Payer ' + fmtMoney(RECEIPT_PRICE) + " et créer l'expédition";
+  refreshPriceBox();
+}
+// Encadré « Coût de génération du reçu » : prix (lu dans sw_settings) + solde de l'utilisateur
+async function refreshPriceBox() {
+  const a = $('price-amount'); if (!a || !currentUser) return;
+  a.textContent = fmtMoney(RECEIPT_PRICE);
+  const balEl = $('price-balance'), st = $('price-status');
+  try {
+    const wb = await supabaseClient.from('sw_wallets').select('balance').eq('user_id', currentUser.id).maybeSingle();
+    const bal = Number(wb.data ? wb.data.balance : 0);
+    balEl.textContent = fmtMoney(bal);
+    if (bal >= RECEIPT_PRICE) {
+      st.textContent = '✔ Solde suffisant';
+      st.className = 'text-xs font-semibold text-green-700';
+    } else {
+      st.textContent = '✖ Solde insuffisant : il manque ' + fmtMoney(RECEIPT_PRICE - bal) + '. Rechargez votre portefeuille.';
+      st.className = 'text-xs font-semibold text-red-600';
+    }
+  } catch (e) { balEl.textContent = '—'; st.textContent = ''; }
+}
 document.querySelectorAll('.dtab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 
 let SH = {}, lastOpenId = null;
