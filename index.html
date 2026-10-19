@@ -2808,5 +2808,86 @@ new MutationObserver(() => {
 }).observe(M, { childList: true, subtree: true });
 })();
 </script>
+  <!-- ===== AJOUT FILTRES SWIFTWAY : à coller JUSTE AVANT </body>, APRÈS les deux autres blocs ===== -->
+<script>
+(() => {
+if (!$('dash-view')) return;
+const PERS = '<option value="0">Toute période</option><option value="1">Aujourd\'hui</option><option value="7">7 jours</option><option value="30">30 jours</option><option value="180">6 mois</option>';
+const inPer = (d, p) => !+p || (+p === 1 ? new Date(d).toDateString() === new Date().toDateString() : Date.now() - new Date(d).getTime() <= +p * 864e5);
+const nrm = v => String(v == null ? '' : v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const has = (q, arr) => !q || arr.some(v => nrm(v).includes(nrm(q).trim()));
+const panel = (id, title, body) => `<div id="${id}" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-5 mb-4 space-y-3"><h3 class="text-base font-bold text-gray-900">${title}</h3>${body}<div class="flex items-center justify-between gap-2"><p class="text-xs text-gray-500" data-inf></p><button type="button" data-rs class="text-xs font-semibold text-swiftblue underline cursor-pointer">Réinitialiser</button></div></div>`;
+const fld = (k, l, h) => `<div><label class="${LB}">${l}</label>${h}</div>`;
+const inp = (k, ph, t) => `<input data-k="${k}" type="${t || 'text'}" ${t === 'number' ? 'min="0"' : ''} placeholder="${ph}" autocomplete="off" class="${IC}">`;
+const slc = (k, opts) => `<select data-k="${k}" class="${IC}">${opts}</select>`;
+const bind = (id, st, fn) => { const p = $(id); const ev = e => { const k = e.target.dataset && e.target.dataset.k; if (k) { st[k] = e.target.value; fn(); } }; p.addEventListener('input', ev); p.addEventListener('change', ev);
+  p.querySelector('[data-rs]').onclick = () => { Object.keys(st).forEach(k => st[k] = ''); p.querySelectorAll('[data-k]').forEach(i => i.value = (i.tagName === 'SELECT' ? i.options[0].value : '')); fn(); }; };
+const setInf = (id, n, t) => { const e = $(id) && $(id).querySelector('[data-inf]'); if (e) e.textContent = t ? n + ' affiché(s) sur ' + t : ''; };
+
+// ---- PORTEFEUILLE (client) : filtres des demandes de recharge ----
+const W = { q: '', st: '', m: '', per: '', min: '', max: '' }; let WR = [];
+$('recharge-list').insertAdjacentHTML('beforebegin', panel('wf', 'Filtrer mes recharges',
+  inp('q', 'ID de transaction, montant, note...') + `<div class="grid grid-cols-2 gap-3">${fld('', 'Statut', slc('st', '<option value="">Tous</option><option value="pending">En attente</option><option value="approved">Approuvée</option><option value="rejected">Rejetée</option>'))}${fld('', 'Opérateur', slc('m', '<option value="">Tous</option><option value="mtn">MTN Money</option><option value="orange">Orange Money</option>'))}</div>` +
+  fld('', 'Période', slc('per', PERS)) + `<div class="grid grid-cols-2 gap-3">${fld('', 'Montant min (FCFA)', inp('min', '0', 'number'))}${fld('', 'Montant max (FCFA)', inp('max', '∞', 'number'))}</div>`));
+function applyW() {
+  const cs = [...$('recharge-list').children].filter(c => c.classList.contains('bg-white')); let n = 0;
+  cs.forEach((c, i) => { const r = WR[i]; if (!r) return; const a = Number(r.status === 'approved' && r.approved_amount != null ? r.approved_amount : r.amount);
+    const ok = has(W.q, [r.reference, r.amount, r.approved_amount, r.admin_note]) && (!W.st || r.status === W.st) && (!W.m || r.method === W.m) && inPer(r.created_at, W.per) && (W.min === '' || a >= +W.min) && (W.max === '' || a <= +W.max);
+    c.hidden = !ok; if (ok) n++; });
+  setInf('wf', n, cs.length);
+}
+bind('wf', W, applyW);
+const _lw = loadWallet;
+loadWallet = async function () { await _lw(); try { const { data } = await supabaseClient.from('sw_recharges').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }); WR = (data || []).filter(x => !x.user_hidden); } catch (e) { WR = []; } applyW(); };
+
+// ---- MESSAGES (client) : recherche, statut, catégorie, période ----
+const H = { q: '', st: '', cat: '', per: '' }; let HR = [];
+$('help-list').insertAdjacentHTML('beforebegin', panel('hf', 'Filtrer mes messages',
+  inp('q', 'Titre, message, réponse...') + `<div class="grid grid-cols-2 gap-3">${fld('', 'État', slc('st', '<option value="">Tous</option><option value="new">Non lus (nouveaux)</option><option value="open">En cours</option><option value="resolved">Résolus</option><option value="reply">Avec réponse</option>'))}${fld('', 'Catégorie', slc('cat', '<option value="">Toutes</option><option value="technical">Problème technique</option><option value="payment">Paiement / recharge</option><option value="shipment">Colis / expédition</option><option value="other">Autre</option>'))}</div>` + fld('', 'Période', slc('per', PERS))));
+function applyH() {
+  const cs = [...$('help-list').children].filter(c => c.classList.contains('bg-white')); let n = 0;
+  cs.forEach((c, i) => { const r = HR[i]; if (!r) return;
+    const ok = has(H.q, [r.subject, r.body, r.admin_reply]) && (!H.st || (H.st === 'new' ? !!c.querySelector('.newtag') : H.st === 'reply' ? !!r.admin_reply : r.status === H.st)) && (!H.cat || r.category === H.cat) && inPer(r.created_at, H.per);
+    c.hidden = !ok; if (ok && c.style.display !== 'none') n++; });
+  setInf('hf', n, cs.length);
+}
+bind('hf', H, applyH);
+const _lh2 = loadHelp;
+loadHelp = async function (s) { await _lh2(s); try { const { data } = await supabaseClient.from('sw_messages').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }); HR = (data || []).filter(x => !x.user_hidden || (x.admin_reply && x.reply_visible)); } catch (e) { HR = []; } applyH(); };
+const hs = $('help-subnav'); if (hs) hs.addEventListener('click', () => setTimeout(applyH, 0));
+
+// ---- ADMIN : filtres avancés FLUX (pays, service, payeur...) et CAISSE (montant) ----
+const A = $('admin-view'), M = $('x-main'); if (!A || !M) return;
+const FX = { o: '', d: '', e: '', sv: '', py: '', ag: '', fr: '' }, CA = { min: '', max: '' }; let SHM = null, shT = 0, busy = false;
+async function shipMap() { if (SHM && Date.now() - shT < 60000) return SHM; try { const { data } = await supabaseClient.from('sw_shipments').select('id,sender_country,receiver_country,stopover_country,service_type,payer,agency_name,is_fragile').limit(2000); SHM = {}; (data || []).forEach(s => SHM[s.id] = s); shT = Date.now(); } catch (e) { SHM = SHM || {}; } return SHM; }
+async function fluxF() {
+  const b = M.querySelector('.x-board'); if (!b) return;
+  const m = await shipMap(), all = Object.values(m), cs = k => [...new Set(all.map(s => s[k]).filter(Boolean))].sort((a, c) => a.localeCompare(c, 'fr')), ags = cs('agency_name');
+  const o = (k, a, all0) => `<option value="">${all0}</option>` + a.map(v => `<option value="${esc(v)}" ${FX[k] === v ? 'selected' : ''}>${esc(v)}</option>`).join('');
+  if (!$('fx-adv')) b.insertAdjacentHTML('beforebegin', `<details id="fx-adv" class="x-panel" style="margin-top:0;margin-bottom:14px"><summary style="cursor:pointer;font-weight:700;font-size:12px">⚙ FILTRES AVANCÉS (pays, service, agence...)</summary><div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-top:10px">
+    <select class="x-in" data-fx="o">${o('o', cs('sender_country'), "Pays d'envoi : tous")}</select><select class="x-in" data-fx="d">${o('d', cs('receiver_country'), 'Pays de destination : tous')}</select><select class="x-in" data-fx="e">${o('e', cs('stopover_country'), "Pays d'escale : tous")}</select>
+    <select class="x-in" data-fx="sv"><option value="">Service : tous</option><option value="standard">Standard</option><option value="express">Express</option></select><select class="x-in" data-fx="py"><option value="">Payeur : tous</option><option value="sender">Expéditeur</option><option value="receiver">Destinataire</option></select>
+    <select class="x-in" data-fx="ag">${o('ag', ags, 'Agence : toutes')}</select><select class="x-in" data-fx="fr"><option value="">Fragile : tous</option><option value="1">Colis fragiles</option></select></div><p class="x-hint" id="fx-inf"></p><button type="button" class="x-btn" id="fx-rs" style="margin-top:6px">↺ RÉINITIALISER</button></details>`);
+  let n = 0, t = 0;
+  b.querySelectorAll('.x-card').forEach(c => { const s = m[c.dataset.id]; if (!s) return; t++;
+    const ok = (!FX.o || s.sender_country === FX.o) && (!FX.d || s.receiver_country === FX.d) && (!FX.e || s.stopover_country === FX.e) && (!FX.sv || s.service_type === FX.sv) && (!FX.py || s.payer === FX.py) && (!FX.ag || s.agency_name === FX.ag) && (!FX.fr || s.is_fragile);
+    c.hidden = !ok; if (ok) n++; });
+  const i = $('fx-inf'); if (i) i.textContent = Object.values(FX).some(Boolean) ? n + ' colis affiché(s) sur ' + t + ' dans le tableau' : '';
+}
+function cashF() {
+  const w = M.querySelector('.x-wrap'); if (!w || !/CAISSE/.test((w.querySelector('.x-h') || {}).textContent || '')) return;
+  const first = [...w.children].find(c => c.classList.contains('x-c2'));
+  if (!$('ca-amt') && w.querySelector('.x-segs')) w.querySelector('.x-segs').insertAdjacentHTML('afterend', `<div id="ca-amt" class="x-bar"><span class="x-lead" style="margin:0"><b>Montant (FCFA)</b></span><input type="number" min="0" data-ca="min" class="x-in" placeholder="min" style="width:130px" value="${esc(CA.min)}"><input type="number" min="0" data-ca="max" class="x-in" placeholder="max" style="width:130px" value="${esc(CA.max)}"><span id="ca-inf" class="x-lead" style="margin:0"></span></div>`);
+  let n = 0, t = 0;
+  w.querySelectorAll('.x-c2').forEach(c => { const a = c.querySelector('.x-amt'); if (!a) return; t++; const v = Number(a.textContent.split('FCFA')[0].replace(/\D/g, '')) || 0;
+    const ok = (CA.min === '' || v >= +CA.min) && (CA.max === '' || v <= +CA.max); c.hidden = !ok; if (ok) n++; });
+  const i = $('ca-inf'); if (i) i.textContent = (CA.min !== '' || CA.max !== '') ? n + ' / ' + t : '';
+}
+A.addEventListener('change', e => { const k = e.target.dataset && e.target.dataset.fx; if (k) { FX[k] = e.target.value; fluxF(); } });
+A.addEventListener('input', e => { const k = e.target.dataset && e.target.dataset.ca; if (k) { CA[k] = e.target.value; cashF(); } });
+A.addEventListener('click', e => { if (e.target.id === 'fx-rs') { Object.keys(FX).forEach(k => FX[k] = ''); A.querySelectorAll('[data-fx]').forEach(s => s.value = ''); fluxF(); } });
+new MutationObserver(() => { if (busy) return; busy = true; Promise.resolve(fluxF()).then(() => { cashF(); busy = false; }, () => { busy = false; }); }).observe(M, { childList: true, subtree: true });
+})();
+</script>
 </body>
 </html>
