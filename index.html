@@ -2694,5 +2694,119 @@ helpView();
 if (currentUser && !isAdmin && !$('dash-view').classList.contains('hidden')) loadShipments();
 })();
 </script>
+  <!-- ===== AJOUT ADMIN SWIFTWAY : à coller JUSTE AVANT </body>, APRÈS le bloc « ajout-swiftway » ===== -->
+<script>
+(() => {
+if (!$('admin-view')) return;
+const A = $('admin-view'), M = $('x-main'), SUP = 'hanjoya98@gmail.com';
+const fS = d => new Date(d).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'medium' });
+const _rpc = supabaseClient.rpc.bind(supabaseClient);
+const one = async (t, c, v, f) => { try { const { data } = await supabaseClient.from(t).select(f).eq(c, v).maybeSingle(); return data || {}; } catch (e) { return {}; } };
+const mail = async id => (await one('sw_profiles', 'id', id, 'email')).email || id;
+const code = async id => (await one('sw_shipments', 'id', id, 'tracking_code')).tracking_code || id;
+
+// ---- E. Journal détaillé : chaque action admin est enregistrée avec ses détails ----
+async function detail(fn, a) {
+  const n = a.p_note ? ' · note : ' + a.p_note : '';
+  if (fn === 'sw_admin_review_recharge2') { const r = await one('sw_recharges', 'id', a.p_id, 'user_id,amount,method,reference'); return (a.p_approve ? 'Recharge APPROUVÉE' : 'Recharge REJETÉE') + ' · client ' + await mail(r.user_id) + ' · demandé ' + r.amount + ' · crédité ' + (a.p_amount ?? 0) + ' FCFA · ' + (r.method || '') + ' réf ' + (r.reference || '') + n; }
+  if (fn === 'sw_admin_adjust_wallet') { const r = await one('sw_recharges', 'id', a.p_recharge_id, 'user_id'); return 'Ajustement ' + a.p_delta + ' FCFA · client ' + await mail(r.user_id) + n; }
+  if (fn === 'sw_admin_review_cancel') { const r = await one('sw_cancel_requests', 'id', a.p_id, 'shipment_id,user_id'); return (a.p_approve ? 'Annulation ACCEPTÉE' : 'Annulation REJETÉE') + ' · colis ' + await code(r.shipment_id) + ' · client ' + await mail(r.user_id) + n; }
+  if (/^sw_admin_(set_user|set_active|set_perms|promote)$/.test(fn)) return fn.replace('sw_admin_', '') + ' · ' + await mail(a.p_id) + ' · ' + JSON.stringify({ role: a.p_role, actif: a.p_active, perms: a.p_perms });
+  if (/^sw_admin_(update_status|add_note|set_auto|set_window)$/.test(fn)) return 'Colis ' + await code(a.p_id) + ' · ' + JSON.stringify({ statut: a.p_status, auto: a.p_auto, heures: a.p_hours, note: a.p_note });
+  if (fn === 'sw_admin_send_direct') return 'Message à ' + await mail(a.p_user) + ' · « ' + a.p_subject + ' » : ' + a.p_body;
+  if (fn === 'sw_admin_broadcast') return 'Annonce (' + a.p_filter + ') · « ' + a.p_subject + ' » : ' + a.p_body;
+  if (fn === 'sw_admin_grant_free_receipts') return 'Reçus offerts à ' + (a.p_user_ids || []).length + ' utilisateur(s) · ' + (a.p_campaign || '');
+  return JSON.stringify(a);
+}
+const log = (act, d) => _rpc('sw_log_admin_activity', { p_action: act, p_details: String(d || '').slice(0, 900) }).then(() => {}, () => {});
+supabaseClient.rpc = function (fn, a, o) {
+  const p = _rpc(fn, a, o);
+  if (!isAdmin || !/^sw_admin_/.test(fn) || /^sw_admin_(stats|logs|step_audit|track_views|user_supervision|set_welcome)$/.test(fn)) return p;
+  return Promise.resolve(p).then(r => { if (r && !r.error) detail(fn, a || {}).then(t => log('d:' + fn, t)); return r; });
+};
+
+// ---- C. Supervision : consultations du lien/QR + audit des étapes ----
+const per = (arr, k, d) => d ? arr.filter(x => Date.now() - new Date(x[k]).getTime() <= d * 864e5) : arr;
+const sel = (id) => `<select id="${id}" class="x-in" style="width:auto"><option value="0">Tout le temps</option><option value="1">Aujourd'hui</option><option value="7">7 jours</option><option value="30">30 jours</option></select>`;
+const auditRows = a => a.length ? a.map(x => `<div class="x-row" style="cursor:default;flex-direction:column;gap:2px"><span><b>${esc(x.field)}</b> : ${esc(x.old_value || '—')} → <b>${esc(x.new_value || '—')}</b></span><span style="font-size:11px;color:var(--mut)">${esc(x.code ? x.code + ' · ' : '')}${esc(fS(x.happened_at || x.at))} · par ${esc(x.actor || 'Système')}</span></div>`).join('') : '<p class="x-hint">Aucune modification enregistrée.</p>';
+let lastShip = null;
+async function drawerBox(id) {
+  const dr = $('x-drawer'); if (dr.querySelector('#sv-box')) return;
+  const b = document.createElement('div'); b.id = 'sv-box'; b.className = 'x-panel'; b.innerHTML = '<p class="x-h">SUPERVISION</p><p class="x-hint">Chargement...</p>'; dr.appendChild(b);
+  const [v, a] = await Promise.all([_rpc('sw_admin_track_views', { p_shipment: String(id) }), _rpc('sw_admin_step_audit', { p_shipment: String(id) })]);
+  const V = v.data || [], U = a.data || [];
+  const paint = () => { const d = +$('sv-per').value, vv = per(V, 'viewed_at', d), uu = per(U, 'happened_at', d);
+    $('sv-body').innerHTML = `<p class="x-h" style="margin-top:12px">👁 CONSULTATIONS DU LIEN / QR (${vv.length})</p>${vv.length ? vv.map((x, i) => `<div class="x-row" style="cursor:default"><span>#${vv.length - i}</span><span>${esc(fS(x.viewed_at))}</span></div>`).join('') : '<p class="x-hint">Aucune consultation.</p>'}<p class="x-h" style="margin-top:12px">🧾 AUDIT DES ÉTAPES (${uu.length})</p>${auditRows(uu)}`; };
+  b.innerHTML = `<p class="x-h">SUPERVISION DU COLIS</p>${sel('sv-per')}<div id="sv-body"></div>`; $('sv-per').onchange = paint; paint();
+}
+async function modal(uid) {
+  const old = $('sv-modal'); if (old) old.remove();
+  const m = document.createElement('div'); m.id = 'sv-modal';
+  m.style.cssText = 'position:fixed;inset:0;z-index:70;background:rgba(15,31,61,.5);overflow:auto;padding:16px';
+  m.innerHTML = `<div class="x-wrap"><div class="x-panel" style="margin-top:0"><div class="x-bar" style="justify-content:space-between"><p class="x-h" style="margin:0">📊 SUPERVISION DU COMPTE</p><button class="x-btn" id="sv-x">FERMER ✕</button></div>${sel('sm-per')}<div id="sm-body"><p class="x-hint">Chargement...</p></div></div></div>`;
+  document.body.appendChild(m); $('sv-x').onclick = () => m.remove();
+  const load = async () => { const d = +$('sm-per').value, { data, error } = await _rpc('sw_admin_user_supervision', { p_user: uid, p_days: d || null });
+    if (error) { $('sm-body').innerHTML = '<p class="x-hint">Erreur : ' + esc(error.message) + '</p>'; return; }
+    const S = data.ships || [], tot = S.reduce((t, s) => t + (+s.views || 0), 0);
+    $('sm-body').innerHTML = `<p class="x-h" style="margin-top:12px">COLIS (${S.length}) · ${tot} CONSULTATION(S)</p>${S.map(s => `<div class="x-row" style="cursor:default"><span>${esc(s.code)}</span><span>${s.views} scan(s)${s.last_view ? ' · dernier ' + esc(fS(s.last_view)) : ''}</span></div>`).join('') || '<p class="x-hint">Aucun colis.</p>'}<p class="x-h" style="margin-top:12px">🧾 MODIFICATIONS D'ÉTAPES (${(data.audit || []).length})</p>${auditRows(data.audit || [])}`; };
+  $('sm-per').onchange = load; load();
+}
+
+// ---- D. Offre de bienvenue ON/OFF (Paramètres) ----
+async function welcomeCard() {
+  const w = M.querySelector('.x-wrap'); if (!isSuper || !w || $('wo-card') || !/PARAMÈTRES/.test(w.textContent)) return;
+  const c = document.createElement('div'); c.id = 'wo-card'; c.className = 'x-panel'; c.style.marginTop = '0'; c.style.marginBottom = '14px';
+  w.querySelector('.x-lead').after(c);
+  const { data, error } = await _rpc('sw_welcome_get');
+  const on = !!data, ok = !error;
+  c.innerHTML = `<p class="x-h">🎁 OFFRE DE BIENVENUE AUTOMATIQUE</p><p class="x-lead" style="margin-bottom:12px">Activée : chaque nouvel inscrit reçoit le prix d'un premier reçu (<b>${fmtMoney(RECEIPT_PRICE)}</b>). Désactivée : inscription classique.</p>${ok ? `<div class="x-acts"><span class="x-tag" style="color:${on ? '#c6ff3d' : '#ff5a5f'}">${on ? 'ACTIVÉE' : 'DÉSACTIVÉE'}</span><button class="x-btn ${on ? 'no' : 'go'}" id="wo-btn">${on ? 'DÉSACTIVER' : 'ACTIVER'}</button></div>` : '<p class="x-hint" style="color:#d97706">Migration SQL « migration-admin.sql » non exécutée.</p>'}`;
+  const bt = $('wo-btn'); if (bt) bt.onclick = async () => { const r = await _rpc('sw_admin_set_welcome', { p_on: !on }); if (r.error) return toast('Erreur : ' + r.error.message, 'error'); toast(!on ? 'Offre de bienvenue activée.' : 'Offre de bienvenue désactivée.'); c.remove(); welcomeCard(); };
+}
+
+// ---- E. Onglet JOURNAL (filtrable) ----
+const J = { d: 30, adm: '', act: '', q: '', rows: [] };
+const LAB = { ship_view: 'Colis consulté', wa_contact: 'WhatsApp ouvert', msg_reply: 'Réponse à un message', msg_resolve: 'Message résolu', proof_view: 'Capture consultée' };
+const lab = a => /^d:/.test(a) ? 'Détail · ' + a.slice(2).replace('sw_admin_', '') : (LAB[a] || a.replace('sw_admin_', ''));
+A.querySelector('.x-rail').insertAdjacentHTML('beforeend', '<button data-jv="1"><b>≣</b>JOURNAL</button>');
+function jlist() {
+  const q = J.q.toLowerCase(), r = J.rows.filter(x => (!J.adm || x.admin_id === J.adm) && (!J.act || x.action === J.act) && (!q || (x.detail || '').toLowerCase().includes(q) || (x.email || '').toLowerCase().includes(q)));
+  $('j-info').innerHTML = '<b>' + r.length + '</b> action(s)';
+  $('j-list').innerHTML = r.length ? r.slice(0, 400).map(x => `<div class="x-c2 sm"><div class="x-c2h"><div><strong class="x-amt" style="font-size:14px">${esc(lab(x.action))}</strong><span class="x-sub">${esc(x.email || '—')} · ${esc(fS(x.created_at))}</span></div></div><p class="x-body" style="font-size:12.5px">${esc(x.detail || '')}</p></div>`).join('') : '<div class="x-empty">Aucune action pour ce filtre.</div>';
+}
+async function journal() {
+  A.querySelectorAll('.x-rail button').forEach(b => b.classList.toggle('on', b.dataset.jv === '1'));
+  M.innerHTML = '<p class="x-hint">Chargement du journal...</p>';
+  const { data, error } = await _rpc('sw_admin_logs', { p_days: J.d });
+  if (error) { M.innerHTML = '<div class="x-wrap"><div class="x-empty">Journal indisponible : ' + esc(error.message) + '<br>Exécutez « migration-admin.sql ».</div></div>'; return; }
+  J.rows = data || [];
+  const adms = [...new Map(J.rows.map(x => [x.admin_id, x.email])).entries()], acts = [...new Set(J.rows.map(x => x.action))];
+  M.innerHTML = `<div class="x-wrap"><p class="x-h"><b>●</b> JOURNAL // ${isSuper ? 'tous les administrateurs' : 'mes actions'}</p><p class="x-lead">Les journaux sont effacés automatiquement après 30 jours.</p>
+  <div class="x-panel" style="margin-top:0;margin-bottom:14px"><input id="j-q" class="x-in" placeholder="> rechercher : client, montant, message, code..." style="margin-bottom:10px" value="${esc(J.q)}">
+  <div class="x-segs">${[[1, "Aujourd'hui"], [7, '7 jours'], [30, '30 jours']].map(([v, l]) => `<button class="x-sg ${J.d === v ? 'on' : ''}" data-jd="${v}">${l}</button>`).join('')}</div>
+  <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">${isSuper ? `<select id="j-adm" class="x-in"><option value="">Tous les administrateurs</option>${adms.map(([i, e]) => `<option value="${esc(i)}" ${J.adm === i ? 'selected' : ''}>${esc(e || i)}</option>`).join('')}</select>` : ''}<select id="j-act" class="x-in"><option value="">Toutes les actions</option>${acts.map(a => `<option value="${esc(a)}" ${J.act === a ? 'selected' : ''}>${esc(lab(a))}</option>`).join('')}</select></div><p id="j-info" class="x-lead" style="margin:10px 0 0"></p></div><div id="j-list"></div></div>`;
+  $('j-q').oninput = e => { J.q = e.target.value; jlist(); };
+  if ($('j-adm')) $('j-adm').onchange = e => { J.adm = e.target.value; jlist(); };
+  $('j-act').onchange = e => { J.act = e.target.value; jlist(); };
+  jlist();
+}
+A.addEventListener('click', e => {
+  const j = e.target.closest('[data-jv]'), d = e.target.closest('[data-jd]'), s = e.target.closest('[data-sv]');
+  if (j) return journal();
+  if (d) { J.d = +d.dataset.jd; return journal(); }
+  if (s) return modal(s.dataset.sv);
+  if (e.target.closest('.x-rail [data-v]')) A.querySelectorAll('[data-jv]').forEach(b => b.classList.remove('on'));
+});
+
+// ---- Injection automatique dans les écrans existants ----
+new MutationObserver(() => {
+  const dr = $('x-drawer'), el = dr.querySelector('[data-save],[data-shdel],[data-auto],[data-win]');
+  if (el) { const id = el.dataset.save || el.dataset.shdel || el.dataset.id || el.dataset.win; if (id) { drawerBox(id); if (lastShip !== id) { lastShip = id; const h = dr.querySelector('h3'); log('ship_view', 'Colis consulté : ' + (h ? h.textContent : id)); } } } else lastShip = null;
+}).observe($('x-drawer'), { childList: true });
+new MutationObserver(() => {
+  M.querySelectorAll('.x-c2.sm [data-us]').forEach(b => { const c = b.closest('.x-c2'), acts = c.querySelector('.x-acts'); if (acts && !c.querySelector('[data-sv]')) acts.insertAdjacentHTML('afterbegin', '<button class="x-btn" data-sv="' + esc(b.dataset.us) + '">📊 SUPERVISION</button>'); });
+  welcomeCard();
+}).observe(M, { childList: true, subtree: true });
+})();
+</script>
 </body>
 </html>
