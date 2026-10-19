@@ -2554,5 +2554,145 @@ select.x-in{cursor:pointer}
   });
 })();
 </script>
+  <!-- ===== AJOUT SWIFTWAY : à coller JUSTE AVANT la dernière ligne </body> de votre index.html ===== -->
+<script>
+(() => {
+if (!$('dash-view')) return;
+const LF = { code: '', sender: '', from: '', to: '', stop: '' };
+const nz = v => String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+const nm = v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+const fmtS = d => new Date(d).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'medium' });
+const stl = document.createElement('style');
+stl.textContent = '#list-container>div{cursor:pointer}#list-container [id^="ev-"]{cursor:default}';
+document.head.appendChild(stl);
+
+// ---- Onglets : pastille « Mes colis », renommage « Messages » ----
+document.querySelector('[data-tab="list"]').insertAdjacentHTML('beforeend', '<span id="list-badge" class="dbadge hidden"></span>');
+document.querySelector('[data-tab="help"] span:nth-child(2)').textContent = 'Messages';
+
+// ---- MES COLIS : panneau de filtres ----
+const cs = COUNTRIES.slice().sort((a, b) => a.localeCompare(b, 'fr'));
+const sel = (k, l) => `<div><label class="${LB}">${l}</label><select data-lf="${k}" class="${IC}"><option value="">Tous les pays</option>${cs.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('')}</select></div>`;
+$('list-container').insertAdjacentHTML('beforebegin', `<div id="list-filters" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-5 mb-4 space-y-4">
+  <div><h3 class="text-base font-bold text-gray-900">Rechercher un colis</h3><p class="text-xs text-gray-500 mt-1">Collez un code de suivi pour retrouver directement le colis et son reçu.</p></div>
+  <input data-lf="code" autocomplete="off" placeholder="Code de suivi" class="${IC} uppercase">
+  <details><summary class="text-sm font-semibold text-swiftblue cursor-pointer py-1">Filtres avancés (expéditeur, pays)</summary><div class="space-y-3 mt-3">
+    <div><label class="${LB}">Nom de l'expéditeur</label><input data-lf="sender" autocomplete="off" placeholder="Ex : Jean Dupont" class="${IC}"></div>
+    ${sel('from', "Pays d'envoi")}${sel('to', 'Pays de destination')}${sel('stop', "Pays d'escale")}</div></details>
+  <div class="flex items-center justify-between gap-2"><p id="lf-info" class="text-xs text-gray-500"></p><button type="button" id="lf-reset" class="text-xs font-semibold text-swiftblue underline cursor-pointer">Réinitialiser</button></div></div>`);
+const lfBox = $('list-filters');
+const lfEv = e => { const k = e.target.dataset && e.target.dataset.lf; if (!k) return; LF[k] = e.target.value; applyF(); };
+lfBox.addEventListener('input', lfEv); lfBox.addEventListener('change', lfEv);
+$('lf-reset').addEventListener('click', () => { Object.keys(LF).forEach(k => LF[k] = ''); lfBox.querySelectorAll('[data-lf]').forEach(i => i.value = ''); applyF(); });
+function applyF() {
+  const box = $('list-container'), code = nz(LF.code), snd = nm(LF.sender);
+  let shown = 0, total = 0, last = null;
+  [...box.children].forEach(c => {
+    const b = c.querySelector('[data-id]'), s = b && SH[b.dataset.id]; if (!s) return;
+    total++;
+    let ok = true;
+    if (code) ok = receiptSet.has(s.id) && nz(s.tracking_code).includes(code);
+    if (ok && snd) ok = nm(s.sender_name).includes(snd);
+    if (ok && LF.from) ok = s.sender_country === LF.from;
+    if (ok && LF.to) ok = s.receiver_country === LF.to;
+    if (ok && LF.stop) ok = s.stopover_country === LF.stop;
+    c.style.display = ok ? '' : 'none'; if (ok) { shown++; last = c; }
+  });
+  let n = $('lf-none'); const act = Object.values(LF).some(Boolean);
+  if (total && !shown && act) { if (!n) { n = document.createElement('div'); n.id = 'lf-none'; n.className = 'bg-white rounded-3xl border border-gray-100 p-8 text-center text-gray-500'; n.textContent = 'Aucun colis ne correspond à ces filtres.'; box.appendChild(n); } } else if (n) n.remove();
+  $('lf-info').textContent = total ? shown + ' colis affiché(s) sur ' + total : '';
+  if (code.length >= 8 && shown === 1 && last) { const d = last.querySelector('.details-btn'), h = last.querySelector('[id^="ev-"]'); if (d && h && h.classList.contains('hidden')) d.click(); }
+}
+// Toucher la carte ouvre son suivi / historique
+$('list-container').addEventListener('click', e => {
+  if (e.target.closest('button,a,input,select,textarea,label,[id^="ev-"]')) return;
+  const c = e.target.closest('#list-container>div'), d = c && c.querySelector('.details-btn'); if (d) d.click();
+});
+
+// ---- TRAÇABILITÉ : consultations du suivi public ----
+let TRK = {}, OK = false, UN = -1;
+const chip = s => { const c = TRK[s.id] || { t: 0, u: 0 }; return '<p class="text-xs mt-1 ' + (c.t ? 'text-swiftblue font-semibold' : 'text-gray-400') + '" data-tvc="' + esc(s.id) + '">' + (c.t ? '👁 Consulté ' + c.t + ' fois · dernière le ' + esc(fmtDate(c.l)) : '👁 Pas encore consulté sur le site de suivi') + (c.u ? ' <span class="newtag">+' + c.u + ' NOUVEAU</span>' : '') + '</p>'; };
+function decorate() {
+  if (!OK) return;
+  [...$('list-container').children].forEach(c => {
+    const b = c.querySelector('[data-id]'), s = b && SH[b.dataset.id];
+    if (s && receiptSet.has(s.id) && !c.querySelector('[data-tvc]')) { const l = c.firstElementChild && c.firstElementChild.firstElementChild; if (l) l.insertAdjacentHTML('beforeend', chip(s)); }
+  });
+}
+async function refresh() {
+  if (!currentUser || isAdmin) return;
+  try {
+    const { data, error } = await supabaseClient.rpc('sw_my_track_counts');
+    if (error) { OK = false; return; }
+    OK = true; TRK = {}; let un = 0;
+    (data || []).forEach(r => { TRK[r.shipment_id] = { t: +r.total, u: +r.unseen, l: r.last_view }; un += +r.unseen; });
+    const b = $('list-badge'); if (un > 0) { b.textContent = '+' + un; b.classList.remove('hidden'); } else b.classList.add('hidden');
+    if (un > 0 && un > UN) toast('👁 Votre colis a été consulté : ' + un + ' nouvelle(s) consultation(s).');
+    UN = un;
+    document.querySelectorAll('[data-tvc]').forEach(el => { const s = SH[el.dataset.tvc]; if (s) el.outerHTML = chip(s); });
+    decorate();
+  } catch (e) { OK = false; }
+}
+async function views(id) {
+  const h = $('tv-' + id); if (!h) return;
+  const { data, error } = await supabaseClient.rpc('sw_my_track_views', { p_shipment: String(id) });
+  if (error) { h.innerHTML = ''; return; }
+  const r = data || [];
+  h.innerHTML = `<div class="mt-3 bg-white rounded-xl border border-blue-100 p-3"><div class="flex items-center justify-between gap-2"><p class="text-xs font-bold text-swiftblue">Historique des consultations</p><span class="text-xs font-semibold text-gray-700">${r.length} consultation(s)</span></div>` +
+    (r.length ? `<ol class="mt-2 space-y-1 max-h-56 overflow-y-auto pr-1">${r.map((x, i) => `<li class="flex items-center justify-between gap-2 text-sm text-gray-700 border-b border-gray-50 py-1"><span>#${r.length - i} · ${esc(fmtS(x.viewed_at))}</span>${x.seen ? '' : '<span class="newtag">NOUVEAU</span>'}</li>`).join('')}</ol>` : '<p class="text-sm text-gray-500 mt-2">Personne n\'a encore consulté ce colis avec son code ou son QR code.</p>') + '</div>';
+  if (r.some(x => !x.seen)) { await supabaseClient.rpc('sw_my_track_mark_seen', { p_shipment: String(id) }); refresh(); }
+}
+const _ls = loadShipments;
+loadShipments = async function (o) { await refresh(); await _ls(o); decorate(); applyF(); };
+const _rd = renderDetails;
+renderDetails = async function (id) { await _rd(id); const h = $('ev-' + id); if (!h || !OK || !receiptSet.has(id)) return; h.insertAdjacentHTML('afterbegin', '<div id="tv-' + id + '"></div>'); views(id); };
+$('track-form').addEventListener('submit', () => { const c = $('track-code').value.trim(); if (c) supabaseClient.rpc('sw_log_track_view', { p_code: c }).then(() => {}, () => {}); });
+$('logout-btn').addEventListener('click', () => { UN = -1; TRK = {}; });
+setInterval(() => { if (currentUser && !isAdmin && !$('dash-view').classList.contains('hidden')) refresh(); }, 30000);
+
+// ---- MESSAGES & NOTIFICATIONS : sous-onglets ----
+$('view-help').insertAdjacentHTML('afterbegin', '<div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-5"><h2 class="text-lg font-bold text-gray-900">Messages &amp; Notifications</h2><div id="help-subnav" class="mt-3"></div></div>');
+let SUB = 'private';
+const SUBS = [['private', '💬 Messages privés'], ['ann', '📢 Annonces'], ['hist', '🕘 Historique']];
+const isAnn = c => c.classList.contains('border-2') && c.textContent.includes('Annonce officielle');
+function helpView() {
+  const list = $('help-list'), kids = [...list.children].filter(c => c.id !== 'hv-hist' && c.id !== 'hv-none');
+  const cnt = { private: 0, ann: 0, hist: 0 };
+  kids.forEach(c => { if (c.querySelector('.newtag')) cnt[isAnn(c) ? 'ann' : 'private']++; });
+  $('help-subnav').innerHTML = '<div class="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-xl">' + SUBS.map(([k, l]) => `<button type="button" data-hsub="${k}" class="px-1 py-2.5 text-xs font-semibold rounded-lg cursor-pointer ${SUB === k ? 'bg-white text-swiftblue shadow-sm' : 'text-gray-500'}">${l}${cnt[k] ? '<span class="newtag">+' + cnt[k] + '</span>' : ''}</button>`).join('') + '</div>';
+  $('help-form').classList.toggle('hidden', SUB !== 'private');
+  ['hv-hist', 'hv-none'].forEach(i => { const x = $(i); if (x) x.remove(); });
+  let vis = 0;
+  kids.forEach((c, i) => { const show = SUB === 'hist' ? false : (c.tagName === 'P' ? true : (i === 0 && c.querySelector('#u-mclear')) ? SUB === 'private' : (SUB === 'ann') === isAnn(c)); c.style.display = show ? '' : 'none'; if (show && c.tagName !== 'P' && !(i === 0 && c.querySelector('#u-mclear'))) vis++; });
+  if (SUB === 'hist') return history(list);
+  if (!vis && !list.querySelector('p')) list.insertAdjacentHTML('beforeend', '<p id="hv-none" class="text-center text-sm text-gray-500">' + (SUB === 'ann' ? 'Aucune annonce pour le moment.' : 'Aucun message pour le moment.') + '</p>');
+}
+async function history(list) {
+  list.insertAdjacentHTML('beforeend', '<div id="hv-hist"><p class="text-center text-gray-500 py-6">Chargement...</p></div>');
+  const ev = [], uid = currentUser.id, q = (t, f) => supabaseClient.from(t).select('*').eq('user_id', uid).then(r => r.data || [], () => []);
+  const [ms, rc, cx, vw] = await Promise.all([q('sw_messages'), q('sw_recharges'), q('sw_cancel_requests'), supabaseClient.rpc('sw_my_track_views_all').then(r => r.data || [], () => [])]);
+  ms.filter(m => !m.user_hidden || (m.admin_reply && m.reply_visible)).forEach(m => {
+    if (m.is_broadcast) { ev.push({ t: m.created_at, i: m.category === 'direct' ? '✉️' : '📢', x: (m.category === 'direct' ? "Message de l'assistant reçu : " : 'Annonce reçue : ') + m.subject }); if (m.read_at) ev.push({ t: m.read_at, i: '👁', x: 'Vous avez lu : ' + m.subject }); return; }
+    ev.push({ t: m.created_at, i: '📤', x: 'Vous avez envoyé : ' + m.subject });
+    if (m.admin_reply) ev.push({ t: m.replied_at || m.created_at, i: '💬', x: "L'assistant a répondu à « " + m.subject + ' »' });
+    if (m.reply_read_at) ev.push({ t: m.reply_read_at, i: '👁', x: 'Vous avez lu la réponse à « ' + m.subject + ' »' });
+    if (m.status === 'resolved' && m.resolved_at) ev.push({ t: m.resolved_at, i: '✅', x: 'Demande résolue : ' + m.subject });
+  });
+  rc.filter(r => !r.user_hidden).forEach(r => { ev.push({ t: r.created_at, i: '💳', x: 'Demande de recharge de ' + fmtMoney(r.amount) + ' envoyée' }); if (r.status !== 'pending') ev.push({ t: r.reviewed_at || r.approved_at || r.updated_at || r.created_at, i: r.status === 'approved' ? '✅' : '❌', x: 'Recharge de ' + fmtMoney(r.amount) + (r.status === 'approved' ? ' approuvée' : ' rejetée') }); });
+  cx.forEach(r => { const s = SH[r.shipment_id]; ev.push({ t: r.created_at, i: '⊘', x: "Demande d'annulation du colis" + (s && receiptSet.has(s.id) ? ' ' + fmtCode(s.tracking_code) : '') + ' · ' + (r.status === 'approved' ? 'acceptée' : r.status === 'rejected' ? 'rejetée' : 'en attente') }); });
+  vw.forEach(v => ev.push({ t: v.viewed_at, i: '👁', x: 'Votre colis ' + fmtCode(v.tracking_code) + ' a été consulté sur le site de suivi' }));
+  ev.sort((a, b) => new Date(b.t) - new Date(a.t));
+  const box = $('hv-hist'); if (!box) return;
+  box.innerHTML = `<div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-5"><h3 class="text-base font-bold text-gray-900">Réactions et interactions</h3><p class="text-xs text-gray-500 mt-1">Tout ce qui s'est passé sur votre compte, du plus récent au plus ancien.</p>` +
+    (ev.length ? `<ol class="space-y-3 mt-4">${ev.slice(0, 150).map(e => `<li class="flex gap-3"><span class="text-lg leading-none">${e.i}</span><div class="min-w-0"><p class="text-sm font-semibold text-gray-900 break-words">${esc(e.x)}</p><p class="text-xs text-gray-400">${esc(fmtS(e.t))}</p></div></li>`).join('')}</ol>` : '<p class="text-sm text-gray-500 mt-4">Aucune interaction pour le moment.</p>') + '</div>';
+}
+$('help-subnav').addEventListener('click', e => { const b = e.target.closest('[data-hsub]'); if (b) { SUB = b.dataset.hsub; helpView(); } });
+const _lh = loadHelp;
+loadHelp = async function (s) { await _lh(s); helpView(); };
+helpView();
+// Si le tableau de bord était déjà affiché avant ce script, on le rafraîchit
+if (currentUser && !isAdmin && !$('dash-view').classList.contains('hidden')) loadShipments();
+})();
+</script>
 </body>
 </html>
