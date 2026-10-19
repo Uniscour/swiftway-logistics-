@@ -2889,5 +2889,32 @@ A.addEventListener('click', e => { if (e.target.id === 'fx-rs') { Object.keys(FX
 new MutationObserver(() => { if (busy) return; busy = true; Promise.resolve(fluxF()).then(() => { cashF(); busy = false; }, () => { busy = false; }); }).observe(M, { childList: true, subtree: true });
 })();
 </script>
+  <!-- ===== AJOUT RECHARGE SWIFTWAY : à coller JUSTE AVANT </body>, après les autres blocs ===== -->
+<script>
+(() => {
+if (!$('rc-method')) return;
+// Textes : MTN Money (MoMo) et Orange Money
+const hero = document.querySelector('.wallet-hero p:last-child'); if (hero) hero.textContent = '💳 Rechargez par MTN Money (MoMo) ou Orange Money ci-dessous';
+const o = $('rc-method').options; if (o[0]) o[0].textContent = 'MTN Money (MoMo)'; if (o[1]) o[1].textContent = 'Orange Money';
+// Un numéro MTN peut être enregistré « mtn », « MTN Money », « Momo »... ; Orange « orange », « Orange Money », « OM »...
+const kind = v => { v = String(v || '').toLowerCase(); return /mtn|momo/.test(v) ? 'mtn' : /orange|(^|\s)om(\s|$)/.test(v) ? 'orange' : v; };
+let PERR = '';
+function draw() {
+  const op = $('rc-method').value, box = $('rc-numbers'), rows = PAYNUMS.filter(p => kind(p.operator) === op), nom = op === 'mtn' ? 'MTN Money (MoMo)' : 'Orange Money';
+  box.innerHTML = rows.length
+    ? '<p class="text-xs font-semibold text-gray-700">Effectuez le dépôt ' + nom + ' sur ce numéro :</p>' + rows.map(p => `<div class="flex items-center justify-between gap-2 bg-blue-50 border border-blue-100 rounded-xl p-3"><div><p class="text-base font-bold text-gray-900">${esc(p.phone)}</p><p class="text-xs text-gray-600">${esc(p.holder_name)}</p></div><button type="button" data-copy="${esc(p.phone)}" class="copy-num text-sm font-semibold text-swiftblue border border-blue-200 bg-white rounded-full px-3 py-1 cursor-pointer">Copier</button></div>`).join('')
+    : '<p class="text-xs text-amber-700 bg-amber-50 rounded-xl p-3">' + (PERR ? 'Impossible de charger les numéros : ' + esc(PERR) : 'Aucun numéro ' + nom + ' disponible pour le moment.') + '</p>';
+  box.querySelectorAll('.copy-num').forEach(b => b.addEventListener('click', async () => { try { await navigator.clipboard.writeText(b.dataset.copy); toast('Numéro copié.'); } catch (e) { prompt('Copiez ce numéro :', b.dataset.copy); } }));
+}
+renderPayNums = draw;
+$('rc-method').addEventListener('change', draw);
+const _lw3 = loadWallet;
+loadWallet = async function () {
+  await _lw3();
+  try { const { data, error } = await supabaseClient.from('sw_pay_numbers').select('*').order('created_at'); PERR = error ? error.message : ''; if (!error) PAYNUMS = (data || []).filter(p => p.is_active !== false); } catch (e) { PERR = String((e && e.message) || e); }
+  draw();
+};
+})();
+</script>
 </body>
 </html>
