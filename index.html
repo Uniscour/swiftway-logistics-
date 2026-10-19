@@ -160,13 +160,16 @@ body.bg-gray-50{background:radial-gradient(900px 420px at 100% 0,#d3e3ff 0,trans
 #new-btn{padding-top:17px;padding-bottom:17px;font-size:16px}
 </style>
 <style>
-/* ===== BADGE DE MESSAGES NON LUS (onglet Assistance) ===== */
+/* ===== BADGES DE NOTIFICATION (Mes colis, Messages) & ÉTIQUETTE « NOUVEAU » ===== */
 #dtabs .dtab{position:relative}
 .dbadge{position:absolute;top:0;right:calc(50% - 30px);min-width:21px;height:21px;padding:0 6px;border-radius:999px;background:#ef4444;color:#fff;font-size:11px;font-weight:800;line-height:21px;text-align:center;box-shadow:0 0 0 2px #0a3a9a,0 4px 10px -2px rgba(239,68,68,.75);animation:swPulse 1.8s ease-in-out infinite;pointer-events:none}
 .dbadge.hidden{display:none}
 .newtag{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;letter-spacing:.06em;vertical-align:middle}
 @keyframes swPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
 @media (prefers-reduced-motion:reduce){.dbadge{animation:none}}
+/* Toucher une carte de colis ouvre son suivi */
+#list-container>div{cursor:pointer}
+#list-container [id^="ev-"]{cursor:default}
 </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -234,14 +237,14 @@ body.bg-gray-50{background:radial-gradient(900px 420px at 100% 0,#d3e3ff 0,trans
   </header>
   <main class="max-w-3xl mx-auto px-4 py-6">
     <div id="dtabs" class="grid grid-cols-5 gap-1 bg-gray-100 p-1 rounded-xl mb-6">
-      <button data-tab="list" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">📦</span><span>Mes colis</span></button>
+      <button data-tab="list" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">📦</span><span>Mes colis</span><span id="list-badge" class="dbadge hidden"></span></button>
       <button data-tab="new" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">➕</span><span>Nouvelle</span></button>
       <button data-tab="track" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">🔎</span><span>Suivre</span></button>
       <button data-tab="wallet" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">💳</span><span>Portefeuille</span></button>
-      <button data-tab="help" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">💬</span><span>Assistance</span><span id="help-badge" class="dbadge hidden"></span></button>
+      <button data-tab="help" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">💬</span><span>Messages</span><span id="help-badge" class="dbadge hidden"></span></button>
     </div>
     <div id="d-alert" class="hidden mb-4 p-4 rounded-xl text-sm text-center font-medium"></div>
-    <section id="view-list"><div id="list-container"></div></section>
+    <section id="view-list"><div id="list-filters"></div><div id="list-container"></div></section>
     <section id="view-new" class="hidden"><form id="new-form" class="space-y-5"></form></section>
     <section id="view-track" class="hidden space-y-4">
       <form id="track-form" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
@@ -255,14 +258,14 @@ body.bg-gray-50{background:radial-gradient(900px 420px at 100% 0,#d3e3ff 0,trans
       <div class="wallet-hero">
         <p class="text-xs font-semibold" style="opacity:.8">Solde du portefeuille</p>
         <p id="wallet-balance" class="text-4xl font-extrabold mt-1">0 FCFA</p>
-        <p class="text-xs mt-3" style="opacity:.75">💳 Rechargez par Mobile Money ci-dessous</p>
+        <p class="text-xs mt-3" style="opacity:.75">💳 Rechargez par MTN Money (MoMo) ou Orange Money ci-dessous</p>
       </div>
       <form id="recharge-form" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
         <h2 class="text-lg font-bold text-gray-900">Demander une recharge</h2>
         <p class="text-xs text-gray-500">Effectuez votre paiement Mobile Money, puis indiquez l'ID de la transaction et joignez la capture d'écran. Un administrateur vérifiera et créditera votre solde.</p>
         <div><label class="block text-xs font-semibold text-gray-700 mb-1">Opérateur</label>
           <select id="rc-method" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-            <option value="mtn">MTN Money</option><option value="orange">Orange Money</option></select></div>
+            <option value="mtn">MTN Money (MoMo)</option><option value="orange">Orange Money</option></select></div>
         <div id="rc-numbers" class="space-y-2"></div>
         <div><label class="block text-xs font-semibold text-gray-700 mb-1">Montant (FCFA)</label>
           <input id="rc-amount" type="number" min="1100" step="1" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50"></div>
@@ -272,9 +275,11 @@ body.bg-gray-50{background:radial-gradient(900px 420px at 100% 0,#d3e3ff 0,trans
           <input id="rc-file" type="file" accept="image/*" required class="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-blue-50 file:text-swiftblue file:font-semibold"></div>
         <button type="submit" id="rc-btn" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition shadow-md cursor-pointer">Envoyer la demande</button>
       </form>
+      <div id="wf"></div>
       <div id="recharge-list"></div>
     </section>
     <section id="view-help" class="hidden space-y-4">
+      <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-5"><h2 class="text-lg font-bold text-gray-900">Messages &amp; Notifications</h2><div id="help-subnav" class="mt-3"></div></div>
       <form id="help-form" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
         <h2 class="text-lg font-bold text-gray-900">Contacter l'assistant</h2>
         <p class="text-xs text-gray-500">Un souci, une question ? Écrivez-nous : votre message arrive directement chez l'administrateur avec les informations de votre compte.</p>
@@ -287,6 +292,7 @@ body.bg-gray-50{background:radial-gradient(900px 420px at 100% 0,#d3e3ff 0,trans
           <textarea id="hp-body" required rows="5" maxlength="2000" placeholder="Décrivez votre problème (code de suivi, montant, ce qui s'est passé...)" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50"></textarea></div>
         <button type="submit" id="hp-btn" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition shadow-md cursor-pointer">Envoyer le message</button>
       </form>
+      <div id="hf"></div>
       <div id="help-list"></div>
     </section>
   </main>
@@ -455,6 +461,8 @@ const CURRENCIES = [['XAF', 'Franc CFA (FCFA / XAF)'], ['EUR', 'Euro (€ / EUR)
 function esc(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function fmtDate(d) { return new Date(d).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }); }
 function fmtDay(d) { return new Date(d).toLocaleDateString('fr-FR', { dateStyle: 'medium' }); }
+// Date + heure exactes (avec secondes) : accusés de lecture, consultations, historique
+function fmtFull(d) { return new Date(d).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'medium' }); }
 function fmtMoney(n) { return Number(n || 0).toLocaleString('fr-FR') + ' FCFA'; }
 function fmtCur(n, cur) {
   const v = Number(n || 0).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
@@ -475,6 +483,27 @@ function dHide() { dAlert.classList.add('hidden'); }
 function fmtCode(c) {
   const v = String(c || '');
   return /^SW[A-Z0-9]{20}$/.test(v) ? v.slice(0, 2) + '-' + v.slice(2, 7) + '-' + v.slice(7, 12) + '-' + v.slice(12, 17) + '-' + v.slice(17, 22) : v;
+}
+
+// ---------- OUTILS DE RECHERCHE PARTAGÉS (espace client ET console admin) ----------
+// Texte sans accents ni majuscules ; code de suivi sans tirets ni espaces
+const nrm = (v) => String(v == null ? '' : v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const nz = (v) => String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+// Au moins un des champs contient le texte recherché
+const hit = (q, arr) => { q = nrm(q).trim(); return !q || arr.some(v => nrm(v).includes(q)); };
+// Périodes (valeur = nombre de jours, ou 'today' / 'all' / 'custom')
+const PER_OPTS = [['today', "Aujourd'hui"], ['7', '7 derniers jours'], ['30', '30 derniers jours'], ['180', '6 mois'], ['all', 'Tout le temps'], ['custom', 'Plage personnalisée']];
+// La date d tombe-t-elle dans la période choisie du filtre f ({ per, from, to }) ?
+function perOk(d, f) {
+  if (!f || !f.per || f.per === 'all') return true;
+  const t = new Date(d).getTime(), now = Date.now();
+  if (f.per === 'today') { const z = new Date(); z.setHours(0, 0, 0, 0); return t >= z.getTime(); }
+  if (f.per === 'custom') {
+    if (f.from && t < new Date(f.from + 'T00:00:00').getTime()) return false;
+    if (f.to && t > new Date(f.to + 'T23:59:59').getTime()) return false;
+    return true;
+  }
+  return now - t <= Number(f.per) * 864e5;
 }
 
 // ---------- FORMULAIRE NOUVELLE EXPÉDITION (généré) ----------
@@ -837,12 +866,45 @@ async function refreshPriceBox() {
 }
 document.querySelectorAll('.dtab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 
+// ---------- CONSULTATIONS DU SUIVI PUBLIC (lien / QR code) : compteurs, pastille, historique ----------
+let TRK = {}, OKT = false, UNS = -1;
+const trackChip = (s) => {
+  if (!OKT || !receiptSet.has(s.id)) return '';
+  const c = TRK[s.id] || { t: 0, u: 0 };
+  return `<p class="text-xs mt-1 ${c.t ? 'text-swiftblue font-semibold' : 'text-gray-400'}" data-tvc="${esc(s.id)}">${c.t ? '👁 Consulté ' + c.t + ' fois · dernière le ' + esc(fmtDate(c.l)) : '👁 Pas encore consulté sur le site de suivi'}${c.u ? ' <span class="newtag">+' + c.u + ' NOUVEAU</span>' : ''}</p>`;
+};
+async function refreshTrack() {
+  if (!currentUser || isAdmin) return;
+  try {
+    const { data, error } = await supabaseClient.rpc('sw_my_track_counts');
+    if (error) { OKT = false; return; }
+    OKT = true; TRK = {}; let un = 0;
+    (data || []).forEach(r => { TRK[r.shipment_id] = { t: +r.total, u: +r.unseen, l: r.last_view }; un += +r.unseen; });
+    const b = $('list-badge');
+    if (un > 0) { b.textContent = '+' + un; b.classList.remove('hidden'); } else b.classList.add('hidden');
+    if (un > 0 && un > UNS) toast('👁 Votre colis a été consulté : ' + un + ' nouvelle(s) consultation(s).');
+    UNS = un;
+    document.querySelectorAll('[data-tvc]').forEach(el => { const s = SH[el.dataset.tvc]; if (s) el.outerHTML = trackChip(s); });
+  } catch (e) { OKT = false; }
+}
+async function loadViews(id) {
+  const h = $('tv-' + id); if (!h) return;
+  const { data, error } = await supabaseClient.rpc('sw_my_track_views', { p_shipment: String(id) });
+  if (error) { h.innerHTML = ''; return; }
+  const r = data || [];
+  h.innerHTML = `<div class="mt-3 bg-white rounded-xl border border-blue-100 p-3"><div class="flex items-center justify-between gap-2"><p class="text-xs font-bold text-swiftblue">Historique des consultations</p><span class="text-xs font-semibold text-gray-700">${r.length} consultation(s)</span></div>` +
+    (r.length ? `<ol class="mt-2 space-y-1 max-h-56 overflow-y-auto pr-1">${r.map((x, i) => `<li class="flex items-center justify-between gap-2 text-sm text-gray-700 border-b border-gray-50 py-1"><span>#${r.length - i} · ${esc(fmtFull(x.viewed_at))}</span>${x.seen ? '' : '<span class="newtag">NOUVEAU</span>'}</li>`).join('')}</ol>` : '<p class="text-sm text-gray-500 mt-2">Personne n\'a encore consulté ce colis avec son code ou son QR code.</p>') + '</div>';
+  if (r.some(x => !x.seen)) { await supabaseClient.rpc('sw_my_track_mark_seen', { p_shipment: String(id) }); refreshTrack(); }
+}
+
 let SH = {}, lastOpenId = null;
 async function renderDetails(id) {
   const holder = $('ev-' + id), s = SH[id]; if (!holder || !s) return;
   const { data: events, error } = await supabaseClient.from('sw_shipment_events').select('*').eq('shipment_id', id).order('created_at', { ascending: true });
-  holder.innerHTML = error ? '<p class="text-sm text-red-600 mt-3">Erreur de chargement.</p>' : agencyBlock(s.agency_name) + detailsHtml(s) + editCtl(s, events) + timeline(events, s);
+  const withViews = OKT && receiptSet.has(id);
+  holder.innerHTML = error ? '<p class="text-sm text-red-600 mt-3">Erreur de chargement.</p>' : (withViews ? '<div id="tv-' + esc(id) + '"></div>' : '') + agencyBlock(s.agency_name) + detailsHtml(s) + editCtl(s, events) + timeline(events, s);
   holder.classList.remove('hidden'); lastOpenId = id;
+  if (withViews && !error) loadViews(id);
   const q1 = (c) => holder.querySelector(c);
   const cbs = [...holder.querySelectorAll('.ed-cb')];
   const syncH = () => { const hb = q1('.ed-hbox'); if (hb) hb.classList.toggle('hidden', !q1('.ed-auto').checked); };
@@ -910,10 +972,12 @@ function cancelBtn(s) {
 async function loadShipments(openId) {
   const box = $('list-container');
   if (!openId) box.innerHTML = '<p class="text-center text-gray-500 py-8">Chargement...</p>';
+  await refreshTrack();
   await supabaseClient.rpc('sw_advance_shipments_v2');
   const { data, error } = await supabaseClient.from('sw_shipments').select('*').order('created_at', { ascending: false });
   if (error) { box.innerHTML = ''; dShow("Impossible de charger les colis : " + error.message); return; }
   if (!data.length) {
+    setInf('list-filters', 0, 0);
     box.innerHTML = `<div class="bg-white rounded-3xl border border-gray-100 p-8 text-center"><p class="text-gray-500 mb-4">Vous n'avez pas encore d'expédition.</p>
       <button type="button" id="go-new" class="bg-swiftblue text-white font-semibold px-5 py-3 rounded-xl cursor-pointer">Créer ma première expédition</button></div>`;
     $('go-new').addEventListener('click', () => showTab('new')); return;
@@ -924,7 +988,7 @@ async function loadShipments(openId) {
   SH = {}; data.forEach(s => { SH[s.id] = s; });
   box.innerHTML = data.map(s => {
     if (!receiptSet.has(s.id)) return `
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3">
+    <div data-sid="${esc(s.id)}" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3">
       <div class="flex items-start justify-between gap-2"><div>
         <p class="font-bold text-gray-900">🔒 Expédition du ${fmtDay(s.created_at)}</p>
         <p class="text-sm text-gray-500">Code de suivi : ••••••••</p>
@@ -935,13 +999,14 @@ async function loadShipments(openId) {
         <button type="button" data-id="${esc(s.id)}" class="del-btn text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button>
       </div></div>`;
     return `
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3">
+    <div data-sid="${esc(s.id)}" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3">
       <div class="flex items-start justify-between gap-2"><div>
         <p class="font-bold text-gray-900 break-all">${esc(fmtCode(s.tracking_code))}</p>
         <p class="text-sm text-gray-500">${esc(s.origin)} → ${esc(s.destination)}</p>
         <p class="text-xs text-gray-400 mt-1">Pour ${esc(s.receiver_name)} · ${fmtDay(s.created_at)}</p>
         ${s.agency_name ? `<p class="text-xs text-gray-400">Agence : ${esc(s.agency_name)}</p>` : ''}
         ${s.estimated_delivery_at && s.status !== 'delivered' && s.status !== 'cancelled' ? `<p class="text-xs text-gray-500">Livraison estimée : ${fmtDay(s.estimated_delivery_at)}</p>` : ''}
+        ${trackChip(s)}
       </div>${badge(s.status)}</div>
       <div class="flex flex-wrap items-center gap-3 mt-3">
         <button type="button" data-id="${esc(s.id)}" class="details-btn text-sm font-semibold text-swiftblue cursor-pointer">${openId === s.id ? 'Masquer le suivi' : 'Voir le suivi'}</button>
@@ -951,7 +1016,7 @@ async function loadShipments(openId) {
         <button type="button" data-id="${esc(s.id)}" class="del-btn text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button>
       </div>
       <div id="ev-${esc(s.id)}" class="hidden"></div></div>`;
-  }).join('');
+  }).join('') + '<div id="lf-none" hidden class="bg-white rounded-3xl border border-gray-100 p-8 text-center text-gray-500">Aucun colis ne correspond à ces filtres.</div>';
   box.querySelectorAll('.receipt-btn').forEach(b => b.addEventListener('click', () => openReceipt(SH[b.dataset.id], b)));
   box.querySelectorAll('.copy-btn').forEach(b => b.addEventListener('click', async () => {
     const u = trackUrl(SH[b.dataset.id].tracking_code);
@@ -976,8 +1041,15 @@ async function loadShipments(openId) {
     if (!holder.classList.contains('hidden')) { holder.classList.add('hidden'); btn.textContent = 'Voir le suivi'; lastOpenId = null; return; }
     await renderDetails(btn.dataset.id); btn.textContent = 'Masquer le suivi';
   }));
+  applyList();
   if (openId && SH[openId]) await renderDetails(openId);
 }
+// Toucher une carte (hors boutons et zones interactives) ouvre ou ferme son suivi
+$('list-container').addEventListener('click', (e) => {
+  if (e.target.closest('button,a,input,select,textarea,label,[id^="ev-"]')) return;
+  const c = e.target.closest('[data-sid]'), d = c && c.querySelector('.details-btn');
+  if (d) d.click();
+});
 
 $('new-form').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -1025,6 +1097,8 @@ $('new-form').addEventListener('submit', async (e) => {
 $('track-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const out = $('track-result'), code = $('track-code').value.trim();
+  // Chaque recherche par code est enregistrée (compteur de consultations du colis)
+  supabaseClient.rpc('sw_log_track_view', { p_code: code }).then(() => {}, () => {});
   out.innerHTML = '<p class="text-center text-gray-500">Recherche...</p>';
   const { data, error } = await fetchPublic(code);
   if (error) { out.innerHTML = ''; dShow("Erreur : " + error.message); return; }
@@ -1035,7 +1109,8 @@ $('track-form').addEventListener('submit', async (e) => {
 
 const doLogout = async () => {
   await supabaseClient.auth.signOut(); isAdmin = false; isSuper = false; myPerms = {}; currentUser = null; closeReceipt();
-  const hb = $('help-badge'); if (hb) hb.classList.add('hidden');
+  TRK = {}; OKT = false; UNS = -1;
+  ['help-badge', 'list-badge'].forEach(i => { const b = $(i); if (b) b.classList.add('hidden'); });
   const ov = $('x-drawer'); if (ov) ov.classList.remove('open');
   const vl = $('x-veil'); if (vl) vl.style.display = 'none';
   showAuthView();
@@ -1062,20 +1137,24 @@ async function openProof(path) {
   if (error) { toast('Capture introuvable : ' + error.message, 'error'); return; }
   window.open(data.signedUrl, '_blank');
 }
+let WR = {};
 async function loadWallet() {
   const list = $('recharge-list'); list.innerHTML = LOADING;
   const [w, r, pn] = await Promise.all([
     supabaseClient.from('sw_wallets').select('balance').eq('user_id', currentUser.id).maybeSingle(),
     supabaseClient.from('sw_recharges').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }),
-    supabaseClient.from('sw_pay_numbers').select('*').eq('is_active', true).order('created_at')
+    supabaseClient.from('sw_pay_numbers').select('*').order('created_at')
   ]);
   $('wallet-balance').textContent = fmtMoney(w.data ? w.data.balance : 0);
-  PAYNUMS = pn.data || []; renderPayNums();
-  if (r.error) { list.innerHTML = ''; dShow('Erreur : ' + r.error.message); return; }
+  PERR = pn.error ? pn.error.message : '';
+  PAYNUMS = pn.error ? [] : (pn.data || []).filter(p => p.is_active !== false); renderPayNums();
+  WR = {};
+  if (r.error) { list.innerHTML = ''; dShow('Erreur : ' + r.error.message); setInf('wf', 0, 0); return; }
   const recs = r.data.filter(x => !x.user_hidden);
-  if (!recs.length) { list.innerHTML = '<p class="text-center text-sm text-gray-500">Aucune demande de recharge pour le moment.</p>'; return; }
+  recs.forEach(x => { WR[x.id] = x; });
+  if (!recs.length) { list.innerHTML = '<p class="text-center text-sm text-gray-500">Aucune demande de recharge pour le moment.</p>'; setInf('wf', 0, 0); return; }
   list.innerHTML = '<div class="flex items-center justify-between mb-2"><h3 class="text-sm font-bold text-gray-900">Mes demandes de recharge</h3>' + (recs.some(x => x.status !== 'pending') ? '<button type="button" id="u-rclear" class="text-xs font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Vider mon journal</button>' : '') + '</div>' + recs.map(rc => `
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3"><div class="flex items-start justify-between gap-2"><div>
+    <div data-rid="${esc(rc.id)}" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3"><div class="flex items-start justify-between gap-2"><div>
       <p class="font-bold text-gray-900">${rc.status === 'approved' && rc.approved_amount != null ? fmtMoney(rc.approved_amount) + (Number(rc.approved_amount) !== Number(rc.amount) ? ' <span class="text-xs font-normal text-gray-400">(demandé : ' + fmtMoney(rc.amount) + ')</span>' : '') : fmtMoney(rc.amount)}</p>
       <p class="text-sm text-gray-500">${esc(METHODS[rc.method] || rc.method)} · ID ${esc(rc.reference)}</p>
       <p class="text-xs text-gray-400 mt-1">${fmtDate(rc.created_at)}</p>
@@ -1083,13 +1162,16 @@ async function loadWallet() {
   const hideR = async (ids) => { const { error } = await supabaseClient.rpc('sw_user_hide_recharges', { p_ids: ids.map(String) }); if (error) { toast('Erreur : ' + error.message, 'error'); return; } toast('Supprimé de votre journal.'); loadWallet(); };
   list.querySelectorAll('.u-rdel').forEach(b => b.addEventListener('click', () => { if (confirm('Supprimer cette ligne de votre journal ?')) hideR([b.dataset.udel]); }));
   const ucl = $('u-rclear'); if (ucl) ucl.addEventListener('click', () => { const ids = recs.filter(x => x.status !== 'pending').map(x => x.id); if (ids.length && confirm('Supprimer ' + ids.length + ' ligne(s) traitée(s) de votre journal ?')) hideR(ids); });
+  applyW();
 }
-let PAYNUMS = [];
+// Numéros de dépôt : « MTN Money », « MoMo », « mtn »... → mtn ; « Orange Money », « OM »... → orange
+let PAYNUMS = [], PERR = '';
+const opKind = (v) => { v = String(v || '').toLowerCase(); return /mtn|momo/.test(v) ? 'mtn' : /orange|(^|\s)om(\s|$)/.test(v) ? 'orange' : v; };
 function renderPayNums() {
-  const op = $('rc-method').value, box = $('rc-numbers'), rows = PAYNUMS.filter(p => p.operator === op);
+  const op = $('rc-method').value, box = $('rc-numbers'), rows = PAYNUMS.filter(p => opKind(p.operator) === op), nom = op === 'mtn' ? 'MTN Money (MoMo)' : 'Orange Money';
   box.innerHTML = rows.length
-    ? '<p class="text-xs font-semibold text-gray-700">Effectuez le dépôt sur ce numéro :</p>' + rows.map(p => `<div class="flex items-center justify-between gap-2 bg-blue-50 border border-blue-100 rounded-xl p-3"><div><p class="text-base font-bold text-gray-900">${esc(p.phone)}</p><p class="text-xs text-gray-600">${esc(p.holder_name)}</p></div><button type="button" data-copy="${esc(p.phone)}" class="copy-num text-sm font-semibold text-swiftblue border border-blue-200 bg-white rounded-full px-3 py-1 cursor-pointer">Copier</button></div>`).join('')
-    : '<p class="text-xs text-amber-700 bg-amber-50 rounded-xl p-3">Aucun numéro disponible pour cet opérateur pour le moment.</p>';
+    ? '<p class="text-xs font-semibold text-gray-700">Effectuez le dépôt ' + nom + ' sur ce numéro :</p>' + rows.map(p => `<div class="flex items-center justify-between gap-2 bg-blue-50 border border-blue-100 rounded-xl p-3"><div><p class="text-base font-bold text-gray-900">${esc(p.phone)}</p><p class="text-xs text-gray-600">${esc(p.holder_name)}</p></div><button type="button" data-copy="${esc(p.phone)}" class="copy-num text-sm font-semibold text-swiftblue border border-blue-200 bg-white rounded-full px-3 py-1 cursor-pointer">Copier</button></div>`).join('')
+    : '<p class="text-xs text-amber-700 bg-amber-50 rounded-xl p-3">' + (PERR ? 'Impossible de charger les numéros : ' + esc(PERR) : 'Aucun numéro ' + nom + ' disponible pour le moment.') + '</p>';
   box.querySelectorAll('.copy-num').forEach(b => b.addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(b.dataset.copy); toast('Numéro copié.'); } catch (e) { prompt('Copiez ce numéro :', b.dataset.copy); }
   }));
@@ -1116,10 +1198,10 @@ $('recharge-form').addEventListener('submit', async (e) => {
   e.target.reset(); toast('Demande envoyée. Elle sera vérifiée par un administrateur.'); loadWallet();
 });
 
-// ---------- ASSISTANCE (client -> admin) ----------
+// ---------- MESSAGES & NOTIFICATIONS (client <-> admin) ----------
 const MCAT = { technical: 'Problème technique', payment: 'Paiement / recharge', shipment: 'Colis / expédition', other: 'Autre' };
 
-// ---------- MESSAGES NON LUS (badge +N sur l'onglet Assistance) ----------
+// Messages non lus (badge +N sur l'onglet Messages)
 // Lecture suivie en base (colonnes read_at / reply_read_at, migration SQL fournie). Si ces colonnes n'existent pas encore,
 // un repli local (localStorage) garde le badge fonctionnel sur cet appareil.
 let NEWSET = new Set();
@@ -1174,23 +1256,67 @@ function broadcastCard(m) {
     <p class="text-xs text-gray-400 mt-2">— L'équipe SwiftWay Logistics</p>
     <button type="button" data-udel="${esc(m.id)}" class="u-mdel mt-3 text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button></div>`;
 }
-async function loadHelp(silent) {
-  const list = $('help-list'); if (!silent) list.innerHTML = LOADING;
-  const { data, error } = await supabaseClient.from('sw_messages').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
-  if (error) { list.innerHTML = ''; dShow('Erreur : ' + error.message); return; }
-  const msgs = data.filter(x => !x.user_hidden || (x.admin_reply && x.reply_visible));
-  NEWSET = new Set(unreadKeys(data));
-  if (!msgs.length) { list.innerHTML = '<p class="text-center text-sm text-gray-500">Aucun message envoyé pour le moment.</p>'; setHelpBadge(0); return; }
-  list.innerHTML = '<div class="flex items-center justify-between mb-2"><h3 class="text-sm font-bold text-gray-900">Mes messages</h3><button type="button" id="u-mclear" class="text-xs font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Vider mes messages</button></div>' + msgs.map(m => m.is_broadcast ? broadcastCard(m) : m.user_hidden ? replyOnlyCard(m) : `
+function messageCard(m) {
+  return `
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3"><div class="flex items-start justify-between gap-2"><div>
       <p class="font-bold text-gray-900">${esc(m.subject)}${newTag(m)}</p>
       <p class="text-xs text-gray-400">${esc(MCAT[m.category] || m.category)} · ${fmtDate(m.created_at)}</p></div>
       <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold ${m.status === 'resolved' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}">${m.status === 'resolved' ? 'Résolu' : 'En cours'}</span></div>
       <p class="text-sm text-gray-700 mt-2 whitespace-pre-wrap">${esc(m.body)}</p>
-      ${m.admin_reply ? `<div class="mt-3 bg-blue-50 border border-blue-100 rounded-xl p-3"><p class="text-xs font-bold text-swiftblue mb-1">Réponse de l'assistant${replyStamp(m)}</p><p class="text-sm text-gray-800 whitespace-pre-wrap">${esc(m.admin_reply)}</p></div>` : ''}<button type="button" data-udel="${esc(m.id)}" class="u-mdel mt-3 text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button></div>`).join('');
+      ${m.admin_reply ? `<div class="mt-3 bg-blue-50 border border-blue-100 rounded-xl p-3"><p class="text-xs font-bold text-swiftblue mb-1">Réponse de l'assistant${replyStamp(m)}</p><p class="text-sm text-gray-800 whitespace-pre-wrap">${esc(m.admin_reply)}</p></div>` : ''}<button type="button" data-udel="${esc(m.id)}" class="u-mdel mt-3 text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button></div>`;
+}
+// Sous-onglets : messages privés / annonces officielles / historique des interactions
+let HDATA = [], SUB = 'private';
+const HSUBS = [['private', '💬 Messages privés'], ['ann', '📢 Annonces'], ['hist', '🕘 Historique']];
+const isAnnM = (m) => !!m.is_broadcast && m.category !== 'direct';
+const isNewM = (m) => NEWSET.has(m.id) || NEWSET.has(m.id + ':r');
+function renderHelp() {
+  const list = $('help-list'), msgs = HDATA.filter(msgVisible), cnt = { private: 0, ann: 0 };
+  msgs.forEach(m => { if (isNewM(m)) cnt[isAnnM(m) ? 'ann' : 'private']++; });
+  $('help-subnav').innerHTML = '<div class="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-xl">' + HSUBS.map(([k, l]) => `<button type="button" data-hsub="${k}" class="px-1 py-2.5 text-xs font-semibold rounded-lg cursor-pointer ${SUB === k ? 'bg-white text-swiftblue shadow-sm' : 'text-gray-500'}">${l}${cnt[k] ? '<span class="newtag">+' + cnt[k] + '</span>' : ''}</button>`).join('') + '</div>';
+  $('help-form').classList.toggle('hidden', SUB !== 'private');
+  $('hf').classList.toggle('hidden', SUB === 'hist');
+  if (SUB === 'hist') return renderHistory(list);
+  const pool = msgs.filter(m => isAnnM(m) === (SUB === 'ann'));
+  const rows = pool.filter(m => hit(H.q, [m.subject, m.body, m.admin_reply]) &&
+    (!H.st || (H.st === 'new' ? isNewM(m) : H.st === 'reply' ? !!m.admin_reply : m.status === H.st)) && (!H.cat || m.category === H.cat) && perOk(m.created_at, H));
+  setInf('hf', rows.length, pool.length);
+  if (!pool.length) { list.innerHTML = '<p class="text-center text-sm text-gray-500">' + (SUB === 'ann' ? 'Aucune annonce pour le moment.' : 'Aucun message envoyé pour le moment.') + '</p>'; return; }
+  if (!rows.length) { list.innerHTML = '<p class="text-center text-sm text-gray-500">Aucun message ne correspond à ces filtres.</p>'; return; }
+  list.innerHTML = '<div class="flex items-center justify-between mb-2"><h3 class="text-sm font-bold text-gray-900">' + (SUB === 'ann' ? 'Annonces' : 'Mes messages') + '</h3><button type="button" id="u-mclear" class="text-xs font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Vider cette liste</button></div>' +
+    rows.map(m => m.is_broadcast ? broadcastCard(m) : m.user_hidden ? replyOnlyCard(m) : messageCard(m)).join('');
   const hideM = async (ids) => { const { error } = await supabaseClient.rpc('sw_user_hide_messages', { p_ids: ids.map(String) }); if (error) { toast('Erreur : ' + error.message, 'error'); return; } toast('Supprimé de votre journal.'); loadHelp(); };
   list.querySelectorAll('.u-mdel').forEach(b => b.addEventListener('click', () => { if (confirm('Supprimer ce message de votre journal ?')) hideM([b.dataset.udel]); }));
-  const umc = $('u-mclear'); if (umc) umc.addEventListener('click', () => { if (confirm('Supprimer tous vos messages de votre journal ?')) hideM(msgs.map(x => x.id)); });
+  $('u-mclear').addEventListener('click', () => { if (confirm('Supprimer ' + rows.length + ' élément(s) de votre journal ?')) hideM(rows.map(x => x.id)); });
+}
+// Historique : tout ce qui s'est passé sur le compte, du plus récent au plus ancien
+async function renderHistory(list) {
+  list.innerHTML = '<p class="text-center text-gray-500 py-6">Chargement...</p>';
+  const ev = [], uid = currentUser.id, q = (t) => supabaseClient.from(t).select('*').eq('user_id', uid).then(r => r.data || [], () => []);
+  const [ms, rc, cx, vw] = await Promise.all([q('sw_messages'), q('sw_recharges'), q('sw_cancel_requests'), supabaseClient.rpc('sw_my_track_views_all').then(r => r.data || [], () => [])]);
+  if (SUB !== 'hist') return;
+  ms.filter(msgVisible).forEach(m => {
+    if (m.is_broadcast) { ev.push({ t: m.created_at, i: m.category === 'direct' ? '✉️' : '📢', x: (m.category === 'direct' ? "Message de l'assistant reçu : " : 'Annonce reçue : ') + m.subject }); if (m.read_at) ev.push({ t: m.read_at, i: '👁', x: 'Vous avez lu : ' + m.subject }); return; }
+    ev.push({ t: m.created_at, i: '📤', x: 'Vous avez envoyé : ' + m.subject });
+    if (m.admin_reply) ev.push({ t: m.replied_at || m.created_at, i: '💬', x: "L'assistant a répondu à « " + m.subject + ' »' });
+    if (m.reply_read_at) ev.push({ t: m.reply_read_at, i: '👁', x: 'Vous avez lu la réponse à « ' + m.subject + ' »' });
+    if (m.status === 'resolved' && m.resolved_at) ev.push({ t: m.resolved_at, i: '✅', x: 'Demande résolue : ' + m.subject });
+  });
+  rc.filter(r => !r.user_hidden).forEach(r => { ev.push({ t: r.created_at, i: '💳', x: 'Demande de recharge de ' + fmtMoney(r.amount) + ' envoyée' }); if (r.status !== 'pending') ev.push({ t: r.reviewed_at || r.approved_at || r.updated_at || r.created_at, i: r.status === 'approved' ? '✅' : '❌', x: 'Recharge de ' + fmtMoney(r.amount) + (r.status === 'approved' ? ' approuvée' : ' rejetée') }); });
+  cx.forEach(r => { const s = SH[r.shipment_id]; ev.push({ t: r.created_at, i: '⊘', x: "Demande d'annulation du colis" + (s && receiptSet.has(s.id) ? ' ' + fmtCode(s.tracking_code) : '') + ' · ' + (r.status === 'approved' ? 'acceptée' : r.status === 'rejected' ? 'rejetée' : 'en attente') }); });
+  vw.forEach(v => ev.push({ t: v.viewed_at, i: '👁', x: 'Votre colis ' + fmtCode(v.tracking_code) + ' a été consulté sur le site de suivi' }));
+  ev.sort((a, b) => new Date(b.t) - new Date(a.t));
+  list.innerHTML = `<div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-5"><h3 class="text-base font-bold text-gray-900">Réactions et interactions</h3><p class="text-xs text-gray-500 mt-1">Tout ce qui s'est passé sur votre compte, du plus récent au plus ancien.</p>` +
+    (ev.length ? `<ol class="space-y-3 mt-4">${ev.slice(0, 150).map(e => `<li class="flex gap-3"><span class="text-lg leading-none">${e.i}</span><div class="min-w-0"><p class="text-sm font-semibold text-gray-900 break-words">${esc(e.x)}</p><p class="text-xs text-gray-400">${esc(fmtFull(e.t))}</p></div></li>`).join('')}</ol>` : '<p class="text-sm text-gray-500 mt-4">Aucune interaction pour le moment.</p>') + '</div>';
+}
+$('help-subnav').addEventListener('click', (e) => { const b = e.target.closest('[data-hsub]'); if (b) { SUB = b.dataset.hsub; renderHelp(); } });
+async function loadHelp(silent) {
+  const list = $('help-list'); if (!silent) list.innerHTML = LOADING;
+  const { data, error } = await supabaseClient.from('sw_messages').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+  if (error) { list.innerHTML = ''; dShow('Erreur : ' + error.message); return; }
+  HDATA = data;
+  NEWSET = new Set(unreadKeys(data));
+  renderHelp();
   // L'onglet est ouvert : les messages consultés sont marqués comme lus et le badge s'efface.
   markHelpRead(data);
 }
@@ -1205,6 +1331,90 @@ $('help-form').addEventListener('submit', async (e) => {
   e.target.reset(); toast("Message envoyé. L'assistant vous répondra ici.");
   loadHelp();
 });
+
+// ---------- FILTRES CLIENT : Mes colis, Portefeuille, Messages (un seul mécanisme pour les trois) ----------
+const PERS_HTML = [...PER_OPTS.filter(o => o[0] === 'all'), ...PER_OPTS.filter(o => o[0] !== 'all' && o[0] !== 'custom')].map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+const finp = (k, ph, t) => `<input data-k="${k}" type="${t || 'text'}" ${t === 'number' ? 'min="0"' : ''} placeholder="${ph}" autocomplete="off" class="${IC}">`;
+const fsel = (k, opts) => `<select data-k="${k}" class="${IC}">${opts}</select>`;
+const ffld = (l, h) => `<div><label class="${LB}">${l}</label>${h}</div>`;
+// Affiche le panneau dans son conteneur ; fbind relie la saisie à l'état et au rafraîchissement
+function fpanel(id, title, body, sub) {
+  const p = $(id);
+  p.className = 'bg-white rounded-3xl shadow-sm border border-gray-100 p-5 mb-4 space-y-3';
+  p.innerHTML = `<div><h3 class="text-base font-bold text-gray-900">${title}</h3>${sub ? `<p class="text-xs text-gray-500 mt-1">${sub}</p>` : ''}</div>${body}<div class="flex items-center justify-between gap-2"><p class="text-xs text-gray-500" data-inf></p><button type="button" data-rs class="text-xs font-semibold text-swiftblue underline cursor-pointer">Réinitialiser</button></div>`;
+}
+function fbind(id, st, def, apply) {
+  const p = $(id);
+  const ev = (e) => { const k = e.target.dataset && e.target.dataset.k; if (k) { st[k] = e.target.value; apply(); } };
+  p.addEventListener('input', ev); p.addEventListener('change', ev);
+  p.querySelector('[data-rs]').addEventListener('click', () => { Object.assign(st, def()); p.querySelectorAll('[data-k]').forEach(i => { i.value = st[i.dataset.k]; }); apply(); });
+}
+function setInf(id, n, t) { const e = $(id) && $(id).querySelector('[data-inf]'); if (e) e.textContent = t ? n + ' affiché(s) sur ' + t : ''; }
+
+// Mes colis : code de suivi, expéditeur, pays d'envoi / destination / escale
+const LFDEF = () => ({ code: '', sender: '', from: '', to: '', stop: '' });
+const LF = LFDEF();
+const cOpts = COUNTRIES.slice().sort((a, b) => a.localeCompare(b, 'fr')).map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+fpanel('list-filters', 'Rechercher un colis',
+  finp('code', 'Code de suivi').replace('class="', 'class="uppercase ') +
+  `<details><summary class="text-sm font-semibold text-swiftblue cursor-pointer py-1">Filtres avancés (expéditeur, pays)</summary><div class="space-y-3 mt-3">` +
+  ffld("Nom de l'expéditeur", finp('sender', 'Ex : Jean Dupont')) +
+  ffld("Pays d'envoi", fsel('from', '<option value="">Tous les pays</option>' + cOpts)) +
+  ffld('Pays de destination', fsel('to', '<option value="">Tous les pays</option>' + cOpts)) +
+  ffld("Pays d'escale", fsel('stop', '<option value="">Tous les pays</option>' + cOpts)) + '</div></details>',
+  'Collez un code de suivi pour retrouver directement le colis et son reçu.');
+function applyList() {
+  const box = $('list-container'), code = nz(LF.code), snd = nrm(LF.sender);
+  let shown = 0, total = 0, lastEl = null;
+  box.querySelectorAll('[data-sid]').forEach(c => {
+    const s = SH[c.dataset.sid]; if (!s) return;
+    total++;
+    let ok = true;
+    if (code) ok = receiptSet.has(s.id) && nz(s.tracking_code).includes(code);
+    if (ok && snd) ok = nrm(s.sender_name).includes(snd);
+    if (ok && LF.from) ok = s.sender_country === LF.from;
+    if (ok && LF.to) ok = s.receiver_country === LF.to;
+    if (ok && LF.stop) ok = s.stopover_country === LF.stop;
+    c.hidden = !ok; if (ok) { shown++; lastEl = c; }
+  });
+  const none = $('lf-none'); if (none) none.hidden = !(total && !shown && Object.values(LF).some(Boolean));
+  setInf('list-filters', shown, total);
+  // Un code complet qui ne correspond qu'à un colis : on ouvre directement son suivi
+  if (code.length >= 8 && shown === 1 && lastEl) {
+    const d = lastEl.querySelector('.details-btn'), h = lastEl.querySelector('[id^="ev-"]');
+    if (d && h && h.classList.contains('hidden')) d.click();
+  }
+}
+fbind('list-filters', LF, LFDEF, applyList);
+
+// Portefeuille : texte, statut, opérateur, période, montant
+const WDEF = () => ({ q: '', st: '', m: '', per: 'all', min: '', max: '' });
+const W = WDEF();
+fpanel('wf', 'Filtrer mes recharges',
+  finp('q', 'ID de transaction, montant, note...') +
+  `<div class="grid grid-cols-2 gap-3">${ffld('Statut', fsel('st', '<option value="">Tous</option><option value="pending">En attente</option><option value="approved">Approuvée</option><option value="rejected">Rejetée</option>'))}${ffld('Opérateur', fsel('m', '<option value="">Tous</option><option value="mtn">MTN Money (MoMo)</option><option value="orange">Orange Money</option>'))}</div>` +
+  ffld('Période', fsel('per', PERS_HTML)) +
+  `<div class="grid grid-cols-2 gap-3">${ffld('Montant min (FCFA)', finp('min', '0', 'number'))}${ffld('Montant max (FCFA)', finp('max', '∞', 'number'))}</div>`);
+function applyW() {
+  const cs = $('recharge-list').querySelectorAll('[data-rid]'); let n = 0;
+  cs.forEach(c => {
+    const r = WR[c.dataset.rid]; if (!r) return;
+    const a = Number(r.status === 'approved' && r.approved_amount != null ? r.approved_amount : r.amount);
+    const ok = hit(W.q, [r.reference, r.amount, r.approved_amount, r.admin_note]) && (!W.st || r.status === W.st) && (!W.m || r.method === W.m) && perOk(r.created_at, W) && (W.min === '' || a >= +W.min) && (W.max === '' || a <= +W.max);
+    c.hidden = !ok; if (ok) n++;
+  });
+  setInf('wf', n, cs.length);
+}
+fbind('wf', W, WDEF, applyW);
+
+// Messages : texte, état, catégorie, période
+const HDEF = () => ({ q: '', st: '', cat: '', per: 'all' });
+const H = HDEF();
+fpanel('hf', 'Filtrer mes messages',
+  finp('q', 'Titre, message, réponse...') +
+  `<div class="grid grid-cols-2 gap-3">${ffld('État', fsel('st', '<option value="">Tous</option><option value="new">Non lus (nouveaux)</option><option value="open">En cours</option><option value="resolved">Résolus</option><option value="reply">Avec réponse</option>'))}${ffld('Catégorie', fsel('cat', '<option value="">Toutes</option>' + Object.keys(MCAT).map(k => `<option value="${k}">${MCAT[k]}</option>`).join('')))}</div>` +
+  ffld('Période', fsel('per', PERS_HTML)));
+fbind('hf', H, HDEF, renderHelp);
 
 // ---------- PAGE PUBLIQUE DE SUIVI ----------
 function pubParties(d) {
@@ -1284,9 +1494,10 @@ setInterval(() => {
   });
 }, 1000);
 
-// ---------- ACTUALISATION DU BADGE DE MESSAGES (toutes les 30 s) ----------
+// ---------- ACTUALISATION DES BADGES (messages + consultations de colis, toutes les 30 s) ----------
 setInterval(() => {
   if (!currentUser || isAdmin || $('dash-view').classList.contains('hidden')) return;
+  refreshTrack();
   if (!$('view-help').classList.contains('hidden')) {
     const a = document.activeElement;
     if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return; // ne pas perturber la saisie en cours
@@ -1455,53 +1666,39 @@ select.x-in{cursor:pointer}
     <button data-v="wa"><b>✆</b>WHATSAPP</button>
     <button data-v="cancel"><b>⊘</b>ANNUL.<span class="n" id="nav-cx-badge"></span></button>
     <button data-v="msg"><b>✉</b>MESSAGES<span class="n" id="nav-msg-badge"></span></button><button data-v="cfg"><b>⚙</b>PARAMS</button>
+    <button data-v="journal"><b>≣</b>JOURNAL</button>
   </nav>
   <main id="x-main"></main><div id="admin-home" class="hidden"></div>
   <div id="x-veil"></div><aside id="x-drawer"></aside>`;
   $('x-exit').onclick = doLogout;
   setInterval(() => { const c = $('x-clock'); if (c) c.textContent = new Date().toLocaleTimeString('fr-FR'); }, 1000);
 
-  const S = { ship: [], users: [], usr: [], admins: [], rech: [], bal: {}, own: {}, v: 'radar', q: '', rf: 'pending', open: null, ev: [], cx: [], st: null, af: 'users', adv: null, logs: [], sent: [], uf: 'all', us: 'recent', ulim: 60, grants: [], grantsOk: false };
+  const S = { ship: [], users: [], usr: [], admins: [], rech: [], bal: {}, own: {}, v: 'radar', q: '', rf: 'pending', open: null, ev: [], cx: [], st: null, af: 'users', adv: null, logs: [], sent: [], uf: 'all', us: 'recent', ulim: 60, grants: [], grantsOk: false, fxAdv: false };
   // Filtres & file d'envoi de l'onglet WhatsApp
   const WA = { q: '', act: 'all', bal: 'all', min: '', max: '', shp: 'all', reg: 'all', msg: '', done: {}, list: [] };
   // Offre promotionnelle (Paramètres) : reçu offert à un groupe filtré
   const PR = { seg: 'never_zero', camp: 'Offre promotionnelle', msg: '', excl: {}, list: [] };
+  // Journal d'activité (onglet JOURNAL)
+  const J = { d: 30, adm: '', act: '', q: '', rows: [] };
   const COL = { pending: '#7d8da0', picked_up: '#4da3ff', in_transit: '#a78bfa', out_for_delivery: '#ffb020', delivered: '#c6ff3d', cancelled: '#ff5a5f' };
   const M = $('x-main');
   const win = s => s.delivery_window_hours || 48;
   const hrs = s => (Date.now() - new Date(s.created_at)) / 3600000;
   const live = s => s.status !== 'delivered' && s.status !== 'cancelled';
   const late = s => live(s) && hrs(s) > win(s);
-  // Date + heure exactes (avec secondes) pour les dates d'émission et les accusés de lecture
-  const fmtFull = (d) => new Date(d).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'medium' });
   // Filtre segmenté avec compteurs
   const segs = (items, cur, attr) => `<div class="x-segs">${items.map(([v, l, n]) => `<button class="x-sg ${cur === v ? 'on' : ''}" ${attr}="${v}">${l}${n != null ? `<em>${n}</em>` : ''}</button>`).join('')}</div>`;
 
-  // ---------- FILTRES COMMUNS (période, recherche, client) : FLUX, CAISSE, MESSAGES, ANNULATIONS ----------
-  const PER_OPTS = [['today', "Aujourd'hui"], ['7', '7 derniers jours'], ['30', '30 derniers jours'], ['180', '6 mois'], ['all', 'Tout le temps'], ['custom', 'Plage personnalisée']];
+  // ---------- FILTRES COMMUNS (période, recherche, client...) : FLUX, CAISSE, MESSAGES, ANNULATIONS ----------
   const flDef = {
-    fx: () => ({ q: '', per: 'all', usr: '', st: 'all', from: '', to: '' }),
-    cash: () => ({ q: '', per: 'all', m: '', from: '', to: '' }),
+    fx: () => ({ q: '', per: 'all', usr: '', st: 'all', from: '', to: '', o: '', d: '', e: '', sv: '', py: '', ag: '', fr: '' }),
+    cash: () => ({ q: '', per: 'all', m: '', from: '', to: '', min: '', max: '' }),
     msg: () => ({ q: '', per: 'all', cat: '', from: '', to: '' }),
     cx: () => ({ q: '', per: 'all', from: '', to: '' })
   };
   const FL = {}; Object.keys(flDef).forEach(k => { FL[k] = flDef[k](); });
   const REDRAW = { fx: () => pipe(), cash: () => cash(), msg: () => msgRefresh(), cx: () => cancelV() };
   const flLb = (t) => `<label style="font-size:11px;color:var(--mut);font-weight:600;letter-spacing:.04em">${t}</label>`;
-  // Le colis / la demande tombe-t-il dans la période choisie ?
-  function perOk(d, f) {
-    if (!f || f.per === 'all') return true;
-    const t = new Date(d).getTime(), now = Date.now();
-    if (f.per === 'today') { const z = new Date(); z.setHours(0, 0, 0, 0); return t >= z.getTime(); }
-    if (f.per === 'custom') {
-      if (f.from && t < new Date(f.from + 'T00:00:00').getTime()) return false;
-      if (f.to && t > new Date(f.to + 'T23:59:59').getTime()) return false;
-      return true;
-    }
-    return now - t <= Number(f.per) * 864e5;
-  }
-  // Recherche texte : au moins un champ contient le texte saisi
-  const hit = (q, arr) => { q = String(q || '').trim().toLowerCase(); return !q || arr.some(v => String(v == null ? '' : v).toLowerCase().includes(q)); };
   // Panneau de filtres réutilisable (recherche + période + champs supplémentaires + compteur + réinitialiser)
   function fbar(key, ph, extra, info) {
     const f = FL[key];
@@ -1530,7 +1727,7 @@ select.x-in{cursor:pointer}
   const isSupU = (u) => String((u && u.email) || '').toLowerCase() === SUPER_EMAIL;
   const need = (p) => { if (can(p)) return true; toast('Action non autorisée pour votre rôle.', 'error'); return false; };
   const needSuper = () => { if (isSuper) return true; toast('Réservé au Super Admin Suprême.', 'error'); return false; };
-  const navOk = (n) => ({ radar: true, pipe: can('ship'), cash: can('rech'), acct: can('acct'), wa: can('msg') || can('acct'), cancel: can('cancel'), msg: can('msg'), cfg: isSuper || can('pay') })[n] === true;
+  const navOk = (n) => ({ radar: true, pipe: can('ship'), cash: can('rech'), acct: can('acct'), wa: can('msg') || can('acct'), cancel: can('cancel'), msg: can('msg'), cfg: isSuper || can('pay'), journal: true })[n] === true;
   function applyNav() {
     A.querySelectorAll('.x-rail [data-v]').forEach(b => { b.style.display = navOk(b.dataset.v) ? '' : 'none'; });
   }
@@ -1556,24 +1753,36 @@ select.x-in{cursor:pointer}
     msg_reply: 'Réponse à un message', msg_resolve: 'Message résolu', msg_reopen: 'Message rouvert', direct_message: 'Message direct envoyé',
     broadcast: 'Annonce globale envoyée', paynum_add: 'Numéro de paiement ajouté', paynum_edit: 'Numéro de paiement modifié', paynum_toggle: 'Numéro de paiement masqué/affiché',
     sw_admin_send_direct: 'Message direct envoyé', sw_admin_broadcast: 'Annonce globale envoyée', sw_admin_set_active: 'Compte utilisateur activé/coupé', sw_admin_review_recharge: 'Traitement de recharge',
-    wa_contact: 'Discussion WhatsApp ouverte', acct_export: 'Export de la liste des comptes', sw_admin_grant_free_receipts: 'Reçu offert (offre promotionnelle)'
+    wa_contact: 'Discussion WhatsApp ouverte', acct_export: 'Export de la liste des comptes', sw_admin_grant_free_receipts: 'Reçu offert (offre promotionnelle)',
+    ship_view: 'Colis consulté'
   };
+  const actLabel = (a) => /^d:/.test(a) ? 'Détail · ' + a.slice(2).replace('sw_admin_', '') : (ACT_LABEL[a] || String(a).replace('sw_admin_', ''));
+  // Enregistre une action dans le journal (visible dans l'onglet JOURNAL et dans la fiche de l'administrateur)
   function logAct(action, details) {
-    if (isSuper) return;
-    try { supabaseClient.rpc('sw_log_admin_activity', { p_action: action, p_details: details || null }).then(() => {}, () => {}); } catch (e) {}
+    try { supabaseClient.rpc('sw_log_admin_activity', { p_action: action, p_details: String(details || '').slice(0, 900) || null }).then(() => {}, () => {}); } catch (e) {}
   }
-  function describe(fn, a, ok) {
-    const sh = (id) => { const s = S.ship.find(x => x.id === id); return s ? s.tracking_code : ''; };
-    const em = (id) => { const u = S.own[id]; return u ? (u.email || '') : ''; };
-    if (fn === 'sw_admin_update_status') return 'Colis ' + sh(a.p_id) + ' → ' + ((STATUS[a.p_status] || {}).label || a.p_status) + (a.p_note ? ' · ' + a.p_note : '');
-    if (fn === 'sw_admin_add_note') return 'Colis ' + sh(a.p_id) + ' · ' + a.p_note;
-    if (fn === 'sw_admin_set_auto') return 'Colis ' + sh(a.p_id) + ' · auto ' + (a.p_auto ? 'activé' : 'coupé');
-    if (fn === 'sw_admin_set_window') return 'Colis ' + sh(a.p_id) + ' · délai ' + a.p_hours + ' h';
-    if (fn === 'sw_admin_review_recharge2') { const r = S.rech.find(x => x.id === a.p_id) || {}; return (a.p_approve ? 'Approuvée ' + fmtMoney(a.p_amount) : 'Rejetée') + ' · ' + em(r.user_id) + (a.p_note ? ' · ' + a.p_note : ''); }
-    if (fn === 'sw_admin_adjust_wallet') { const r = S.rech.find(x => x.id === a.p_recharge_id) || {}; return (a.p_delta > 0 ? '+' : '') + fmtMoney(a.p_delta) + ' · ' + em(r.user_id) + (a.p_note ? ' · ' + a.p_note : ''); }
-    if (fn === 'sw_admin_review_cancel') { const r = (S.cx || []).find(x => x.id === a.p_id) || {}; return (a.p_approve ? 'Annulation acceptée' : 'Annulation rejetée') + ' · colis ' + sh(r.shipment_id); }
-    if (fn === 'sw_admin_set_user') return em(a.p_id) + ' · ' + (a.p_active ? 'actif' : 'coupé');
-    return ok || '';
+  // Lecture d'une ligne (pour décrire les actions dans le journal)
+  const one = async (t, c, v, f) => { try { const { data } = await supabaseClient.from(t).select(f).eq(c, v).maybeSingle(); return data || {}; } catch (e) { return {}; } };
+  const mailOf = async (id) => (await one('sw_profiles', 'id', id, 'email')).email || id;
+  const codeOf = async (id) => (await one('sw_shipments', 'id', id, 'tracking_code')).tracking_code || id;
+  // Description détaillée d'une action administrateur (client, montants, colis, message...)
+  async function detail(fn, a) {
+    const n = a.p_note ? ' · note : ' + a.p_note : '';
+    if (fn === 'sw_admin_review_recharge2') { const r = await one('sw_recharges', 'id', a.p_id, 'user_id,amount,method,reference'); return (a.p_approve ? 'Recharge APPROUVÉE' : 'Recharge REJETÉE') + ' · client ' + await mailOf(r.user_id) + ' · demandé ' + r.amount + ' · crédité ' + (a.p_amount ?? 0) + ' FCFA · ' + (r.method || '') + ' réf ' + (r.reference || '') + n; }
+    if (fn === 'sw_admin_adjust_wallet') { const r = await one('sw_recharges', 'id', a.p_recharge_id, 'user_id'); return 'Ajustement ' + a.p_delta + ' FCFA · client ' + await mailOf(r.user_id) + n; }
+    if (fn === 'sw_admin_review_cancel') { const r = await one('sw_cancel_requests', 'id', a.p_id, 'shipment_id,user_id'); return (a.p_approve ? 'Annulation ACCEPTÉE' : 'Annulation REJETÉE') + ' · colis ' + await codeOf(r.shipment_id) + ' · client ' + await mailOf(r.user_id) + n; }
+    if (/^sw_admin_(set_user|set_active|set_perms|promote)$/.test(fn)) return fn.replace('sw_admin_', '') + ' · ' + await mailOf(a.p_id) + ' · ' + JSON.stringify({ role: a.p_role, actif: a.p_active, perms: a.p_perms });
+    if (/^sw_admin_(update_status|add_note|set_auto|set_window)$/.test(fn)) return 'Colis ' + await codeOf(a.p_id) + ' · ' + JSON.stringify({ statut: a.p_status, auto: a.p_auto, heures: a.p_hours, note: a.p_note });
+    if (fn === 'sw_admin_send_direct') return 'Message à ' + await mailOf(a.p_user) + ' · « ' + a.p_subject + ' » : ' + a.p_body;
+    if (fn === 'sw_admin_broadcast') return 'Annonce (' + a.p_filter + ') · « ' + a.p_subject + ' » : ' + a.p_body;
+    if (fn === 'sw_admin_grant_free_receipts') return 'Reçus offerts à ' + (a.p_user_ids || []).length + ' utilisateur(s) · ' + (a.p_campaign || '');
+    return JSON.stringify(a);
+  }
+  // Appel d'une fonction d'administration + enregistrement détaillé au journal en cas de succès
+  async function arpc(fn, a) {
+    const r = await supabaseClient.rpc(fn, a);
+    if (r && !r.error) detail(fn, a || {}).then(t => logAct('d:' + fn, t));
+    return r;
   }
 
   async function loadAll() {
@@ -1631,7 +1840,7 @@ select.x-in{cursor:pointer}
     window.scrollTo(0, 0);
     await loadAll(); draw();
   };
-  function draw() { ({ radar, pipe, cash, acct, cfg, msg: inbox, cancel: cancelV, wa: waV })[S.v](); if (S.open) openDrawer(S.open, true); }
+  function draw() { ({ radar, pipe, cash, acct, cfg, msg: inbox, cancel: cancelV, wa: waV, journal: journalV })[S.v](); if (S.open) openDrawer(S.open, true); }
 
   function radar() {
     const act = S.ship.filter(live), lt = S.ship.filter(late);
@@ -1662,13 +1871,14 @@ select.x-in{cursor:pointer}
     <div class="x-panel"><p class="x-h">ALERTES RETARD (+${48} h)</p>${lt.length ? lt.slice(0, 8).map(s => `<button class="x-row" data-open="${esc(s.id)}"><span style="word-break:break-all">${esc(fmtCode(s.tracking_code))} <span style="color:#7d8da0">${esc(s.origin)} → ${esc(s.destination)}</span></span><span style="color:#ff5a5f">+${hoursText(hrs(s) - win(s))}</span></button>`).join('') : '<span style="color:#c6ff3d">RAS : aucun retard.</span>'}</div>`;
   }
 
-  // ---------- FLUX (kanban) : filtres période / client / statut / recherche + nettoyage des colis anciens ----------
+  // ---------- FLUX (kanban) : filtres période / client / statut / pays / service / agence + nettoyage des colis anciens ----------
   function pipe() {
-    const f = FL.fx, q = f.q.trim().toLowerCase(), now = Date.now();
+    const f = FL.fx, now = Date.now(), qn = nz(f.q);
     const old = (s) => now - new Date(s.created_at).getTime() > 30 * 864e5;
     const stOk = (s, k) => k === 'live' ? live(s) : k === 'done' ? !live(s) : k === 'late' ? late(s) : k === 'old' ? old(s) : true;
-    const base = S.ship.filter(s => perOk(s.created_at, f) && (!f.usr || s.user_id === f.usr) &&
-      (!q || [s.tracking_code, s.receiver_name, s.sender_name, s.origin, s.destination, s.receiver_phone, s.agency_name, (S.own[s.user_id] || {}).email].some(v => String(v || '').toLowerCase().includes(q)) || String(s.tracking_code || '').toLowerCase().includes(q.replace(/-/g, ''))));
+    const advOk = (s) => (!f.o || s.sender_country === f.o) && (!f.d || s.receiver_country === f.d) && (!f.e || s.stopover_country === f.e) && (!f.sv || s.service_type === f.sv) && (!f.py || s.payer === f.py) && (!f.ag || s.agency_name === f.ag) && (!f.fr || s.is_fragile);
+    const base = S.ship.filter(s => perOk(s.created_at, f) && (!f.usr || s.user_id === f.usr) && advOk(s) &&
+      (hit(f.q, [s.tracking_code, s.receiver_name, s.sender_name, s.origin, s.destination, s.receiver_phone, s.agency_name, (S.own[s.user_id] || {}).email]) || (qn && nz(s.tracking_code).includes(qn))));
     const rows = base.filter(s => stOk(s, f.st));
     const cand = rows.filter(old);
     S.fxClean = cand.map(s => s.id);
@@ -1678,6 +1888,15 @@ select.x-in{cursor:pointer}
     const extra = `${flLb('UTILISATEUR / CLIENT')}<select class="x-in" data-fl="fx" data-fk="usr" style="margin-top:4px"><option value="">Tous les clients (${ulist.length})</option>${ulist.map(u => `<option value="${esc(u.id)}" ${f.usr === u.id ? 'selected' : ''}>${esc(u.email)} · ${cu[u.id]} colis</option>`).join('')}</select>`;
     const info = `<b>${rows.length}</b> colis affiché(s) sur ${S.ship.length}`;
     const stSegs = segs([['all', 'Tous', base.length], ['live', 'En cours', base.filter(live).length], ['done', 'Terminés', base.filter(s => !live(s)).length], ['late', 'En retard', base.filter(late).length], ['old', 'Anciens (+30 j)', base.filter(old).length]], f.st, 'data-fxst');
+    // Filtres avancés (listes alimentées par les colis chargés)
+    const uniq = (k) => [...new Set(S.ship.map(s => s[k]).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b), 'fr'));
+    const sopt = (k, first, arr) => `<select class="x-in" data-fl="fx" data-fk="${k}"><option value="">${first}</option>${arr.map(v => { const [val, lab] = Array.isArray(v) ? v : [v, v]; return `<option value="${esc(val)}" ${f[k] === val ? 'selected' : ''}>${esc(lab)}</option>`; }).join('')}</select>`;
+    const advOn = ['o', 'd', 'e', 'sv', 'py', 'ag', 'fr'].some(k => f[k]);
+    const adv = `<details class="x-panel" data-fxadv="1" ${advOn || S.fxAdv ? 'open' : ''} style="margin-top:0;margin-bottom:14px"><summary style="cursor:pointer;font-weight:700;font-size:12px">⚙ FILTRES AVANCÉS (pays, service, agence...)</summary>
+      <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-top:10px">
+        ${sopt('o', "Pays d'envoi : tous", uniq('sender_country'))}${sopt('d', 'Pays de destination : tous', uniq('receiver_country'))}${sopt('e', "Pays d'escale : tous", uniq('stopover_country'))}
+        ${sopt('sv', 'Service : tous', [['standard', 'Standard'], ['express', 'Express']])}${sopt('py', 'Payeur : tous', [['sender', 'Expéditeur'], ['receiver', 'Destinataire']])}
+        ${sopt('ag', 'Agence : toutes', uniq('agency_name'))}${sopt('fr', 'Fragile : tous', [['1', 'Colis fragiles']])}</div></details>`;
     const row = (s) => `<div class="x-row" style="cursor:default;align-items:center;gap:10px"><span style="min-width:0;word-break:break-all;font-size:12px"><b>${esc(fmtCode(s.tracking_code))}</b> <span class="x-tag" style="color:${COL[s.status] || '#7d8da0'}">${esc((STATUS[s.status] || { label: s.status }).label.toUpperCase())}</span><br><span style="color:var(--mut)">${esc(s.origin)} → ${esc(s.destination)} · ${esc((S.own[s.user_id] || {}).email || '-')} · créé le ${fmtDay(s.created_at)} (${Math.floor((now - new Date(s.created_at).getTime()) / 864e5)} j)</span></span>
       <span class="x-acts" style="flex-shrink:0"><button type="button" class="x-btn" data-open="${esc(s.id)}">VOIR</button>${isSuper ? `<button type="button" class="x-btn no" data-shdel="${esc(s.id)}">SUPPRIMER</button>` : ''}</span></div>`;
     const clean = `<details class="x-sec" ${f.st === 'old' ? 'open' : ''} style="margin:0 0 16px"><summary>🧹 Nettoyage : colis anciens de plus de 30 jours (${cand.length})</summary><div>
@@ -1686,6 +1905,7 @@ select.x-in{cursor:pointer}
       <p class="x-hint">${isSuper ? 'La suppression est définitive (aucun remboursement) et demande une confirmation de sécurité.' : 'La suppression définitive est réservée au Super Admin Suprême.'}</p></div></details>`;
     M.innerHTML = `<p class="x-h"><b>●</b> FLUX // glissez une carte pour changer son statut</p>
     ${fbar('fx', '> filtrer : code, nom, ville, téléphone, agence', extra, info)}
+    ${adv}
     ${stSegs}
     ${clean}
     <div class="x-board">${Object.keys(STATUS).map(k => {
@@ -1701,13 +1921,15 @@ select.x-in{cursor:pointer}
   function cash() {
     const f = FL.cash;
     const col = { pending: '#ffb020', approved: '#c6ff3d', rejected: '#ff5a5f' };
-    const base = S.rech.filter(r => { const u = S.own[r.user_id] || {}; return perOk(r.created_at, f) && (!f.m || r.method === f.m) && hit(f.q, [u.email, u.phone, r.reference, r.amount, r.admin_note]); });
+    const amtOf = (r) => Number(r.status === 'approved' && r.approved_amount != null ? r.approved_amount : r.amount || 0);
+    const base = S.rech.filter(r => { const u = S.own[r.user_id] || {}, a = amtOf(r); return perOk(r.created_at, f) && (!f.m || r.method === f.m) && (f.min === '' || a >= +f.min) && (f.max === '' || a <= +f.max) && hit(f.q, [u.email, u.phone, r.reference, r.amount, r.admin_note]); });
     const cnt = (k) => base.filter(r => !k || r.status === k).length;
     const rows = base.filter(r => !S.rf || r.status === S.rf);
     const clr = rows.filter(r => r.status !== 'pending');
     S.rclr = clr.map(r => r.id);
-    const sum = rows.reduce((a, r) => a + Number(r.status === 'approved' && r.approved_amount != null ? r.approved_amount : r.amount || 0), 0);
-    const extra = `${flLb('OPÉRATEUR')}<select class="x-in" data-fl="cash" data-fk="m" style="margin-top:4px"><option value="">Tous les opérateurs</option>${Object.keys(METHODS).map(k => `<option value="${esc(k)}" ${f.m === k ? 'selected' : ''}>${esc(METHODS[k])}</option>`).join('')}</select>`;
+    const sum = rows.reduce((a, r) => a + amtOf(r), 0);
+    const extra = `<div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))"><div>${flLb('OPÉRATEUR')}<select class="x-in" data-fl="cash" data-fk="m" style="margin-top:4px"><option value="">Tous les opérateurs</option>${Object.keys(METHODS).map(k => `<option value="${esc(k)}" ${f.m === k ? 'selected' : ''}>${esc(METHODS[k])}</option>`).join('')}</select></div>
+      <div>${flLb('MONTANT (FCFA)')}<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px"><input id="fl-cash-min" type="number" min="0" class="x-in" data-fl="cash" data-fk="min" placeholder="min" value="${esc(f.min)}"><input id="fl-cash-max" type="number" min="0" class="x-in" data-fl="cash" data-fk="max" placeholder="max" value="${esc(f.max)}"></div></div></div>`;
     const info = `<b>${rows.length}</b> demande(s) · total <b>${fmtMoney(sum)}</b>`;
     const clrBar = (isSuper && clr.length) ? `<details class="x-sec" style="margin:-8px 0 16px;border-top:0"><summary>Nettoyer l'historique (${clr.length} ligne(s) traitée(s))</summary><div><div class="x-acts"><button class="x-btn no" data-rclear="${S.rf}">VIDER CHEZ MOI</button><button class="x-btn no" data-rclear="${S.rf}" data-both="1">VIDER AUSSI CHEZ LES CLIENTS</button></div><p class="x-hint">Auto : masqué chez moi 5 jours après le traitement (le journal du client est conservé).</p></div></details>` : '';
     const card = (r) => {
@@ -1762,8 +1984,8 @@ select.x-in{cursor:pointer}
     return true;
   }
   function acctRows() {
-    const mt = acctMeta(), q = (S.uq || '').toLowerCase();
-    const rows = S.usr.filter(u => acctFilter(u, S.uf, mt) && (!q || [u.email, u.phone].some(v => String(v || '').toLowerCase().includes(q))));
+    const mt = acctMeta();
+    const rows = S.usr.filter(u => acctFilter(u, S.uf, mt) && hit(S.uq, [u.email, u.phone]));
     const bal = (u) => Number(S.bal[u.id] || 0), tm = (u) => new Date(u.created_at).getTime();
     if (S.us === 'bal_desc') rows.sort((a, b) => bal(b) - bal(a));
     else if (S.us === 'bal_asc') rows.sort((a, b) => bal(a) - bal(b));
@@ -1786,12 +2008,11 @@ select.x-in{cursor:pointer}
   function acct() {
     if (!isSuper) S.af = 'users';
     if (S.af === 'admins' && S.adv) return admDetail();
-    const q = (S.uq || '').toLowerCase();
     const chips = isSuper ? `<div class="x-chips"><button class="x-btn ${S.af === 'users' ? 'on' : ''}" data-af="users">UTILISATEURS (${S.usr.length})</button><button class="x-btn ${S.af === 'admins' ? 'on' : ''}" data-af="admins">ADMINISTRATEURS (${S.admins.length})</button></div>` : '';
     const head = `<p class="x-h"><b>●</b> COMPTES // ${S.af === 'admins' ? 'ADMINISTRATEURS ' + S.admins.length : 'UTILISATEURS ' + S.usr.length}</p>${chips}`;
     let tools = '', body = '';
     if (S.af === 'admins') {
-      const rows = S.admins.filter(u => !q || [u.email, u.phone].some(v => String(v || '').toLowerCase().includes(q)));
+      const rows = S.admins.filter(u => hit(S.uq, [u.email, u.phone]));
       const cands = S.usr.slice().sort((a, b) => String(a.email || '').localeCompare(String(b.email || '')));
       tools = `<input id="x-uq" class="x-in" style="margin-bottom:12px" placeholder="> Gmail ou téléphone" value="${esc(S.uq || '')}">`;
       body = `<div class="x-panel" style="margin-top:0;margin-bottom:14px;border-color:#c6ff3d"><p class="x-h"><b>●</b> NOMMER UN ADMINISTRATEUR</p>
@@ -1822,7 +2043,7 @@ select.x-in{cursor:pointer}
             <div style="display:grid;grid-template-columns:1fr auto;gap:8px">
               <select id="ua-${esc(u.id)}" class="x-in"><option value="1" ${u.is_active ? 'selected' : ''}>ACTIF</option><option value="0" ${!u.is_active ? 'selected' : ''}>COUPÉ</option></select>
               <button class="x-btn go" data-us="${esc(u.id)}">OK</button></div>
-            <div class="x-acts" style="margin-top:10px">${can('msg') ? `<button class="x-btn" data-dmto="${esc(u.id)}">✉ ÉCRIRE À CET UTILISATEUR</button>` : ''}${isSuper ? `<button class="x-btn" data-mkadm="${esc(u.id)}">★ NOMMER ADMINISTRATEUR</button>` : ''}</div></div></details></div>`;
+            <div class="x-acts" style="margin-top:10px"><button class="x-btn" data-sv="${esc(u.id)}">📊 SUPERVISION</button>${can('msg') ? `<button class="x-btn" data-dmto="${esc(u.id)}">✉ ÉCRIRE À CET UTILISATEUR</button>` : ''}${isSuper ? `<button class="x-btn" data-mkadm="${esc(u.id)}">★ NOMMER ADMINISTRATEUR</button>` : ''}</div></div></details></div>`;
       }).join('') : '<div class="x-empty">Aucun compte ne correspond à ce filtre.</div>') +
         (rows.length > shown.length ? `<div class="x-acts" style="justify-content:center;margin:6px 0 10px"><button class="x-btn" data-umore="1">AFFICHER PLUS (${rows.length - shown.length} restant(s))</button></div>` : '');
     }
@@ -1846,13 +2067,69 @@ select.x-in{cursor:pointer}
     <div class="x-panel"><p class="x-h">TABLEAU DE BORD PERSONNEL</p><div class="x-grid">
       ${rd('ACTIONS TOTALES', L.length, 'depuis la nomination')}${rd("AUJOURD'HUI", today, 'actions')}${rd('7 DERNIERS JOURS', wk, 'actions')}
       ${rd('DERNIÈRE ACTIVITÉ', L.length ? fmtDay(L[0].created_at) : '-', L.length ? new Date(L[0].created_at).toLocaleTimeString('fr-FR') : 'aucune')}${rd('TYPES D\'ACTIONS', rows.length, 'différents')}</div>
-      <div style="margin-top:12px">${rows.length ? rows.map(([k, n]) => `<div style="margin:6px 0"><div style="display:flex;justify-content:space-between;font-size:11px;color:#7d8da0"><span>${esc(ACT_LABEL[k] || k)}</span><span>${n}</span></div><div style="height:6px;background:#101820"><div style="height:6px;width:${n / mx * 100}%;background:#c6ff3d"></div></div></div>`).join('') : '<p style="color:#5b6b7c;font-size:12px">// aucune action enregistrée</p>'}</div></div>
+      <div style="margin-top:12px">${rows.length ? rows.map(([k, n]) => `<div style="margin:6px 0"><div style="display:flex;justify-content:space-between;font-size:11px;color:#7d8da0"><span>${esc(actLabel(k))}</span><span>${n}</span></div><div style="height:6px;background:#101820"><div style="height:6px;width:${n / mx * 100}%;background:#c6ff3d"></div></div></div>`).join('') : '<p style="color:#5b6b7c;font-size:12px">// aucune action enregistrée</p>'}</div></div>
     <div class="x-panel"><p class="x-h">CONFIGURER LES PERMISSIONS</p>${permsHtml('ap', u.permissions)}
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="x-btn go" data-admsave="${esc(u.id)}">ENREGISTRER</button>
       <button class="x-btn" data-admtog="${u.is_active ? 0 : 1}" data-id="${esc(u.id)}">${u.is_active ? 'SUSPENDRE LE COMPTE' : 'RÉACTIVER LE COMPTE'}</button>
       <button class="x-btn no" data-admdemote="${esc(u.id)}">RÉTROGRADER EN UTILISATEUR</button></div></div>
     <div class="x-panel"><p class="x-h">JOURNAL D'ACTIVITÉ COMPLET (${L.length})</p>
-      ${L.length ? L.map(l => `<div class="x-row" style="cursor:default;flex-direction:column;gap:2px"><span style="color:#e9f1f8">${esc(ACT_LABEL[l.action] || l.action)}</span><span style="color:#7d8da0;font-size:12px;white-space:pre-wrap;word-break:break-word">${esc(l.detail || l.details || '')}</span><span style="color:#5b6b7c;font-size:10px">${fmtDate(l.created_at)}</span></div>`).join('') : '<p style="color:#5b6b7c">// journal vide</p>'}</div>`;
+      ${L.length ? L.map(l => `<div class="x-row" style="cursor:default;flex-direction:column;gap:2px"><span style="color:#e9f1f8">${esc(actLabel(l.action))}</span><span style="color:#7d8da0;font-size:12px;white-space:pre-wrap;word-break:break-word">${esc(l.detail || l.details || '')}</span><span style="color:#5b6b7c;font-size:10px">${fmtDate(l.created_at)}</span></div>`).join('') : '<p style="color:#5b6b7c">// journal vide</p>'}</div>`;
+  }
+
+  // ---------- JOURNAL (onglet) : actions des administrateurs, filtrable ----------
+  function jlist() {
+    const r = J.rows.filter(x => (!J.adm || x.admin_id === J.adm) && (!J.act || x.action === J.act) && hit(J.q, [x.detail, x.email, actLabel(x.action)]));
+    const info = $('j-info'), list = $('j-list'); if (!info || !list) return;
+    info.innerHTML = '<b>' + r.length + '</b> action(s)';
+    list.innerHTML = r.length ? r.slice(0, 400).map(x => `<div class="x-c2 sm"><div class="x-c2h"><div><strong class="x-amt" style="font-size:14px">${esc(actLabel(x.action))}</strong><span class="x-sub">${esc(x.email || '—')} · ${esc(fmtFull(x.created_at))}</span></div></div><p class="x-body" style="font-size:12.5px">${esc(x.detail || '')}</p></div>`).join('') : '<div class="x-empty">Aucune action pour ce filtre.</div>';
+  }
+  async function journalV() {
+    M.innerHTML = '<p class="x-hint">Chargement du journal...</p>';
+    const { data, error } = await supabaseClient.rpc('sw_admin_logs', { p_days: J.d });
+    if (S.v !== 'journal') return;
+    if (error) { M.innerHTML = '<div class="x-wrap"><div class="x-empty">Journal indisponible : ' + esc(error.message) + '<br>Exécutez « migration-admin.sql ».</div></div>'; return; }
+    J.rows = data || [];
+    const adms = [...new Map(J.rows.map(x => [x.admin_id, x.email])).entries()], acts = [...new Set(J.rows.map(x => x.action))];
+    M.innerHTML = `<div class="x-wrap"><p class="x-h"><b>●</b> JOURNAL // ${isSuper ? 'tous les administrateurs' : 'mes actions'}</p><p class="x-lead">Les journaux sont effacés automatiquement après 30 jours.</p>
+    <div class="x-panel" style="margin-top:0;margin-bottom:14px"><input id="j-q" class="x-in" placeholder="> rechercher : client, montant, message, code..." style="margin-bottom:10px" value="${esc(J.q)}">
+    <div class="x-segs">${[[1, "Aujourd'hui"], [7, '7 jours'], [30, '30 jours']].map(([v, l]) => `<button class="x-sg ${J.d === v ? 'on' : ''}" data-jd="${v}">${l}</button>`).join('')}</div>
+    <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">${isSuper ? `<select id="j-adm" class="x-in"><option value="">Tous les administrateurs</option>${adms.map(([i, e]) => `<option value="${esc(i)}" ${J.adm === i ? 'selected' : ''}>${esc(e || i)}</option>`).join('')}</select>` : ''}<select id="j-act" class="x-in"><option value="">Toutes les actions</option>${acts.map(a => `<option value="${esc(a)}" ${J.act === a ? 'selected' : ''}>${esc(actLabel(a))}</option>`).join('')}</select></div><p id="j-info" class="x-lead" style="margin:10px 0 0"></p></div><div id="j-list"></div></div>`;
+    $('j-q').oninput = (e) => { J.q = e.target.value; jlist(); };
+    if ($('j-adm')) $('j-adm').onchange = (e) => { J.adm = e.target.value; jlist(); };
+    $('j-act').onchange = (e) => { J.act = e.target.value; jlist(); };
+    jlist();
+  }
+
+  // ---------- SUPERVISION : consultations du lien / QR code et audit des étapes ----------
+  const perSel = (id) => `<select id="${id}" class="x-in" style="width:auto"><option value="0">Tout le temps</option><option value="1">Aujourd'hui</option><option value="7">7 jours</option><option value="30">30 jours</option></select>`;
+  const perDays = (arr, k, d) => d ? arr.filter(x => Date.now() - new Date(x[k]).getTime() <= d * 864e5) : arr;
+  const auditRows = (a) => a.length ? a.map(x => `<div class="x-row" style="cursor:default;flex-direction:column;gap:2px"><span><b>${esc(x.field)}</b> : ${esc(x.old_value || '—')} → <b>${esc(x.new_value || '—')}</b></span><span style="font-size:11px;color:var(--mut)">${esc(x.code ? x.code + ' · ' : '')}${esc(fmtFull(x.happened_at || x.at))} · par ${esc(x.actor || 'Système')}</span></div>`).join('') : '<p class="x-hint">Aucune modification enregistrée.</p>';
+  // Dans la fiche d'un colis (tiroir)
+  async function svBox(id) {
+    const b = $('sv-box'); if (!b) return;
+    const [v, a] = await Promise.all([supabaseClient.rpc('sw_admin_track_views', { p_shipment: String(id) }), supabaseClient.rpc('sw_admin_step_audit', { p_shipment: String(id) })]);
+    if (S.open !== id || !$('sv-box')) return;
+    const V = v.data || [], U = a.data || [];
+    const paint = () => {
+      const d = +$('sv-per').value, vv = perDays(V, 'viewed_at', d), uu = perDays(U, 'happened_at', d);
+      $('sv-body').innerHTML = `<p class="x-h" style="margin-top:12px">👁 CONSULTATIONS DU LIEN / QR (${vv.length})</p>${vv.length ? vv.map((x, i) => `<div class="x-row" style="cursor:default"><span>#${vv.length - i}</span><span>${esc(fmtFull(x.viewed_at))}</span></div>`).join('') : '<p class="x-hint">Aucune consultation.</p>'}<p class="x-h" style="margin-top:12px">🧾 AUDIT DES ÉTAPES (${uu.length})</p>${auditRows(uu)}`;
+    };
+    b.innerHTML = `<p class="x-h">SUPERVISION DU COLIS</p>${perSel('sv-per')}<div id="sv-body"></div>`; $('sv-per').onchange = paint; paint();
+  }
+  // Pour un compte utilisateur (fenêtre)
+  async function svModal(uid) {
+    const old = $('sv-modal'); if (old) old.remove();
+    const m = document.createElement('div'); m.id = 'sv-modal';
+    m.style.cssText = 'position:fixed;inset:0;z-index:70;background:rgba(15,31,61,.5);overflow:auto;padding:16px';
+    m.innerHTML = `<div class="x-wrap"><div class="x-panel" style="margin-top:0"><div class="x-bar" style="justify-content:space-between"><p class="x-h" style="margin:0">📊 SUPERVISION DU COMPTE</p><button class="x-btn" id="sv-x">FERMER ✕</button></div>${perSel('sm-per')}<div id="sm-body"><p class="x-hint">Chargement...</p></div></div></div>`;
+    document.body.appendChild(m); $('sv-x').onclick = () => m.remove();
+    const load = async () => {
+      const d = +$('sm-per').value, { data, error } = await supabaseClient.rpc('sw_admin_user_supervision', { p_user: uid, p_days: d || null });
+      if (error) { $('sm-body').innerHTML = '<p class="x-hint">Erreur : ' + esc(error.message) + '</p>'; return; }
+      const SH2 = data.ships || [], tot = SH2.reduce((t, s) => t + (+s.views || 0), 0);
+      $('sm-body').innerHTML = `<p class="x-h" style="margin-top:12px">COLIS (${SH2.length}) · ${tot} CONSULTATION(S)</p>${SH2.map(s => `<div class="x-row" style="cursor:default"><span>${esc(s.code)}</span><span>${s.views} scan(s)${s.last_view ? ' · dernier ' + esc(fmtFull(s.last_view)) : ''}</span></div>`).join('') || '<p class="x-hint">Aucun colis.</p>'}<p class="x-h" style="margin-top:12px">🧾 MODIFICATIONS D'ÉTAPES (${(data.audit || []).length})</p>${auditRows(data.audit || [])}`;
+    };
+    $('sm-per').onchange = load; load();
   }
 
   // ---------- ANNULATIONS : version aérée + filtres ----------
@@ -1978,7 +2255,7 @@ select.x-in{cursor:pointer}
   }
   function bcPanel() {
     return `<div class="x-panel" id="bc-box" style="margin-top:0;margin-bottom:14px;border-color:#c6ff3d">
-      <p class="x-h"><b>●</b> ANNONCE GLOBALE // envoyée dans l'espace Assistance des clients ciblés</p>
+      <p class="x-h"><b>●</b> ANNONCE GLOBALE // envoyée dans l'espace Messages des clients ciblés</p>
       <label style="font-size:11px;color:#5b6b7c">DESTINATAIRES</label>
       <select id="bc-f" class="x-in" style="margin:4px 0 8px">
         <option value="all">Tous les utilisateurs</option>
@@ -1993,13 +2270,13 @@ select.x-in{cursor:pointer}
       <input id="bc-subject" class="x-in" maxlength="120" placeholder="Sujet / titre de l'annonce" style="margin-bottom:8px">
       <textarea id="bc-body" rows="7" maxlength="2000" class="x-in" placeholder="Votre message (promotion, information importante...)" style="margin-bottom:8px"></textarea>
       <button class="x-btn go" style="width:100%" data-bcsend="1">ENVOYER À TOUS LES DESTINATAIRES CIBLÉS</button>
-      <p style="font-size:11px;color:#5b6b7c;margin-top:8px">Seuls les comptes clients actifs reçoivent l'annonce. Le message apparaît dans leur Assistance comme « Annonce officielle ».</p></div>`;
+      <p style="font-size:11px;color:#5b6b7c;margin-top:8px">Seuls les comptes clients actifs reçoivent l'annonce. Le message apparaît dans leur espace Messages comme « Annonce officielle ».</p></div>`;
   }
 
   // ---------- MESSAGE DIRECT À UN UTILISATEUR ----------
   function dmListHtml() {
-    const q = ($('dm-q') ? $('dm-q').value : '').trim().toLowerCase();
-    const all = S.users.filter(u => !q || [u.email, u.phone].some(v => String(v || '').toLowerCase().includes(q)));
+    const q = ($('dm-q') ? $('dm-q').value : '');
+    const all = S.users.filter(u => hit(q, [u.email, u.phone]));
     const rows = all.slice(0, 50);
     return (rows.length ? rows.map(u => `<button class="x-row" style="${S.dmu === u.id ? 'background:#0f1a12;border-left:3px solid #c6ff3d;padding-left:8px' : ''}" data-dmpick="${esc(u.id)}"><span style="word-break:break-all">${esc(u.email || '-')} <span style="color:#7d8da0">${esc(u.phone || '')}</span></span><span style="color:#c6ff3d;white-space:nowrap">${fmtMoney(S.bal[u.id] || 0)}</span></button>`).join('') : '<p style="color:#5b6b7c">// aucun utilisateur</p>')
       + (all.length > 50 ? `<p style="font-size:11px;color:#5b6b7c;margin-top:6px">${all.length} résultats : affinez la recherche pour voir les autres.</p>` : '');
@@ -2018,7 +2295,7 @@ select.x-in{cursor:pointer}
       <input id="dm-subject" class="x-in" maxlength="120" placeholder="Sujet / titre du message" style="margin-bottom:8px">
       <textarea id="dm-body" rows="6" maxlength="2000" class="x-in" placeholder="Votre message à cet utilisateur" style="margin-bottom:8px"></textarea>
       <button class="x-btn go" style="width:100%" data-dmsend="1">ENVOYER À CET UTILISATEUR</button>
-      <p style="font-size:11px;color:#5b6b7c;margin-top:8px">Le message apparaît dans l'espace Assistance de l'utilisateur comme « Message de l'assistant ».</p></div>`;
+      <p style="font-size:11px;color:#5b6b7c;margin-top:8px">Le message apparaît dans l'espace Messages de l'utilisateur comme « Message de l'assistant ».</p></div>`;
   }
 
   // ---------- FILTRE UTILISATEURS & CONTACT WHATSAPP ----------
@@ -2032,9 +2309,8 @@ select.x-in{cursor:pointer}
   function waTargets() {
     const last = {}, now = Date.now();
     S.ship.forEach(s => { const t = new Date(s.created_at).getTime(); if (!last[s.user_id] || t > last[s.user_id]) last[s.user_id] = t; });
-    const q = WA.q.trim().toLowerCase();
     return S.usr.filter(u => {
-      if (q && ![u.email, u.phone].some(v => String(v || '').toLowerCase().includes(q))) return false;
+      if (!hit(WA.q, [u.email, u.phone])) return false;
       if (WA.act === 'active' && u.is_active === false) return false;
       if (WA.act === 'off' && u.is_active !== false) return false;
       const b = Number(S.bal[u.id] || 0);
@@ -2099,9 +2375,6 @@ select.x-in{cursor:pointer}
     <div id="wa-res"></div>`;
     waList();
   }
-  const waInput = (e) => { if (!e.target.closest || !e.target.closest('#wa-box')) return; waRead(); if (e.target.id !== 'wa-msg') waList(); };
-  A.addEventListener('input', waInput);
-  A.addEventListener('change', waInput);
 
   // ---------- OFFRE PROMOTIONNELLE : reçu offert à un groupe filtré (Super Admin) ----------
   function prTargets() {
@@ -2144,12 +2417,20 @@ select.x-in{cursor:pointer}
       </div>
       <div id="pr-res"></div></div>`;
   }
-  const prInput = (e) => {
-    const t = e.target; if (!t.closest || !t.closest('#pr-box')) return;
-    if (t.dataset && t.dataset.prx) { if (t.checked) delete PR.excl[t.dataset.prx]; else PR.excl[t.dataset.prx] = 1; return prList(); }
-    prRead(); if (t.id === 'pr-seg') { PR.excl = {}; prList(); }
-  };
-  A.addEventListener('change', prInput);
+  // Offre de bienvenue automatique : activée / désactivée (Super Admin)
+  async function welcomeCard() {
+    const c = $('wo-card'); if (!c) return;
+    const { data, error } = await supabaseClient.rpc('sw_welcome_get');
+    if (!$('wo-card')) return;
+    const on = !!data;
+    c.innerHTML = `<p class="x-h">🎁 OFFRE DE BIENVENUE AUTOMATIQUE</p><p class="x-lead" style="margin-bottom:12px">Activée : chaque nouvel inscrit reçoit le prix d'un premier reçu (<b>${fmtMoney(RECEIPT_PRICE)}</b>). Désactivée : inscription classique.</p>${!error ? `<div class="x-acts"><span class="x-tag" style="color:${on ? '#c6ff3d' : '#ff5a5f'}">${on ? 'ACTIVÉE' : 'DÉSACTIVÉE'}</span><button class="x-btn ${on ? 'no' : 'go'}" id="wo-btn">${on ? 'DÉSACTIVER' : 'ACTIVER'}</button></div>` : '<p class="x-hint" style="color:#d97706">Migration SQL « migration-admin.sql » non exécutée.</p>'}`;
+    const bt = $('wo-btn');
+    if (bt) bt.onclick = async () => {
+      const r = await supabaseClient.rpc('sw_admin_set_welcome', { p_on: !on });
+      if (r.error) return toast('Erreur : ' + r.error.message, 'error');
+      toast(!on ? 'Offre de bienvenue activée.' : 'Offre de bienvenue désactivée.'); welcomeCard();
+    };
+  }
 
   // ---------- PARAMÈTRES : sous-onglets (Tarification / Numéros de dépôt / Offres promotionnelles) ----------
   function cfg() {
@@ -2159,13 +2440,13 @@ select.x-in{cursor:pointer}
       <div style="display:flex;gap:8px"><input id="cfg-price" type="number" min="0" step="1" class="x-in" value="${esc(RECEIPT_PRICE)}"><button class="x-btn go" data-price="1">ENREGISTRER</button></div></div>` : '';
     const payHtml = `<div class="x-panel" style="margin-top:0"><p class="x-h">NUMÉROS DE RECHARGE (affichés aux clients)</p>
       <div style="display:grid;gap:8px;margin-bottom:12px">
-        <select id="pn-op" class="x-in"><option value="mtn">MTN Money</option><option value="orange">Orange Money</option></select>
+        <select id="pn-op" class="x-in"><option value="mtn">MTN Money (MoMo)</option><option value="orange">Orange Money</option></select>
         <input id="pn-phone" class="x-in" placeholder="Numéro (ex : 6XX XX XX XX)">
         <input id="pn-name" class="x-in" placeholder="Nom du titulaire">
         <button class="x-btn go" data-pnadd="1">AJOUTER</button></div>
       ${(S.pn || []).map(p => S.pe === p.id
       ? `<div class="x-panel" style="margin:0 0 8px"><div style="display:grid;gap:8px">
-          <select id="pe-op" class="x-in"><option value="mtn" ${p.operator === 'mtn' ? 'selected' : ''}>MTN Money</option><option value="orange" ${p.operator === 'orange' ? 'selected' : ''}>Orange Money</option></select>
+          <select id="pe-op" class="x-in"><option value="mtn" ${p.operator === 'mtn' ? 'selected' : ''}>MTN Money (MoMo)</option><option value="orange" ${p.operator === 'orange' ? 'selected' : ''}>Orange Money</option></select>
           <input id="pe-phone" class="x-in" value="${esc(p.phone)}" placeholder="Numéro">
           <input id="pe-name" class="x-in" value="${esc(p.holder_name)}" placeholder="Nom du titulaire">
           <div style="display:flex;gap:8px"><button class="x-btn go" data-pesave="${esc(p.id)}">ENREGISTRER</button><button class="x-btn" data-pecancel="1">ANNULER</button></div></div></div>`
@@ -2179,12 +2460,13 @@ select.x-in{cursor:pointer}
       <div class="x-read" style="cursor:default"><small>PRIX DU REÇU</small><strong style="font-size:22px">${fmtMoney(RECEIPT_PRICE)}</strong><em>par expédition</em></div>
       <div class="x-read" style="cursor:default"><small>NUMÉROS ACTIFS</small><strong style="font-size:22px">${nAct} / ${nPay}</strong><em>visibles par les clients</em></div>
       <div class="x-read" style="cursor:default"><small>REÇUS OFFERTS</small><strong style="font-size:22px">${gifted == null ? '-' : gifted}</strong><em>utilisateurs gratifiés</em></div></div>` : '';
-    const lead = { price: "Fixez le montant débité aux clients pour la génération d'un reçu A5 et d'un code de suivi.", pay: 'Gérez les numéros Mobile Money affichés aux clients lors des demandes de recharge.', promo: "Offrez un reçu gratuit à un groupe ciblé d'utilisateurs." }[S.cs];
+    const lead = { price: "Fixez le montant débité aux clients pour la génération d'un reçu A5 et d'un code de suivi.", pay: 'Gérez les numéros Mobile Money affichés aux clients lors des demandes de recharge.', promo: "Offrez un reçu gratuit à un groupe ciblé d'utilisateurs, ou activez l'offre de bienvenue automatique." }[S.cs];
     M.innerHTML = `<div class="x-wrap"><p class="x-h"><b>●</b> PARAMÈTRES // ${isSuper ? 'TARIFICATION & OFFRES' : 'NUMÉROS DE PAIEMENT'}</p>
       <p class="x-lead">${lead}</p>
       ${sum}${tabs}
-      ${S.cs === 'price' ? priceHtml : S.cs === 'promo' ? promoHtml() : payHtml}</div>`;
+      ${S.cs === 'price' ? priceHtml : S.cs === 'promo' ? '<div id="wo-card" class="x-panel" style="margin-top:0;margin-bottom:14px"></div>' + promoHtml() : payHtml}</div>`;
     prList();
+    if (S.cs === 'promo') welcomeCard();
   }
 
   async function openDrawer(id, keep) {
@@ -2193,6 +2475,7 @@ select.x-in{cursor:pointer}
     if (!keep) { const { data } = await supabaseClient.from('sw_shipment_events').select('*').eq('shipment_id', id).order('created_at', { ascending: true }); S.ev = data || []; }
     const st = document.activeElement && document.activeElement.closest && document.activeElement.closest('#x-drawer');
     if (keep && st) return;
+    if (!keep) logAct('ship_view', 'Colis consulté : ' + fmtCode(s.tracking_code));
     const ctl = can('ship') ? `
       <div style="margin-top:14px;padding:12px;background:#fff;border:1px solid #c9d1d9" class="space-y-2">
         <p style="font-size:12px;font-weight:700">STATUT</p>
@@ -2209,8 +2492,10 @@ select.x-in{cursor:pointer}
       ${detailsHtml(s)}
       ${ctl}
       ${delCtl}
-      ${timeline(S.ev, s, true)}`;
+      ${timeline(S.ev, s, true)}
+      ${can('ship') ? '<div id="sv-box" class="x-panel"><p class="x-h">SUPERVISION</p><p class="x-hint">Chargement...</p></div>' : ''}`;
     $('x-drawer').classList.add('open'); $('x-veil').style.display = 'block';
+    if (can('ship')) svBox(id);
   }
   function closeDrawer() { S.open = null; $('x-drawer').classList.remove('open'); $('x-veil').style.display = 'none'; }
 
@@ -2220,12 +2505,12 @@ select.x-in{cursor:pointer}
     try { await supabaseClient.storage.from('sw-proofs').remove(p); } catch (e) {}
   }
   async function delRecharges(ids, both) {
-    const { data, error } = await supabaseClient.rpc('sw_admin_delete_recharges', { p_ids: ids.map(String), p_both: !!both });
+    const { data, error } = await arpc('sw_admin_delete_recharges', { p_ids: ids.map(String), p_both: !!both });
     if (error) return toast('Erreur : ' + error.message, 'error');
     await removeProofs(data); toast(both ? 'Supprimé chez moi et chez le client.' : 'Supprimé chez moi (le client garde son journal).'); await loadAll(); draw();
   }
   async function delMessages(ids, both) {
-    const { error } = await supabaseClient.rpc('sw_admin_delete_messages', { p_ids: ids.map(String), p_both: !!both });
+    const { error } = await arpc('sw_admin_delete_messages', { p_ids: ids.map(String), p_both: !!both });
     if (error) return toast('Erreur : ' + error.message, 'error');
     toast(both ? 'Supprimé chez moi et chez le client.' : 'Supprimé chez moi (le client garde son message).'); await loadAll(); draw();
   }
@@ -2239,14 +2524,14 @@ select.x-in{cursor:pointer}
     }
     if (!n) return toast('Suppression refusée ou aucun colis supprimé (droits insuffisants côté base).', 'error');
     toast(n + ' colis supprimé(s).');
+    logAct('d:delete_shipments', n + ' colis supprimé(s) définitivement');
     if (S.open && ids.includes(S.open)) closeDrawer();
     await loadAll(); draw();
   }
 
   async function rpc(fn, args, ok) {
-    const { error } = await supabaseClient.rpc(fn, args);
+    const { error } = await arpc(fn, args);
     if (error) { toast('Erreur : ' + error.message, 'error'); return false; }
-    // journal : enregistré côté base (sw_log_admin_action), pas côté navigateur
     toast(ok || 'Enregistré.'); await loadAll();
     if (S.open) { const { data } = await supabaseClient.from('sw_shipment_events').select('*').eq('shipment_id', S.open).order('created_at', { ascending: true }); S.ev = data || []; }
     draw(); if (S.open) { $('x-drawer').blur(); openDrawerForce(); } return true;
@@ -2264,6 +2549,10 @@ select.x-in{cursor:pointer}
     if ((el = g('data-flreset'))) { const k = el.dataset.flreset; FL[k] = flDef[k](); return REDRAW[k](); }
     if ((el = g('data-fxst'))) { FL.fx.st = el.dataset.fxst; return pipe(); }
     if (g('data-fxold')) { FL.fx.st = 'old'; return pipe(); }
+    // ---- Journal : période ----
+    if ((el = g('data-jd'))) { J.d = +el.dataset.jd; return journalV(); }
+    // ---- Supervision d'un compte ----
+    if ((el = g('data-sv'))) return svModal(el.dataset.sv);
     // ---- Suppression de colis (Super Admin uniquement) ----
     if ((el = g('data-shdel'))) {
       if (!needSuper()) return;
@@ -2302,7 +2591,7 @@ select.x-in{cursor:pointer}
       if (!ids.length) return toast('Aucun destinataire sélectionné.', 'error');
       if (!confirm('Offrir un reçu gratuit (' + fmtMoney(RECEIPT_PRICE) + ') à ' + ids.length + ' utilisateur(s) ?\nLeur portefeuille sera crédité de ce montant.')) return;
       const btn = g('data-prsend'); btn.disabled = true;
-      const { data, error } = await supabaseClient.rpc('sw_admin_grant_free_receipts', { p_user_ids: ids, p_campaign: PR.camp.trim() || null, p_message: PR.msg.trim() || null, p_once: true });
+      const { data, error } = await arpc('sw_admin_grant_free_receipts', { p_user_ids: ids, p_campaign: PR.camp.trim() || null, p_message: PR.msg.trim() || null, p_once: true });
       btn.disabled = false;
       if (error) return toast('Erreur : ' + error.message, 'error');
       toast('Reçu offert à ' + data + ' utilisateur(s).'); PR.excl = {}; PR.msg = '';
@@ -2372,7 +2661,7 @@ select.x-in{cursor:pointer}
       if (!subject || !body) return toast('Remplissez le sujet et le message.', 'error');
       if (!confirm('Envoyer ce message à ' + (S.own[S.dmu].email || 'cet utilisateur') + ' ?')) return;
       const btn = g('data-dmsend'); btn.disabled = true;
-      const { error } = await supabaseClient.rpc('sw_admin_send_direct', { p_user: S.dmu, p_subject: subject, p_body: body });
+      const { error } = await arpc('sw_admin_send_direct', { p_user: S.dmu, p_subject: subject, p_body: body });
       btn.disabled = false;
       if (error) return toast('Erreur : ' + error.message, 'error');
       toast('Message envoyé à ' + (S.own[S.dmu].email || 'l\'utilisateur') + '.'); S.dm = false; S.dmu = null; return inbox();
@@ -2387,7 +2676,7 @@ select.x-in{cursor:pointer}
       if (!n) return toast('Aucun destinataire ne correspond à ce filtre.', 'error');
       if (!confirm('Envoyer cette annonce à ' + n + ' utilisateur(s) ?')) return;
       const btn = g('data-bcsend'); btn.disabled = true;
-      const { data, error } = await supabaseClient.rpc('sw_admin_broadcast', { p_subject: subject, p_body: body, p_filter: f, p_min: min === '' ? null : Number(min), p_max: max === '' ? null : Number(max) });
+      const { data, error } = await arpc('sw_admin_broadcast', { p_subject: subject, p_body: body, p_filter: f, p_min: min === '' ? null : Number(min), p_max: max === '' ? null : Number(max) });
       btn.disabled = false;
       if (error) return toast('Erreur : ' + error.message, 'error');
       toast('Annonce envoyée à ' + data + ' utilisateur(s).'); S.bc = false; return inbox();
@@ -2411,7 +2700,7 @@ select.x-in{cursor:pointer}
     }
     if ((el = g('data-open'))) return openDrawer(el.dataset.open);
     if ((el = g('data-rf'))) { S.rf = el.dataset.rf; return cash(); }
-    if ((el = g('data-mf'))) { S.mf = el.dataset.mf; return inbox(); }
+    if ((el = g('data-mf'))) { S.mf = el.dataset.mf; return msgRefresh(); }
     if ((el = g('data-mrep')) || (el = g('data-mres')) || (el = g('data-mre'))) {
       if (!need('msg')) return;
       const id = el.dataset.mrep || el.dataset.mres || el.dataset.mre, ta = $('mr-' + id), r = ta ? ta.value.trim() : null;
@@ -2521,24 +2810,39 @@ select.x-in{cursor:pointer}
     if ((el = g('data-win'))) { if (!need('ship')) return; const h = parseInt($('d-win').value, 10); if (!h || h < 1) return toast('Délai invalide.', 'error'); return rpc('sw_admin_set_window', { p_id: el.dataset.win, p_hours: h }); }
   });
 
-  A.addEventListener('input', e => { if (e.target.id === 'dm-q') dmRefresh(); if (e.target.closest && e.target.closest('#bc-box')) bcUpdate(); });
-  A.addEventListener('change', e => { if (e.target.closest && e.target.closest('#bc-box')) bcUpdate(); });
-  // Tri de la liste des comptes
-  A.addEventListener('change', e => { if (e.target.id === 'x-usort') { S.us = e.target.value; S.ulim = 60; acct(); } });
-  // Filtres communs : texte (au fil de la saisie), listes et dates (au changement)
+  // ---------- Saisie : UN SEUL écouteur « input » et UN SEUL « change » pour toute la console ----------
+  // Filtres communs : texte / nombres (au fil de la saisie), listes et dates (au changement)
   const flEv = (e) => {
     const t = e.target; if (!t.dataset || !t.dataset.fl) return;
-    const isTxt = t.type === 'text';
-    if (isTxt && e.type !== 'input') return;
-    if (!isTxt && e.type !== 'change') return;
+    const live = t.type === 'text' || t.type === 'number';
+    if (live !== (e.type === 'input')) return;
     const key = t.dataset.fl, f = FL[key]; if (!f) return;
     f[t.dataset.fk] = t.value;
-    const id = t.id, p = isTxt ? t.selectionStart : 0;
+    const id = t.id, p = live ? t.selectionStart : 0;
     REDRAW[key]();
-    if (isTxt && id) { const n = $(id); if (n) { n.focus(); try { n.setSelectionRange(p, p); } catch (er) {} } }
+    if (live && id) { const n = $(id); if (n) { n.focus(); try { n.setSelectionRange(p, p); } catch (er) {} } }
   };
-  A.addEventListener('input', flEv);
-  A.addEventListener('change', flEv);
+  // Filtres WhatsApp : recalcul de la liste à chaque modification (sauf le message pré-rempli)
+  const waEv = (e) => { if (!e.target.closest || !e.target.closest('#wa-box')) return; waRead(); if (e.target.id !== 'wa-msg') waList(); };
+  A.addEventListener('input', (e) => {
+    const t = e.target;
+    if (t.id === 'dm-q') dmRefresh();
+    if (t.closest && t.closest('#bc-box')) bcUpdate();
+    if (t.id === 'pr-q') { prList(); }
+    waEv(e); flEv(e);
+  });
+  A.addEventListener('change', (e) => {
+    const t = e.target;
+    if (t.closest && t.closest('#bc-box')) bcUpdate();
+    if (t.id === 'x-usort') { S.us = t.value; S.ulim = 60; acct(); }
+    if (t.closest && t.closest('#pr-box')) {
+      if (t.dataset && t.dataset.prx) { if (t.checked) delete PR.excl[t.dataset.prx]; else PR.excl[t.dataset.prx] = 1; prList(); }
+      else { prRead(); if (t.id === 'pr-seg') { PR.excl = {}; prList(); } }
+    }
+    waEv(e); flEv(e);
+  });
+  // Ouverture / fermeture du bloc « filtres avancés » du FLUX (mémorisée entre deux affichages)
+  A.addEventListener('toggle', (e) => { if (e.target.dataset && e.target.dataset.fxadv) S.fxAdv = e.target.open; }, true);
 
   let dragId = null;
   A.addEventListener('dragstart', e => { const c = e.target.closest('.x-card'); if (c) dragId = c.dataset.id; });
@@ -2552,368 +2856,6 @@ select.x-in{cursor:pointer}
     if (!s || s.status === to) return;
     if (confirm('Passer ' + s.tracking_code + ' à « ' + STATUS[to].label + ' » ?')) rpc('sw_admin_update_status', { p_id: s.id, p_status: to, p_note: null }, 'Statut mis à jour.');
   });
-})();
-</script>
-  <!-- ===== AJOUT SWIFTWAY : à coller JUSTE AVANT la dernière ligne </body> de votre index.html ===== -->
-<script>
-(() => {
-if (!$('dash-view')) return;
-const LF = { code: '', sender: '', from: '', to: '', stop: '' };
-const nz = v => String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-const nm = v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-const fmtS = d => new Date(d).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'medium' });
-const stl = document.createElement('style');
-stl.textContent = '#list-container>div{cursor:pointer}#list-container [id^="ev-"]{cursor:default}';
-document.head.appendChild(stl);
-
-// ---- Onglets : pastille « Mes colis », renommage « Messages » ----
-document.querySelector('[data-tab="list"]').insertAdjacentHTML('beforeend', '<span id="list-badge" class="dbadge hidden"></span>');
-document.querySelector('[data-tab="help"] span:nth-child(2)').textContent = 'Messages';
-
-// ---- MES COLIS : panneau de filtres ----
-const cs = COUNTRIES.slice().sort((a, b) => a.localeCompare(b, 'fr'));
-const sel = (k, l) => `<div><label class="${LB}">${l}</label><select data-lf="${k}" class="${IC}"><option value="">Tous les pays</option>${cs.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('')}</select></div>`;
-$('list-container').insertAdjacentHTML('beforebegin', `<div id="list-filters" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-5 mb-4 space-y-4">
-  <div><h3 class="text-base font-bold text-gray-900">Rechercher un colis</h3><p class="text-xs text-gray-500 mt-1">Collez un code de suivi pour retrouver directement le colis et son reçu.</p></div>
-  <input data-lf="code" autocomplete="off" placeholder="Code de suivi" class="${IC} uppercase">
-  <details><summary class="text-sm font-semibold text-swiftblue cursor-pointer py-1">Filtres avancés (expéditeur, pays)</summary><div class="space-y-3 mt-3">
-    <div><label class="${LB}">Nom de l'expéditeur</label><input data-lf="sender" autocomplete="off" placeholder="Ex : Jean Dupont" class="${IC}"></div>
-    ${sel('from', "Pays d'envoi")}${sel('to', 'Pays de destination')}${sel('stop', "Pays d'escale")}</div></details>
-  <div class="flex items-center justify-between gap-2"><p id="lf-info" class="text-xs text-gray-500"></p><button type="button" id="lf-reset" class="text-xs font-semibold text-swiftblue underline cursor-pointer">Réinitialiser</button></div></div>`);
-const lfBox = $('list-filters');
-const lfEv = e => { const k = e.target.dataset && e.target.dataset.lf; if (!k) return; LF[k] = e.target.value; applyF(); };
-lfBox.addEventListener('input', lfEv); lfBox.addEventListener('change', lfEv);
-$('lf-reset').addEventListener('click', () => { Object.keys(LF).forEach(k => LF[k] = ''); lfBox.querySelectorAll('[data-lf]').forEach(i => i.value = ''); applyF(); });
-function applyF() {
-  const box = $('list-container'), code = nz(LF.code), snd = nm(LF.sender);
-  let shown = 0, total = 0, last = null;
-  [...box.children].forEach(c => {
-    const b = c.querySelector('[data-id]'), s = b && SH[b.dataset.id]; if (!s) return;
-    total++;
-    let ok = true;
-    if (code) ok = receiptSet.has(s.id) && nz(s.tracking_code).includes(code);
-    if (ok && snd) ok = nm(s.sender_name).includes(snd);
-    if (ok && LF.from) ok = s.sender_country === LF.from;
-    if (ok && LF.to) ok = s.receiver_country === LF.to;
-    if (ok && LF.stop) ok = s.stopover_country === LF.stop;
-    c.style.display = ok ? '' : 'none'; if (ok) { shown++; last = c; }
-  });
-  let n = $('lf-none'); const act = Object.values(LF).some(Boolean);
-  if (total && !shown && act) { if (!n) { n = document.createElement('div'); n.id = 'lf-none'; n.className = 'bg-white rounded-3xl border border-gray-100 p-8 text-center text-gray-500'; n.textContent = 'Aucun colis ne correspond à ces filtres.'; box.appendChild(n); } } else if (n) n.remove();
-  $('lf-info').textContent = total ? shown + ' colis affiché(s) sur ' + total : '';
-  if (code.length >= 8 && shown === 1 && last) { const d = last.querySelector('.details-btn'), h = last.querySelector('[id^="ev-"]'); if (d && h && h.classList.contains('hidden')) d.click(); }
-}
-// Toucher la carte ouvre son suivi / historique
-$('list-container').addEventListener('click', e => {
-  if (e.target.closest('button,a,input,select,textarea,label,[id^="ev-"]')) return;
-  const c = e.target.closest('#list-container>div'), d = c && c.querySelector('.details-btn'); if (d) d.click();
-});
-
-// ---- TRAÇABILITÉ : consultations du suivi public ----
-let TRK = {}, OK = false, UN = -1;
-const chip = s => { const c = TRK[s.id] || { t: 0, u: 0 }; return '<p class="text-xs mt-1 ' + (c.t ? 'text-swiftblue font-semibold' : 'text-gray-400') + '" data-tvc="' + esc(s.id) + '">' + (c.t ? '👁 Consulté ' + c.t + ' fois · dernière le ' + esc(fmtDate(c.l)) : '👁 Pas encore consulté sur le site de suivi') + (c.u ? ' <span class="newtag">+' + c.u + ' NOUVEAU</span>' : '') + '</p>'; };
-function decorate() {
-  if (!OK) return;
-  [...$('list-container').children].forEach(c => {
-    const b = c.querySelector('[data-id]'), s = b && SH[b.dataset.id];
-    if (s && receiptSet.has(s.id) && !c.querySelector('[data-tvc]')) { const l = c.firstElementChild && c.firstElementChild.firstElementChild; if (l) l.insertAdjacentHTML('beforeend', chip(s)); }
-  });
-}
-async function refresh() {
-  if (!currentUser || isAdmin) return;
-  try {
-    const { data, error } = await supabaseClient.rpc('sw_my_track_counts');
-    if (error) { OK = false; return; }
-    OK = true; TRK = {}; let un = 0;
-    (data || []).forEach(r => { TRK[r.shipment_id] = { t: +r.total, u: +r.unseen, l: r.last_view }; un += +r.unseen; });
-    const b = $('list-badge'); if (un > 0) { b.textContent = '+' + un; b.classList.remove('hidden'); } else b.classList.add('hidden');
-    if (un > 0 && un > UN) toast('👁 Votre colis a été consulté : ' + un + ' nouvelle(s) consultation(s).');
-    UN = un;
-    document.querySelectorAll('[data-tvc]').forEach(el => { const s = SH[el.dataset.tvc]; if (s) el.outerHTML = chip(s); });
-    decorate();
-  } catch (e) { OK = false; }
-}
-async function views(id) {
-  const h = $('tv-' + id); if (!h) return;
-  const { data, error } = await supabaseClient.rpc('sw_my_track_views', { p_shipment: String(id) });
-  if (error) { h.innerHTML = ''; return; }
-  const r = data || [];
-  h.innerHTML = `<div class="mt-3 bg-white rounded-xl border border-blue-100 p-3"><div class="flex items-center justify-between gap-2"><p class="text-xs font-bold text-swiftblue">Historique des consultations</p><span class="text-xs font-semibold text-gray-700">${r.length} consultation(s)</span></div>` +
-    (r.length ? `<ol class="mt-2 space-y-1 max-h-56 overflow-y-auto pr-1">${r.map((x, i) => `<li class="flex items-center justify-between gap-2 text-sm text-gray-700 border-b border-gray-50 py-1"><span>#${r.length - i} · ${esc(fmtS(x.viewed_at))}</span>${x.seen ? '' : '<span class="newtag">NOUVEAU</span>'}</li>`).join('')}</ol>` : '<p class="text-sm text-gray-500 mt-2">Personne n\'a encore consulté ce colis avec son code ou son QR code.</p>') + '</div>';
-  if (r.some(x => !x.seen)) { await supabaseClient.rpc('sw_my_track_mark_seen', { p_shipment: String(id) }); refresh(); }
-}
-const _ls = loadShipments;
-loadShipments = async function (o) { await refresh(); await _ls(o); decorate(); applyF(); };
-const _rd = renderDetails;
-renderDetails = async function (id) { await _rd(id); const h = $('ev-' + id); if (!h || !OK || !receiptSet.has(id)) return; h.insertAdjacentHTML('afterbegin', '<div id="tv-' + id + '"></div>'); views(id); };
-$('track-form').addEventListener('submit', () => { const c = $('track-code').value.trim(); if (c) supabaseClient.rpc('sw_log_track_view', { p_code: c }).then(() => {}, () => {}); });
-$('logout-btn').addEventListener('click', () => { UN = -1; TRK = {}; });
-setInterval(() => { if (currentUser && !isAdmin && !$('dash-view').classList.contains('hidden')) refresh(); }, 30000);
-
-// ---- MESSAGES & NOTIFICATIONS : sous-onglets ----
-$('view-help').insertAdjacentHTML('afterbegin', '<div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-5"><h2 class="text-lg font-bold text-gray-900">Messages &amp; Notifications</h2><div id="help-subnav" class="mt-3"></div></div>');
-let SUB = 'private';
-const SUBS = [['private', '💬 Messages privés'], ['ann', '📢 Annonces'], ['hist', '🕘 Historique']];
-const isAnn = c => c.classList.contains('border-2') && c.textContent.includes('Annonce officielle');
-function helpView() {
-  const list = $('help-list'), kids = [...list.children].filter(c => c.id !== 'hv-hist' && c.id !== 'hv-none');
-  const cnt = { private: 0, ann: 0, hist: 0 };
-  kids.forEach(c => { if (c.querySelector('.newtag')) cnt[isAnn(c) ? 'ann' : 'private']++; });
-  $('help-subnav').innerHTML = '<div class="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-xl">' + SUBS.map(([k, l]) => `<button type="button" data-hsub="${k}" class="px-1 py-2.5 text-xs font-semibold rounded-lg cursor-pointer ${SUB === k ? 'bg-white text-swiftblue shadow-sm' : 'text-gray-500'}">${l}${cnt[k] ? '<span class="newtag">+' + cnt[k] + '</span>' : ''}</button>`).join('') + '</div>';
-  $('help-form').classList.toggle('hidden', SUB !== 'private');
-  ['hv-hist', 'hv-none'].forEach(i => { const x = $(i); if (x) x.remove(); });
-  let vis = 0;
-  kids.forEach((c, i) => { const show = SUB === 'hist' ? false : (c.tagName === 'P' ? true : (i === 0 && c.querySelector('#u-mclear')) ? SUB === 'private' : (SUB === 'ann') === isAnn(c)); c.style.display = show ? '' : 'none'; if (show && c.tagName !== 'P' && !(i === 0 && c.querySelector('#u-mclear'))) vis++; });
-  if (SUB === 'hist') return history(list);
-  if (!vis && !list.querySelector('p')) list.insertAdjacentHTML('beforeend', '<p id="hv-none" class="text-center text-sm text-gray-500">' + (SUB === 'ann' ? 'Aucune annonce pour le moment.' : 'Aucun message pour le moment.') + '</p>');
-}
-async function history(list) {
-  list.insertAdjacentHTML('beforeend', '<div id="hv-hist"><p class="text-center text-gray-500 py-6">Chargement...</p></div>');
-  const ev = [], uid = currentUser.id, q = (t, f) => supabaseClient.from(t).select('*').eq('user_id', uid).then(r => r.data || [], () => []);
-  const [ms, rc, cx, vw] = await Promise.all([q('sw_messages'), q('sw_recharges'), q('sw_cancel_requests'), supabaseClient.rpc('sw_my_track_views_all').then(r => r.data || [], () => [])]);
-  ms.filter(m => !m.user_hidden || (m.admin_reply && m.reply_visible)).forEach(m => {
-    if (m.is_broadcast) { ev.push({ t: m.created_at, i: m.category === 'direct' ? '✉️' : '📢', x: (m.category === 'direct' ? "Message de l'assistant reçu : " : 'Annonce reçue : ') + m.subject }); if (m.read_at) ev.push({ t: m.read_at, i: '👁', x: 'Vous avez lu : ' + m.subject }); return; }
-    ev.push({ t: m.created_at, i: '📤', x: 'Vous avez envoyé : ' + m.subject });
-    if (m.admin_reply) ev.push({ t: m.replied_at || m.created_at, i: '💬', x: "L'assistant a répondu à « " + m.subject + ' »' });
-    if (m.reply_read_at) ev.push({ t: m.reply_read_at, i: '👁', x: 'Vous avez lu la réponse à « ' + m.subject + ' »' });
-    if (m.status === 'resolved' && m.resolved_at) ev.push({ t: m.resolved_at, i: '✅', x: 'Demande résolue : ' + m.subject });
-  });
-  rc.filter(r => !r.user_hidden).forEach(r => { ev.push({ t: r.created_at, i: '💳', x: 'Demande de recharge de ' + fmtMoney(r.amount) + ' envoyée' }); if (r.status !== 'pending') ev.push({ t: r.reviewed_at || r.approved_at || r.updated_at || r.created_at, i: r.status === 'approved' ? '✅' : '❌', x: 'Recharge de ' + fmtMoney(r.amount) + (r.status === 'approved' ? ' approuvée' : ' rejetée') }); });
-  cx.forEach(r => { const s = SH[r.shipment_id]; ev.push({ t: r.created_at, i: '⊘', x: "Demande d'annulation du colis" + (s && receiptSet.has(s.id) ? ' ' + fmtCode(s.tracking_code) : '') + ' · ' + (r.status === 'approved' ? 'acceptée' : r.status === 'rejected' ? 'rejetée' : 'en attente') }); });
-  vw.forEach(v => ev.push({ t: v.viewed_at, i: '👁', x: 'Votre colis ' + fmtCode(v.tracking_code) + ' a été consulté sur le site de suivi' }));
-  ev.sort((a, b) => new Date(b.t) - new Date(a.t));
-  const box = $('hv-hist'); if (!box) return;
-  box.innerHTML = `<div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-5"><h3 class="text-base font-bold text-gray-900">Réactions et interactions</h3><p class="text-xs text-gray-500 mt-1">Tout ce qui s'est passé sur votre compte, du plus récent au plus ancien.</p>` +
-    (ev.length ? `<ol class="space-y-3 mt-4">${ev.slice(0, 150).map(e => `<li class="flex gap-3"><span class="text-lg leading-none">${e.i}</span><div class="min-w-0"><p class="text-sm font-semibold text-gray-900 break-words">${esc(e.x)}</p><p class="text-xs text-gray-400">${esc(fmtS(e.t))}</p></div></li>`).join('')}</ol>` : '<p class="text-sm text-gray-500 mt-4">Aucune interaction pour le moment.</p>') + '</div>';
-}
-$('help-subnav').addEventListener('click', e => { const b = e.target.closest('[data-hsub]'); if (b) { SUB = b.dataset.hsub; helpView(); } });
-const _lh = loadHelp;
-loadHelp = async function (s) { await _lh(s); helpView(); };
-helpView();
-// Si le tableau de bord était déjà affiché avant ce script, on le rafraîchit
-if (currentUser && !isAdmin && !$('dash-view').classList.contains('hidden')) loadShipments();
-})();
-</script>
-  <!-- ===== AJOUT ADMIN SWIFTWAY : à coller JUSTE AVANT </body>, APRÈS le bloc « ajout-swiftway » ===== -->
-<script>
-(() => {
-if (!$('admin-view')) return;
-const A = $('admin-view'), M = $('x-main'), SUP = 'hanjoya98@gmail.com';
-const fS = d => new Date(d).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'medium' });
-const _rpc = supabaseClient.rpc.bind(supabaseClient);
-const one = async (t, c, v, f) => { try { const { data } = await supabaseClient.from(t).select(f).eq(c, v).maybeSingle(); return data || {}; } catch (e) { return {}; } };
-const mail = async id => (await one('sw_profiles', 'id', id, 'email')).email || id;
-const code = async id => (await one('sw_shipments', 'id', id, 'tracking_code')).tracking_code || id;
-
-// ---- E. Journal détaillé : chaque action admin est enregistrée avec ses détails ----
-async function detail(fn, a) {
-  const n = a.p_note ? ' · note : ' + a.p_note : '';
-  if (fn === 'sw_admin_review_recharge2') { const r = await one('sw_recharges', 'id', a.p_id, 'user_id,amount,method,reference'); return (a.p_approve ? 'Recharge APPROUVÉE' : 'Recharge REJETÉE') + ' · client ' + await mail(r.user_id) + ' · demandé ' + r.amount + ' · crédité ' + (a.p_amount ?? 0) + ' FCFA · ' + (r.method || '') + ' réf ' + (r.reference || '') + n; }
-  if (fn === 'sw_admin_adjust_wallet') { const r = await one('sw_recharges', 'id', a.p_recharge_id, 'user_id'); return 'Ajustement ' + a.p_delta + ' FCFA · client ' + await mail(r.user_id) + n; }
-  if (fn === 'sw_admin_review_cancel') { const r = await one('sw_cancel_requests', 'id', a.p_id, 'shipment_id,user_id'); return (a.p_approve ? 'Annulation ACCEPTÉE' : 'Annulation REJETÉE') + ' · colis ' + await code(r.shipment_id) + ' · client ' + await mail(r.user_id) + n; }
-  if (/^sw_admin_(set_user|set_active|set_perms|promote)$/.test(fn)) return fn.replace('sw_admin_', '') + ' · ' + await mail(a.p_id) + ' · ' + JSON.stringify({ role: a.p_role, actif: a.p_active, perms: a.p_perms });
-  if (/^sw_admin_(update_status|add_note|set_auto|set_window)$/.test(fn)) return 'Colis ' + await code(a.p_id) + ' · ' + JSON.stringify({ statut: a.p_status, auto: a.p_auto, heures: a.p_hours, note: a.p_note });
-  if (fn === 'sw_admin_send_direct') return 'Message à ' + await mail(a.p_user) + ' · « ' + a.p_subject + ' » : ' + a.p_body;
-  if (fn === 'sw_admin_broadcast') return 'Annonce (' + a.p_filter + ') · « ' + a.p_subject + ' » : ' + a.p_body;
-  if (fn === 'sw_admin_grant_free_receipts') return 'Reçus offerts à ' + (a.p_user_ids || []).length + ' utilisateur(s) · ' + (a.p_campaign || '');
-  return JSON.stringify(a);
-}
-const log = (act, d) => _rpc('sw_log_admin_activity', { p_action: act, p_details: String(d || '').slice(0, 900) }).then(() => {}, () => {});
-supabaseClient.rpc = function (fn, a, o) {
-  const p = _rpc(fn, a, o);
-  if (!isAdmin || !/^sw_admin_/.test(fn) || /^sw_admin_(stats|logs|step_audit|track_views|user_supervision|set_welcome)$/.test(fn)) return p;
-  return Promise.resolve(p).then(r => { if (r && !r.error) detail(fn, a || {}).then(t => log('d:' + fn, t)); return r; });
-};
-
-// ---- C. Supervision : consultations du lien/QR + audit des étapes ----
-const per = (arr, k, d) => d ? arr.filter(x => Date.now() - new Date(x[k]).getTime() <= d * 864e5) : arr;
-const sel = (id) => `<select id="${id}" class="x-in" style="width:auto"><option value="0">Tout le temps</option><option value="1">Aujourd'hui</option><option value="7">7 jours</option><option value="30">30 jours</option></select>`;
-const auditRows = a => a.length ? a.map(x => `<div class="x-row" style="cursor:default;flex-direction:column;gap:2px"><span><b>${esc(x.field)}</b> : ${esc(x.old_value || '—')} → <b>${esc(x.new_value || '—')}</b></span><span style="font-size:11px;color:var(--mut)">${esc(x.code ? x.code + ' · ' : '')}${esc(fS(x.happened_at || x.at))} · par ${esc(x.actor || 'Système')}</span></div>`).join('') : '<p class="x-hint">Aucune modification enregistrée.</p>';
-let lastShip = null;
-async function drawerBox(id) {
-  const dr = $('x-drawer'); if (dr.querySelector('#sv-box')) return;
-  const b = document.createElement('div'); b.id = 'sv-box'; b.className = 'x-panel'; b.innerHTML = '<p class="x-h">SUPERVISION</p><p class="x-hint">Chargement...</p>'; dr.appendChild(b);
-  const [v, a] = await Promise.all([_rpc('sw_admin_track_views', { p_shipment: String(id) }), _rpc('sw_admin_step_audit', { p_shipment: String(id) })]);
-  const V = v.data || [], U = a.data || [];
-  const paint = () => { const d = +$('sv-per').value, vv = per(V, 'viewed_at', d), uu = per(U, 'happened_at', d);
-    $('sv-body').innerHTML = `<p class="x-h" style="margin-top:12px">👁 CONSULTATIONS DU LIEN / QR (${vv.length})</p>${vv.length ? vv.map((x, i) => `<div class="x-row" style="cursor:default"><span>#${vv.length - i}</span><span>${esc(fS(x.viewed_at))}</span></div>`).join('') : '<p class="x-hint">Aucune consultation.</p>'}<p class="x-h" style="margin-top:12px">🧾 AUDIT DES ÉTAPES (${uu.length})</p>${auditRows(uu)}`; };
-  b.innerHTML = `<p class="x-h">SUPERVISION DU COLIS</p>${sel('sv-per')}<div id="sv-body"></div>`; $('sv-per').onchange = paint; paint();
-}
-async function modal(uid) {
-  const old = $('sv-modal'); if (old) old.remove();
-  const m = document.createElement('div'); m.id = 'sv-modal';
-  m.style.cssText = 'position:fixed;inset:0;z-index:70;background:rgba(15,31,61,.5);overflow:auto;padding:16px';
-  m.innerHTML = `<div class="x-wrap"><div class="x-panel" style="margin-top:0"><div class="x-bar" style="justify-content:space-between"><p class="x-h" style="margin:0">📊 SUPERVISION DU COMPTE</p><button class="x-btn" id="sv-x">FERMER ✕</button></div>${sel('sm-per')}<div id="sm-body"><p class="x-hint">Chargement...</p></div></div></div>`;
-  document.body.appendChild(m); $('sv-x').onclick = () => m.remove();
-  const load = async () => { const d = +$('sm-per').value, { data, error } = await _rpc('sw_admin_user_supervision', { p_user: uid, p_days: d || null });
-    if (error) { $('sm-body').innerHTML = '<p class="x-hint">Erreur : ' + esc(error.message) + '</p>'; return; }
-    const S = data.ships || [], tot = S.reduce((t, s) => t + (+s.views || 0), 0);
-    $('sm-body').innerHTML = `<p class="x-h" style="margin-top:12px">COLIS (${S.length}) · ${tot} CONSULTATION(S)</p>${S.map(s => `<div class="x-row" style="cursor:default"><span>${esc(s.code)}</span><span>${s.views} scan(s)${s.last_view ? ' · dernier ' + esc(fS(s.last_view)) : ''}</span></div>`).join('') || '<p class="x-hint">Aucun colis.</p>'}<p class="x-h" style="margin-top:12px">🧾 MODIFICATIONS D'ÉTAPES (${(data.audit || []).length})</p>${auditRows(data.audit || [])}`; };
-  $('sm-per').onchange = load; load();
-}
-
-// ---- D. Offre de bienvenue ON/OFF (Paramètres) ----
-async function welcomeCard() {
-  const w = M.querySelector('.x-wrap'); if (!isSuper || !w || $('wo-card') || !/PARAMÈTRES/.test(w.textContent)) return;
-  const c = document.createElement('div'); c.id = 'wo-card'; c.className = 'x-panel'; c.style.marginTop = '0'; c.style.marginBottom = '14px';
-  w.querySelector('.x-lead').after(c);
-  const { data, error } = await _rpc('sw_welcome_get');
-  const on = !!data, ok = !error;
-  c.innerHTML = `<p class="x-h">🎁 OFFRE DE BIENVENUE AUTOMATIQUE</p><p class="x-lead" style="margin-bottom:12px">Activée : chaque nouvel inscrit reçoit le prix d'un premier reçu (<b>${fmtMoney(RECEIPT_PRICE)}</b>). Désactivée : inscription classique.</p>${ok ? `<div class="x-acts"><span class="x-tag" style="color:${on ? '#c6ff3d' : '#ff5a5f'}">${on ? 'ACTIVÉE' : 'DÉSACTIVÉE'}</span><button class="x-btn ${on ? 'no' : 'go'}" id="wo-btn">${on ? 'DÉSACTIVER' : 'ACTIVER'}</button></div>` : '<p class="x-hint" style="color:#d97706">Migration SQL « migration-admin.sql » non exécutée.</p>'}`;
-  const bt = $('wo-btn'); if (bt) bt.onclick = async () => { const r = await _rpc('sw_admin_set_welcome', { p_on: !on }); if (r.error) return toast('Erreur : ' + r.error.message, 'error'); toast(!on ? 'Offre de bienvenue activée.' : 'Offre de bienvenue désactivée.'); c.remove(); welcomeCard(); };
-}
-
-// ---- E. Onglet JOURNAL (filtrable) ----
-const J = { d: 30, adm: '', act: '', q: '', rows: [] };
-const LAB = { ship_view: 'Colis consulté', wa_contact: 'WhatsApp ouvert', msg_reply: 'Réponse à un message', msg_resolve: 'Message résolu', proof_view: 'Capture consultée' };
-const lab = a => /^d:/.test(a) ? 'Détail · ' + a.slice(2).replace('sw_admin_', '') : (LAB[a] || a.replace('sw_admin_', ''));
-A.querySelector('.x-rail').insertAdjacentHTML('beforeend', '<button data-jv="1"><b>≣</b>JOURNAL</button>');
-function jlist() {
-  const q = J.q.toLowerCase(), r = J.rows.filter(x => (!J.adm || x.admin_id === J.adm) && (!J.act || x.action === J.act) && (!q || (x.detail || '').toLowerCase().includes(q) || (x.email || '').toLowerCase().includes(q)));
-  $('j-info').innerHTML = '<b>' + r.length + '</b> action(s)';
-  $('j-list').innerHTML = r.length ? r.slice(0, 400).map(x => `<div class="x-c2 sm"><div class="x-c2h"><div><strong class="x-amt" style="font-size:14px">${esc(lab(x.action))}</strong><span class="x-sub">${esc(x.email || '—')} · ${esc(fS(x.created_at))}</span></div></div><p class="x-body" style="font-size:12.5px">${esc(x.detail || '')}</p></div>`).join('') : '<div class="x-empty">Aucune action pour ce filtre.</div>';
-}
-async function journal() {
-  A.querySelectorAll('.x-rail button').forEach(b => b.classList.toggle('on', b.dataset.jv === '1'));
-  M.innerHTML = '<p class="x-hint">Chargement du journal...</p>';
-  const { data, error } = await _rpc('sw_admin_logs', { p_days: J.d });
-  if (error) { M.innerHTML = '<div class="x-wrap"><div class="x-empty">Journal indisponible : ' + esc(error.message) + '<br>Exécutez « migration-admin.sql ».</div></div>'; return; }
-  J.rows = data || [];
-  const adms = [...new Map(J.rows.map(x => [x.admin_id, x.email])).entries()], acts = [...new Set(J.rows.map(x => x.action))];
-  M.innerHTML = `<div class="x-wrap"><p class="x-h"><b>●</b> JOURNAL // ${isSuper ? 'tous les administrateurs' : 'mes actions'}</p><p class="x-lead">Les journaux sont effacés automatiquement après 30 jours.</p>
-  <div class="x-panel" style="margin-top:0;margin-bottom:14px"><input id="j-q" class="x-in" placeholder="> rechercher : client, montant, message, code..." style="margin-bottom:10px" value="${esc(J.q)}">
-  <div class="x-segs">${[[1, "Aujourd'hui"], [7, '7 jours'], [30, '30 jours']].map(([v, l]) => `<button class="x-sg ${J.d === v ? 'on' : ''}" data-jd="${v}">${l}</button>`).join('')}</div>
-  <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">${isSuper ? `<select id="j-adm" class="x-in"><option value="">Tous les administrateurs</option>${adms.map(([i, e]) => `<option value="${esc(i)}" ${J.adm === i ? 'selected' : ''}>${esc(e || i)}</option>`).join('')}</select>` : ''}<select id="j-act" class="x-in"><option value="">Toutes les actions</option>${acts.map(a => `<option value="${esc(a)}" ${J.act === a ? 'selected' : ''}>${esc(lab(a))}</option>`).join('')}</select></div><p id="j-info" class="x-lead" style="margin:10px 0 0"></p></div><div id="j-list"></div></div>`;
-  $('j-q').oninput = e => { J.q = e.target.value; jlist(); };
-  if ($('j-adm')) $('j-adm').onchange = e => { J.adm = e.target.value; jlist(); };
-  $('j-act').onchange = e => { J.act = e.target.value; jlist(); };
-  jlist();
-}
-A.addEventListener('click', e => {
-  const j = e.target.closest('[data-jv]'), d = e.target.closest('[data-jd]'), s = e.target.closest('[data-sv]');
-  if (j) return journal();
-  if (d) { J.d = +d.dataset.jd; return journal(); }
-  if (s) return modal(s.dataset.sv);
-  if (e.target.closest('.x-rail [data-v]')) A.querySelectorAll('[data-jv]').forEach(b => b.classList.remove('on'));
-});
-
-// ---- Injection automatique dans les écrans existants ----
-new MutationObserver(() => {
-  const dr = $('x-drawer'), el = dr.querySelector('[data-save],[data-shdel],[data-auto],[data-win]');
-  if (el) { const id = el.dataset.save || el.dataset.shdel || el.dataset.id || el.dataset.win; if (id) { drawerBox(id); if (lastShip !== id) { lastShip = id; const h = dr.querySelector('h3'); log('ship_view', 'Colis consulté : ' + (h ? h.textContent : id)); } } } else lastShip = null;
-}).observe($('x-drawer'), { childList: true });
-new MutationObserver(() => {
-  M.querySelectorAll('.x-c2.sm [data-us]').forEach(b => { const c = b.closest('.x-c2'), acts = c.querySelector('.x-acts'); if (acts && !c.querySelector('[data-sv]')) acts.insertAdjacentHTML('afterbegin', '<button class="x-btn" data-sv="' + esc(b.dataset.us) + '">📊 SUPERVISION</button>'); });
-  welcomeCard();
-}).observe(M, { childList: true, subtree: true });
-})();
-</script>
-  <!-- ===== AJOUT FILTRES SWIFTWAY : à coller JUSTE AVANT </body>, APRÈS les deux autres blocs ===== -->
-<script>
-(() => {
-if (!$('dash-view')) return;
-const PERS = '<option value="0">Toute période</option><option value="1">Aujourd\'hui</option><option value="7">7 jours</option><option value="30">30 jours</option><option value="180">6 mois</option>';
-const inPer = (d, p) => !+p || (+p === 1 ? new Date(d).toDateString() === new Date().toDateString() : Date.now() - new Date(d).getTime() <= +p * 864e5);
-const nrm = v => String(v == null ? '' : v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-const has = (q, arr) => !q || arr.some(v => nrm(v).includes(nrm(q).trim()));
-const panel = (id, title, body) => `<div id="${id}" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-5 mb-4 space-y-3"><h3 class="text-base font-bold text-gray-900">${title}</h3>${body}<div class="flex items-center justify-between gap-2"><p class="text-xs text-gray-500" data-inf></p><button type="button" data-rs class="text-xs font-semibold text-swiftblue underline cursor-pointer">Réinitialiser</button></div></div>`;
-const fld = (k, l, h) => `<div><label class="${LB}">${l}</label>${h}</div>`;
-const inp = (k, ph, t) => `<input data-k="${k}" type="${t || 'text'}" ${t === 'number' ? 'min="0"' : ''} placeholder="${ph}" autocomplete="off" class="${IC}">`;
-const slc = (k, opts) => `<select data-k="${k}" class="${IC}">${opts}</select>`;
-const bind = (id, st, fn) => { const p = $(id); const ev = e => { const k = e.target.dataset && e.target.dataset.k; if (k) { st[k] = e.target.value; fn(); } }; p.addEventListener('input', ev); p.addEventListener('change', ev);
-  p.querySelector('[data-rs]').onclick = () => { Object.keys(st).forEach(k => st[k] = ''); p.querySelectorAll('[data-k]').forEach(i => i.value = (i.tagName === 'SELECT' ? i.options[0].value : '')); fn(); }; };
-const setInf = (id, n, t) => { const e = $(id) && $(id).querySelector('[data-inf]'); if (e) e.textContent = t ? n + ' affiché(s) sur ' + t : ''; };
-
-// ---- PORTEFEUILLE (client) : filtres des demandes de recharge ----
-const W = { q: '', st: '', m: '', per: '', min: '', max: '' }; let WR = [];
-$('recharge-list').insertAdjacentHTML('beforebegin', panel('wf', 'Filtrer mes recharges',
-  inp('q', 'ID de transaction, montant, note...') + `<div class="grid grid-cols-2 gap-3">${fld('', 'Statut', slc('st', '<option value="">Tous</option><option value="pending">En attente</option><option value="approved">Approuvée</option><option value="rejected">Rejetée</option>'))}${fld('', 'Opérateur', slc('m', '<option value="">Tous</option><option value="mtn">MTN Money</option><option value="orange">Orange Money</option>'))}</div>` +
-  fld('', 'Période', slc('per', PERS)) + `<div class="grid grid-cols-2 gap-3">${fld('', 'Montant min (FCFA)', inp('min', '0', 'number'))}${fld('', 'Montant max (FCFA)', inp('max', '∞', 'number'))}</div>`));
-function applyW() {
-  const cs = [...$('recharge-list').children].filter(c => c.classList.contains('bg-white')); let n = 0;
-  cs.forEach((c, i) => { const r = WR[i]; if (!r) return; const a = Number(r.status === 'approved' && r.approved_amount != null ? r.approved_amount : r.amount);
-    const ok = has(W.q, [r.reference, r.amount, r.approved_amount, r.admin_note]) && (!W.st || r.status === W.st) && (!W.m || r.method === W.m) && inPer(r.created_at, W.per) && (W.min === '' || a >= +W.min) && (W.max === '' || a <= +W.max);
-    c.hidden = !ok; if (ok) n++; });
-  setInf('wf', n, cs.length);
-}
-bind('wf', W, applyW);
-const _lw = loadWallet;
-loadWallet = async function () { await _lw(); try { const { data } = await supabaseClient.from('sw_recharges').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }); WR = (data || []).filter(x => !x.user_hidden); } catch (e) { WR = []; } applyW(); };
-
-// ---- MESSAGES (client) : recherche, statut, catégorie, période ----
-const H = { q: '', st: '', cat: '', per: '' }; let HR = [];
-$('help-list').insertAdjacentHTML('beforebegin', panel('hf', 'Filtrer mes messages',
-  inp('q', 'Titre, message, réponse...') + `<div class="grid grid-cols-2 gap-3">${fld('', 'État', slc('st', '<option value="">Tous</option><option value="new">Non lus (nouveaux)</option><option value="open">En cours</option><option value="resolved">Résolus</option><option value="reply">Avec réponse</option>'))}${fld('', 'Catégorie', slc('cat', '<option value="">Toutes</option><option value="technical">Problème technique</option><option value="payment">Paiement / recharge</option><option value="shipment">Colis / expédition</option><option value="other">Autre</option>'))}</div>` + fld('', 'Période', slc('per', PERS))));
-function applyH() {
-  const cs = [...$('help-list').children].filter(c => c.classList.contains('bg-white')); let n = 0;
-  cs.forEach((c, i) => { const r = HR[i]; if (!r) return;
-    const ok = has(H.q, [r.subject, r.body, r.admin_reply]) && (!H.st || (H.st === 'new' ? !!c.querySelector('.newtag') : H.st === 'reply' ? !!r.admin_reply : r.status === H.st)) && (!H.cat || r.category === H.cat) && inPer(r.created_at, H.per);
-    c.hidden = !ok; if (ok && c.style.display !== 'none') n++; });
-  setInf('hf', n, cs.length);
-}
-bind('hf', H, applyH);
-const _lh2 = loadHelp;
-loadHelp = async function (s) { await _lh2(s); try { const { data } = await supabaseClient.from('sw_messages').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }); HR = (data || []).filter(x => !x.user_hidden || (x.admin_reply && x.reply_visible)); } catch (e) { HR = []; } applyH(); };
-const hs = $('help-subnav'); if (hs) hs.addEventListener('click', () => setTimeout(applyH, 0));
-
-// ---- ADMIN : filtres avancés FLUX (pays, service, payeur...) et CAISSE (montant) ----
-const A = $('admin-view'), M = $('x-main'); if (!A || !M) return;
-const FX = { o: '', d: '', e: '', sv: '', py: '', ag: '', fr: '' }, CA = { min: '', max: '' }; let SHM = null, shT = 0, busy = false;
-async function shipMap() { if (SHM && Date.now() - shT < 60000) return SHM; try { const { data } = await supabaseClient.from('sw_shipments').select('id,sender_country,receiver_country,stopover_country,service_type,payer,agency_name,is_fragile').limit(2000); SHM = {}; (data || []).forEach(s => SHM[s.id] = s); shT = Date.now(); } catch (e) { SHM = SHM || {}; } return SHM; }
-async function fluxF() {
-  const b = M.querySelector('.x-board'); if (!b) return;
-  const m = await shipMap(), all = Object.values(m), cs = k => [...new Set(all.map(s => s[k]).filter(Boolean))].sort((a, c) => a.localeCompare(c, 'fr')), ags = cs('agency_name');
-  const o = (k, a, all0) => `<option value="">${all0}</option>` + a.map(v => `<option value="${esc(v)}" ${FX[k] === v ? 'selected' : ''}>${esc(v)}</option>`).join('');
-  if (!$('fx-adv')) b.insertAdjacentHTML('beforebegin', `<details id="fx-adv" class="x-panel" style="margin-top:0;margin-bottom:14px"><summary style="cursor:pointer;font-weight:700;font-size:12px">⚙ FILTRES AVANCÉS (pays, service, agence...)</summary><div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-top:10px">
-    <select class="x-in" data-fx="o">${o('o', cs('sender_country'), "Pays d'envoi : tous")}</select><select class="x-in" data-fx="d">${o('d', cs('receiver_country'), 'Pays de destination : tous')}</select><select class="x-in" data-fx="e">${o('e', cs('stopover_country'), "Pays d'escale : tous")}</select>
-    <select class="x-in" data-fx="sv"><option value="">Service : tous</option><option value="standard">Standard</option><option value="express">Express</option></select><select class="x-in" data-fx="py"><option value="">Payeur : tous</option><option value="sender">Expéditeur</option><option value="receiver">Destinataire</option></select>
-    <select class="x-in" data-fx="ag">${o('ag', ags, 'Agence : toutes')}</select><select class="x-in" data-fx="fr"><option value="">Fragile : tous</option><option value="1">Colis fragiles</option></select></div><p class="x-hint" id="fx-inf"></p><button type="button" class="x-btn" id="fx-rs" style="margin-top:6px">↺ RÉINITIALISER</button></details>`);
-  let n = 0, t = 0;
-  b.querySelectorAll('.x-card').forEach(c => { const s = m[c.dataset.id]; if (!s) return; t++;
-    const ok = (!FX.o || s.sender_country === FX.o) && (!FX.d || s.receiver_country === FX.d) && (!FX.e || s.stopover_country === FX.e) && (!FX.sv || s.service_type === FX.sv) && (!FX.py || s.payer === FX.py) && (!FX.ag || s.agency_name === FX.ag) && (!FX.fr || s.is_fragile);
-    c.hidden = !ok; if (ok) n++; });
-  const i = $('fx-inf'); if (i) i.textContent = Object.values(FX).some(Boolean) ? n + ' colis affiché(s) sur ' + t + ' dans le tableau' : '';
-}
-function cashF() {
-  const w = M.querySelector('.x-wrap'); if (!w || !/CAISSE/.test((w.querySelector('.x-h') || {}).textContent || '')) return;
-  const first = [...w.children].find(c => c.classList.contains('x-c2'));
-  if (!$('ca-amt') && w.querySelector('.x-segs')) w.querySelector('.x-segs').insertAdjacentHTML('afterend', `<div id="ca-amt" class="x-bar"><span class="x-lead" style="margin:0"><b>Montant (FCFA)</b></span><input type="number" min="0" data-ca="min" class="x-in" placeholder="min" style="width:130px" value="${esc(CA.min)}"><input type="number" min="0" data-ca="max" class="x-in" placeholder="max" style="width:130px" value="${esc(CA.max)}"><span id="ca-inf" class="x-lead" style="margin:0"></span></div>`);
-  let n = 0, t = 0;
-  w.querySelectorAll('.x-c2').forEach(c => { const a = c.querySelector('.x-amt'); if (!a) return; t++; const v = Number(a.textContent.split('FCFA')[0].replace(/\D/g, '')) || 0;
-    const ok = (CA.min === '' || v >= +CA.min) && (CA.max === '' || v <= +CA.max); c.hidden = !ok; if (ok) n++; });
-  const i = $('ca-inf'); if (i) i.textContent = (CA.min !== '' || CA.max !== '') ? n + ' / ' + t : '';
-}
-A.addEventListener('change', e => { const k = e.target.dataset && e.target.dataset.fx; if (k) { FX[k] = e.target.value; fluxF(); } });
-A.addEventListener('input', e => { const k = e.target.dataset && e.target.dataset.ca; if (k) { CA[k] = e.target.value; cashF(); } });
-A.addEventListener('click', e => { if (e.target.id === 'fx-rs') { Object.keys(FX).forEach(k => FX[k] = ''); A.querySelectorAll('[data-fx]').forEach(s => s.value = ''); fluxF(); } });
-new MutationObserver(() => { if (busy) return; busy = true; Promise.resolve(fluxF()).then(() => { cashF(); busy = false; }, () => { busy = false; }); }).observe(M, { childList: true, subtree: true });
-})();
-</script>
-  <!-- ===== AJOUT RECHARGE SWIFTWAY : à coller JUSTE AVANT </body>, après les autres blocs ===== -->
-<script>
-(() => {
-if (!$('rc-method')) return;
-// Textes : MTN Money (MoMo) et Orange Money
-const hero = document.querySelector('.wallet-hero p:last-child'); if (hero) hero.textContent = '💳 Rechargez par MTN Money (MoMo) ou Orange Money ci-dessous';
-const o = $('rc-method').options; if (o[0]) o[0].textContent = 'MTN Money (MoMo)'; if (o[1]) o[1].textContent = 'Orange Money';
-// Un numéro MTN peut être enregistré « mtn », « MTN Money », « Momo »... ; Orange « orange », « Orange Money », « OM »...
-const kind = v => { v = String(v || '').toLowerCase(); return /mtn|momo/.test(v) ? 'mtn' : /orange|(^|\s)om(\s|$)/.test(v) ? 'orange' : v; };
-let PERR = '';
-function draw() {
-  const op = $('rc-method').value, box = $('rc-numbers'), rows = PAYNUMS.filter(p => kind(p.operator) === op), nom = op === 'mtn' ? 'MTN Money (MoMo)' : 'Orange Money';
-  box.innerHTML = rows.length
-    ? '<p class="text-xs font-semibold text-gray-700">Effectuez le dépôt ' + nom + ' sur ce numéro :</p>' + rows.map(p => `<div class="flex items-center justify-between gap-2 bg-blue-50 border border-blue-100 rounded-xl p-3"><div><p class="text-base font-bold text-gray-900">${esc(p.phone)}</p><p class="text-xs text-gray-600">${esc(p.holder_name)}</p></div><button type="button" data-copy="${esc(p.phone)}" class="copy-num text-sm font-semibold text-swiftblue border border-blue-200 bg-white rounded-full px-3 py-1 cursor-pointer">Copier</button></div>`).join('')
-    : '<p class="text-xs text-amber-700 bg-amber-50 rounded-xl p-3">' + (PERR ? 'Impossible de charger les numéros : ' + esc(PERR) : 'Aucun numéro ' + nom + ' disponible pour le moment.') + '</p>';
-  box.querySelectorAll('.copy-num').forEach(b => b.addEventListener('click', async () => { try { await navigator.clipboard.writeText(b.dataset.copy); toast('Numéro copié.'); } catch (e) { prompt('Copiez ce numéro :', b.dataset.copy); } }));
-}
-renderPayNums = draw;
-$('rc-method').addEventListener('change', draw);
-const _lw3 = loadWallet;
-loadWallet = async function () {
-  await _lw3();
-  try { const { data, error } = await supabaseClient.from('sw_pay_numbers').select('*').order('created_at'); PERR = error ? error.message : ''; if (!error) PAYNUMS = (data || []).filter(p => p.is_active !== false); } catch (e) { PERR = String((e && e.message) || e); }
-  draw();
-};
 })();
 </script>
 </body>
