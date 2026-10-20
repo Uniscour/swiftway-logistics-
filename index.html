@@ -208,14 +208,14 @@ body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sa
       <div class="wallet-hero">
         <p class="text-xs font-semibold" style="opacity:.8">Solde du portefeuille</p>
         <p id="wallet-balance" class="text-4xl font-extrabold mt-1">0 FCFA</p>
-        <p class="text-xs mt-3" style="opacity:.75">💳 Rechargez par MTN Money (MoMo) ou Orange Money ci-dessous</p>
+        <p class="text-xs mt-3" style="opacity:.75">💳 Rechargez par MTN Money (MoMo) ou Orange Money (OM) ci-dessous</p>
       </div>
       <form id="recharge-form" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
         <h2 class="text-lg font-bold text-gray-900">Demander une recharge</h2>
-        <p class="text-xs text-gray-500">Effectuez votre paiement Mobile Money, puis indiquez l'ID de la transaction et joignez la capture d'écran. Un administrateur vérifiera et créditera votre solde.</p>
+        <p class="text-xs text-gray-500">Vous pouvez recharger avec MTN Money (MoMo) ou Orange Money (OM). Effectuez votre paiement, puis indiquez l'ID de la transaction et joignez la capture d'écran. Un administrateur vérifiera et créditera votre solde.</p>
         <div><label class="block text-xs font-semibold text-gray-700 mb-1">Opérateur</label>
           <select id="rc-method" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
-            <option value="mtn">MTN Money (MoMo)</option><option value="orange">Orange Money</option></select></div>
+            <option value="mtn">MTN Money (MoMo)</option><option value="orange">Orange Money (OM)</option></select></div>
         <div id="rc-numbers" class="space-y-2"></div>
         <div><label class="block text-xs font-semibold text-gray-700 mb-1">Montant (FCFA)</label>
           <input id="rc-amount" type="number" min="1100" step="1" required class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50"></div>
@@ -670,52 +670,81 @@ function trackUrl(code) { return TRACK_BASE; }
 // QR code du reçu : site de suivi avec le code déjà injecté (recherche automatique)
 function qrUrl(code) { return TRACK_BASE + '?t=' + encodeURIComponent(code); }
 
-function receiptHtml(s) {
+// Reçu A5 : le contenu s'adapte toujours au cadre. Les textes longs passent à la ligne et, si l'ensemble
+// est trop grand, receiptScale() réduit la taille des caractères juste ce qu'il faut (rien n'est supprimé ni coupé).
+function receiptHtml(s, sc) {
+  sc = sc || 1;
+  const f = (n) => (n * sc).toFixed(2) + 'px', mm = (n) => (n * sc).toFixed(1) + 'mm';
   const ag = (s.agency_name || '').trim(), cur = s.currency || 'XAF', m = v => fmtCur(v, cur), NAVY = '#0f2a4a';
   let qrSvg = '';
   try { const q = qrcode(0, 'M'); q.addData(qrUrl(s.tracking_code)); q.make(); qrSvg = q.createSvgTag(3, 0).replace('<svg', '<svg style="width:100%;height:100%;display:block"'); } catch (e) {}
   const row = (l, v) => v ? `<tr><td style="padding:2px 0;color:#667;width:36%;vertical-align:top">${l}</td><td style="padding:2px 0;font-weight:700">${esc(v)}</td></tr>` : '';
-  const box = (t, n, ph, ad, di, ci, re, co) => `<div style="flex:1;border:1px solid ${NAVY};min-width:0;background:#fff"><div style="background:${NAVY};color:#fff;font-size:8.5px;letter-spacing:.14em;font-weight:800;padding:3px 8px">${t}</div>
-    <div style="padding:6px 8px"><div style="font-weight:800;font-size:12px">${esc(n)}</div><div>${esc(ph)}</div><div>${esc([ad, di].filter(Boolean).join(', '))}</div><div>${esc([ci, re, co].filter(Boolean).join(', '))}</div></div></div>`;
+  const box = (t, n, ph, ad, di, ci, re, co) => `<div style="flex:1;border:1px solid ${NAVY};min-width:0;background:#fff"><div style="background:${NAVY};color:#fff;font-size:${f(8.5)};letter-spacing:.14em;font-weight:800;padding:3px 8px">${t}</div>
+    <div style="padding:6px 8px"><div style="font-weight:800;font-size:${f(12)}">${esc(n)}</div><div>${esc(ph)}</div><div>${esc([ad, di].filter(Boolean).join(', '))}</div><div>${esc([ci, re, co].filter(Boolean).join(', '))}</div></div></div>`;
   const fee = Number(s.shipping_fee || 0), val = Number(s.declared_value || 0);
-  const fees = (val || fee) ? `<div style="margin-top:8px;border:1px solid ${NAVY}"><div style="background:#e8eef7;font-size:8.5px;letter-spacing:.14em;font-weight:800;padding:3px 8px;color:${NAVY}">MONTANTS (${esc(cur === 'XAF' ? 'FCFA' : cur)})</div>
-    <table style="width:100%;border-collapse:collapse;font-size:10.5px;margin:2px 0">
+  const fees = (val || fee) ? `<div style="margin-top:8px;border:1px solid ${NAVY}"><div style="background:#e8eef7;font-size:${f(8.5)};letter-spacing:.14em;font-weight:800;padding:3px 8px;color:${NAVY}">MONTANTS (${esc(cur === 'XAF' ? 'FCFA' : cur)})</div>
+    <table style="width:100%;border-collapse:collapse;font-size:${f(10.5)};margin:2px 0">
     ${val ? `<tr><td style="padding:2px 8px">Valeur déclarée</td><td style="padding:2px 8px;text-align:right;font-weight:700">${m(val)}</td></tr>` : ''}
     ${fee ? `<tr><td style="padding:2px 8px">Frais de transport (${s.payer === 'receiver' ? 'payés par le destinataire' : "payés par l'expéditeur"})</td><td style="padding:2px 8px;text-align:right;font-weight:700">${m(fee)}</td></tr>` : ''}
     </table></div>` : '';
-  const stamp = `<div style="transform:rotate(-8deg);border:2.5px solid #1d4ed8;color:#1d4ed8;opacity:.85;padding:4px 12px;text-align:center;border-radius:4px"><div style="font-size:15px;font-weight:900;letter-spacing:.18em">APPROUVÉ</div><div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-top:1px">par ${esc(ag)}</div></div>`;
+  const stamp = `<div style="transform:rotate(-8deg);border:2.5px solid #1d4ed8;color:#1d4ed8;opacity:.85;padding:4px 12px;text-align:center;border-radius:4px;max-width:100%"><div style="font-size:${f(15)};font-weight:900;letter-spacing:.18em">APPROUVÉ</div><div style="font-size:${f(9)};font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-top:1px">par ${esc(ag)}</div></div>`;
   const sigSender = s.sender_signature ? `<img src="${esc(s.sender_signature)}" alt="" style="max-width:100%;max-height:18mm;object-fit:contain">` : '';
   const sigAgency = s.agency_signature ? `<img src="${esc(s.agency_signature)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">` : '';
   const wmRow = (i) => `<div style="white-space:nowrap;margin-left:${i % 2 ? -170 : 0}px">${(esc(ag) + '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;').repeat(6)}</div>`;
   const wm = ag ? `<div style="position:absolute;inset:0;pointer-events:none;overflow:hidden"><div style="position:absolute;left:-40%;top:-40%;width:180%;height:180%;transform:rotate(-30deg);display:flex;flex-direction:column;justify-content:space-around;font-size:44px;font-weight:900;line-height:1;color:${NAVY};opacity:.06;text-transform:uppercase;letter-spacing:.08em">${[0, 1, 2, 3, 4, 5, 6].map(wmRow).join('')}</div></div>` : '';
-  return `<div id="receipt-sheet" style="position:relative;width:148mm;height:210mm;box-sizing:border-box;padding:6mm;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif;font-size:10.5px;line-height:1.35;margin:0 auto;box-shadow:0 4px 24px #0006;overflow:hidden">
+  return `<div id="receipt-sheet" style="position:relative;width:148mm;height:210mm;box-sizing:border-box;padding:6mm;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif;font-size:${f(10.5)};line-height:1.35;overflow-wrap:anywhere;margin:0 auto;box-shadow:0 4px 24px #0006;overflow:hidden">
     <div style="position:absolute;inset:6mm;border:2px solid ${NAVY};outline:1px solid ${NAVY};outline-offset:-5px;pointer-events:none"></div>
     ${wm}
-    <div style="position:relative;height:100%;padding:5mm;display:flex;flex-direction:column">
-      <div style="background:${NAVY};color:#fff;padding:9px 10px;text-align:center"><div style="font-size:19px;font-weight:900;letter-spacing:.05em;text-transform:uppercase">${esc(ag || "Bordereau d'expédition")}</div>
-        <div style="font-size:9px;letter-spacing:.3em;margin-top:2px;opacity:.85">BORDEREAU D'EXPÉDITION</div></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0">
-        <div><div style="font-size:8.5px;color:#667">N° DE BORDEREAU / SUIVI</div><div style="font-size:${String(s.tracking_code || '').length > 12 ? '12.5px' : '17px'};font-weight:900;letter-spacing:.04em;color:${NAVY};word-break:break-all;max-width:88mm">${esc(fmtCode(s.tracking_code))}</div>
-          <div style="font-size:9px;color:#667;margin-top:2px">Émis le ${fmtDay(s.created_at)}</div>
-          <div style="display:inline-block;margin-top:3px;border:1px solid ${NAVY};color:${NAVY};font-size:8.5px;font-weight:800;padding:1px 7px;letter-spacing:.1em">${s.service_type === 'express' ? 'EXPRESS' : 'STANDARD'} ${s.delivery_window_hours || (s.service_type === 'express' ? 24 : 48)} H</div></div>
-        <div style="text-align:center"><div style="width:22mm;height:22mm;border:1px solid ${NAVY};padding:1.5mm;background:#fff">${qrSvg}</div><div style="font-size:7.5px;color:#667;margin-top:1px">Scannez pour suivre le colis</div></div>
+    <div id="receipt-inner" style="position:relative;height:100%;box-sizing:border-box;padding:5mm;display:flex;flex-direction:column">
+      <div style="background:${NAVY};color:#fff;padding:9px 10px;text-align:center"><div style="font-size:${f(19)};font-weight:900;letter-spacing:.05em;text-transform:uppercase">${esc(ag || "Bordereau d'expédition")}</div>
+        <div style="font-size:${f(9)};letter-spacing:.3em;margin-top:2px;opacity:.85">BORDEREAU D'EXPÉDITION</div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:8px 0">
+        <div style="min-width:0"><div style="font-size:${f(8.5)};color:#667">N° DE BORDEREAU / SUIVI</div><div style="font-size:${String(s.tracking_code || '').length > 12 ? f(12.5) : f(17)};font-weight:900;letter-spacing:.04em;color:${NAVY};word-break:break-all;max-width:88mm">${esc(fmtCode(s.tracking_code))}</div>
+          <div style="font-size:${f(9)};color:#667;margin-top:2px">Émis le ${fmtDay(s.created_at)}</div>
+          <div style="display:inline-block;margin-top:3px;border:1px solid ${NAVY};color:${NAVY};font-size:${f(8.5)};font-weight:800;padding:1px 7px;letter-spacing:.1em">${s.service_type === 'express' ? 'EXPRESS' : 'STANDARD'} ${s.delivery_window_hours || (s.service_type === 'express' ? 24 : 48)} H</div></div>
+        <div style="text-align:center;flex-shrink:0"><div style="width:22mm;height:22mm;border:1px solid ${NAVY};padding:1.5mm;background:#fff">${qrSvg}</div><div style="font-size:${f(7.5)};color:#667;margin-top:1px">Scannez pour suivre le colis</div></div>
       </div>
       <div style="display:flex;gap:7px">
         ${box('EXPÉDITEUR', s.sender_name, s.sender_phone, s.sender_address, s.sender_district, s.origin, s.sender_region, s.sender_country)}
         ${box('DESTINATAIRE', s.receiver_name, s.receiver_phone, s.receiver_address, s.receiver_district, s.destination, s.receiver_region, s.receiver_country)}
       </div>
-      <div style="margin-top:8px;border:1px solid ${NAVY}"><div style="background:#e8eef7;font-size:8.5px;letter-spacing:.14em;font-weight:800;padding:3px 8px;color:${NAVY}">DÉTAILS DU COLIS</div>
-        <table style="width:100%;border-collapse:collapse;font-size:10.5px;margin:3px 8px;width:calc(100% - 16px)">
+      <div style="margin-top:8px;border:1px solid ${NAVY}"><div style="background:#e8eef7;font-size:${f(8.5)};letter-spacing:.14em;font-weight:800;padding:3px 8px;color:${NAVY}">DÉTAILS DU COLIS</div>
+        <table style="border-collapse:collapse;font-size:${f(10.5)};margin:3px 8px;width:calc(100% - 16px)">
           ${row('Contenu', s.description)}${row('Type', s.package_type)}${row('Nombre de colis', s.package_count)}${row('Poids total', s.weight_kg ? s.weight_kg + ' kg' : '')}${row('Dimensions', dimsOf(s))}${row('Pays d\'escale', s.stopover_country)}${row('Douane', CUSTOMS[s.customs_status])}
           ${row('Mention', s.is_fragile ? 'COLIS FRAGILE' : '')}${row('Instructions', s.delivery_instructions)}</table></div>
       ${fees}
-      <div style="flex:1"></div>
+      <div id="receipt-spacer" style="flex:1"></div>
       <div style="display:flex;gap:7px;align-items:stretch">
-        <div style="flex:1;border:1px dashed #556;padding:5px 8px;min-height:27mm;font-size:8.5px;color:#667;display:flex;flex-direction:column"><div>SIGNATURE EXPÉDITEUR</div><div style="flex:1;display:flex;align-items:center;justify-content:center">${sigSender}</div></div>
-        <div style="flex:1;border:1px dashed #556;padding:5px 8px;min-height:27mm;font-size:8.5px;color:#667;display:flex;flex-direction:column"><div>SIGNATURE DE L'AGENCE</div><div style="flex:1;position:relative;display:flex;align-items:center;justify-content:center">${sigAgency}${stamp}</div></div>
+        <div style="flex:1;min-width:0;border:1px dashed #556;padding:5px 8px;min-height:${mm(27)};font-size:${f(8.5)};color:#667;display:flex;flex-direction:column"><div>SIGNATURE EXPÉDITEUR</div><div style="flex:1;display:flex;align-items:center;justify-content:center">${sigSender}</div></div>
+        <div style="flex:1;min-width:0;border:1px dashed #556;padding:5px 8px;min-height:${mm(27)};font-size:${f(8.5)};color:#667;display:flex;flex-direction:column"><div>SIGNATURE DE L'AGENCE</div><div style="flex:1;position:relative;display:flex;align-items:center;justify-content:center">${sigAgency}${stamp}</div></div>
       </div>
-      <div style="margin-top:8px;border-top:2px solid ${NAVY};padding-top:4px;text-align:center;font-size:9.5px"><div style="font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:${NAVY}">${esc(ag)}</div><div style="color:#667">Document émis le ${fmtDay(new Date())}</div></div>
+      <div style="margin-top:8px;border-top:2px solid ${NAVY};padding-top:4px;text-align:center;font-size:${f(9.5)}"><div style="font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:${NAVY}">${esc(ag)}</div><div style="color:#667">Document émis le ${fmtDay(new Date())}</div></div>
     </div></div>`;
+}
+// Cherche (par dichotomie) la plus grande échelle de caractères pour laquelle tout le contenu tient dans le cadre
+function receiptScale(s) {
+  const host = document.createElement('div');
+  host.style.cssText = 'position:fixed;left:-10000px;top:0;width:148mm;visibility:hidden;pointer-events:none';
+  document.body.appendChild(host);
+  const fits = (sc) => {
+    host.innerHTML = receiptHtml(s, sc);
+    const inner = host.querySelector('#receipt-inner'), sp = host.querySelector('#receipt-spacer');
+    if (!inner || !sp) return true;
+    sp.style.flex = '0 0 0px'; // on mesure la hauteur réelle du contenu, sans l'espace libre
+    const ir = inner.getBoundingClientRect(), lr = inner.lastElementChild.getBoundingClientRect();
+    const cs = getComputedStyle(inner), padB = parseFloat(cs.paddingBottom) || 0;
+    return (lr.bottom - ir.top + padB) <= ir.height - 2 && inner.scrollWidth <= inner.clientWidth + 1;
+  };
+  let res = 1;
+  try {
+    if (!fits(1)) {
+      let lo = 0.35, hi = 1;
+      for (let k = 0; k < 9; k++) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; }
+      res = Math.floor(lo * 100) / 100;
+    }
+  } catch (e) { res = 1; }
+  host.remove();
+  return res;
 }
 function showReceipt(s) {
   closeReceipt();
@@ -726,7 +755,7 @@ function showReceipt(s) {
       <button type="button" id="rcpt-wa" style="flex:1 1 100%" class="bg-gray-900 text-white font-semibold py-3 rounded-xl cursor-pointer">Partager</button>
       <button type="button" id="rcpt-print" class="flex-1 bg-swiftblue text-white font-semibold py-3 rounded-xl cursor-pointer">Imprimer / Enregistrer en PDF</button>
       <button type="button" id="rcpt-close" class="bg-white text-gray-800 font-semibold px-5 py-3 rounded-xl cursor-pointer">Fermer</button></div>
-    <div style="overflow-x:auto"><div id="receipt-zoom" style="width:148mm;margin:0 auto;zoom:${Math.min(1,(window.innerWidth-16)/560).toFixed(3)}">${receiptHtml(s)}</div></div>`;
+    <div style="overflow-x:auto"><div id="receipt-zoom" style="width:148mm;margin:0 auto;zoom:${Math.min(1,(window.innerWidth-16)/560).toFixed(3)}">${receiptHtml(s, receiptScale(s))}</div></div>`;
   document.body.appendChild(ov);
   $('rcpt-close').addEventListener('click', closeReceipt);
   $('rcpt-wa').addEventListener('click', (e) => shareReceipt(s, e.currentTarget));
@@ -741,7 +770,7 @@ async function shareReceipt(s, btn) {
   try {
     host = document.createElement('div');
     host.style.cssText = 'position:fixed;left:-10000px;top:0;width:148mm';
-    host.innerHTML = receiptHtml(s); document.body.appendChild(host);
+    host.innerHTML = receiptHtml(s, receiptScale(s)); document.body.appendChild(host);
     const canvas = await html2canvas(host.firstElementChild, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
     const pdf = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: [148, 210] });
     pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 148, 210);
@@ -819,24 +848,27 @@ document.querySelectorAll('.dtab').forEach(b => b.addEventListener('click', () =
 
 // ---------- CONSULTATIONS DU SUIVI PUBLIC (lien / QR code) : compteurs, pastille, historique ----------
 let TRK = {}, OKT = false, UNS = -1;
+let TRKERR = '';
 const trackChip = (s) => {
-  if (!OKT || !receiptSet.has(s.id)) return '';
+  if (!receiptSet.has(s.id)) return '';
+  if (!OKT) return TRKERR ? `<p class="text-xs mt-1 text-amber-700" data-tvc="${esc(s.id)}">👁 Accusé de réception indisponible : ${esc(TRKERR)}</p>` : '';
   const c = TRK[s.id] || { t: 0, u: 0 };
-  return `<p class="text-xs mt-1 ${c.t ? 'text-swiftblue font-semibold' : 'text-gray-400'}" data-tvc="${esc(s.id)}">${c.t ? '👁 Consulté ' + c.t + ' fois · dernière le ' + esc(fmtDate(c.l)) : '👁 Pas encore consulté sur le site de suivi'}${c.u ? ' <span class="newtag">+' + c.u + ' NOUVEAU</span>' : ''}</p>`;
+  if (!c.t) return `<p class="text-xs mt-1 text-gray-400" data-tvc="${esc(s.id)}">⏳ Accusé de réception : pas encore consulté sur le site de suivi</p>`;
+  return `<p class="text-xs mt-2 inline-block rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 font-semibold text-green-700" data-tvc="${esc(s.id)}">✅ Accusé de réception · consulté ${c.t} fois · dernière le ${esc(fmtFull(c.l))}${c.u ? ' <span class="newtag">+' + c.u + ' NOUVEAU</span>' : ''}</p>`;
 };
 async function refreshTrack() {
   if (!currentUser || isAdmin) return;
   try {
     const { data, error } = await supabaseClient.rpc('sw_my_track_counts');
-    if (error) { OKT = false; return; }
-    OKT = true; TRK = {}; let un = 0;
+    if (error) { OKT = false; TRKERR = error.message || 'indisponible'; return; }
+    OKT = true; TRKERR = ''; TRK = {}; let un = 0;
     (data || []).forEach(r => { TRK[r.shipment_id] = { t: +r.total, u: +r.unseen, l: r.last_view }; un += +r.unseen; });
     const b = $('list-badge');
     if (un > 0) { b.textContent = '+' + un; b.classList.remove('hidden'); } else b.classList.add('hidden');
     if (un > 0 && un > UNS) toast('👁 Votre colis a été consulté : ' + un + ' nouvelle(s) consultation(s).');
     UNS = un;
     document.querySelectorAll('[data-tvc]').forEach(el => { const s = SH[el.dataset.tvc]; if (s) el.outerHTML = trackChip(s); });
-  } catch (e) { OKT = false; }
+  } catch (e) { OKT = false; TRKERR = String((e && e.message) || e); }
 }
 async function loadViews(id) {
   const h = $('tv-' + id); if (!h) return;
@@ -1049,14 +1081,14 @@ $('new-form').addEventListener('submit', async (e) => {
 $('track-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const out = $('track-result'), code = $('track-code').value.trim();
-  // Chaque recherche par code est enregistrée (compteur de consultations du colis)
-  supabaseClient.rpc('sw_log_track_view', { p_code: code }).then(() => {}, () => {});
   out.innerHTML = '<p class="text-center text-gray-500">Recherche...</p>';
   const { data, error } = await fetchPublic(code);
   if (error) { out.innerHTML = ''; dShow("Erreur : " + error.message); return; }
   dHide();
   if (!data) { out.innerHTML = '<div class="bg-white rounded-2xl border border-gray-100 p-6 text-center text-gray-500">Aucun colis trouvé avec ce code. Vérifiez-le et réessayez.</div>'; return; }
   out.innerHTML = pubRender(data);
+  // Une recherche aboutie est enregistrée (compteur de consultations / accusé de réception du colis)
+  supabaseClient.rpc('sw_log_track_view', { p_code: code }).then(() => {}, () => {});
 });
 
 const doLogout = async () => {
@@ -1070,7 +1102,7 @@ const doLogout = async () => {
 $('logout-btn').addEventListener('click', doLogout);
 
 // ---------- PORTEFEUILLE ----------
-const METHODS = { mtn: 'MTN Money', orange: 'Orange Money', mobile_money: 'Mobile Money', virement: 'Virement', especes: 'Espèces' };
+const METHODS = { mtn: 'MTN Money (MoMo)', orange: 'Orange Money (OM)', mobile_money: 'MTN Money (MoMo) / Orange Money (OM)', virement: 'Virement', especes: 'Espèces' };
 const RSTATUS = {
   pending: { label: 'En attente', color: 'bg-amber-50 text-amber-700' },
   approved: { label: 'Approuvée', color: 'bg-green-50 text-green-700' },
@@ -1120,7 +1152,7 @@ async function loadWallet() {
 let PAYNUMS = [], PERR = '';
 const opKind = (v) => { v = String(v || '').toLowerCase(); return /mtn|momo/.test(v) ? 'mtn' : /orange|(^|\s)om(\s|$)/.test(v) ? 'orange' : v; };
 function renderPayNums() {
-  const op = $('rc-method').value, box = $('rc-numbers'), rows = PAYNUMS.filter(p => opKind(p.operator) === op), nom = op === 'mtn' ? 'MTN Money (MoMo)' : 'Orange Money';
+  const op = $('rc-method').value, box = $('rc-numbers'), rows = PAYNUMS.filter(p => opKind(p.operator) === op), nom = op === 'mtn' ? 'MTN Money (MoMo)' : 'Orange Money (OM)';
   box.innerHTML = rows.length
     ? '<p class="text-xs font-semibold text-gray-700">Effectuez le dépôt ' + nom + ' sur ce numéro :</p>' + rows.map(p => `<div class="flex items-center justify-between gap-2 bg-blue-50 border border-blue-100 rounded-xl p-3"><div><p class="text-base font-bold text-gray-900">${esc(p.phone)}</p><p class="text-xs text-gray-600">${esc(p.holder_name)}</p></div><button type="button" data-copy="${esc(p.phone)}" class="copy-num text-sm font-semibold text-swiftblue border border-blue-200 bg-white rounded-full px-3 py-1 cursor-pointer">Copier</button></div>`).join('')
     : '<p class="text-xs text-amber-700 bg-amber-50 rounded-xl p-3">' + (PERR ? 'Impossible de charger les numéros : ' + esc(PERR) : 'Aucun numéro ' + nom + ' disponible pour le moment.') + '</p>';
@@ -1345,7 +1377,7 @@ const WDEF = () => ({ q: '', st: '', m: '', per: 'all', min: '', max: '' });
 const W = WDEF();
 fpanel('wf', 'Filtrer mes recharges',
   finp('q', 'ID de transaction, montant, note...') +
-  `<div class="grid grid-cols-2 gap-3">${ffld('Statut', fsel('st', '<option value="">Tous</option><option value="pending">En attente</option><option value="approved">Approuvée</option><option value="rejected">Rejetée</option>'))}${ffld('Opérateur', fsel('m', '<option value="">Tous</option><option value="mtn">MTN Money (MoMo)</option><option value="orange">Orange Money</option>'))}</div>` +
+  `<div class="grid grid-cols-2 gap-3">${ffld('Statut', fsel('st', '<option value="">Tous</option><option value="pending">En attente</option><option value="approved">Approuvée</option><option value="rejected">Rejetée</option>'))}${ffld('Opérateur', fsel('m', '<option value="">Tous</option><option value="mtn">MTN Money (MoMo)</option><option value="orange">Orange Money (OM)</option>'))}</div>` +
   ffld('Période', fsel('per', PERS_HTML)) +
   `<div class="grid grid-cols-2 gap-3">${ffld('Montant min (FCFA)', finp('min', '0', 'number'))}${ffld('Montant max (FCFA)', finp('max', '∞', 'number'))}</div>`);
 function applyW() {
@@ -1433,12 +1465,21 @@ setInterval(() => {
   } else refreshHelpBadge();
 }, 30000);
 
+// Retour sur l'application (depuis le site de suivi, par exemple) : les accusés de réception sont relus immédiatement
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !currentUser || isAdmin || $('dash-view').classList.contains('hidden')) return;
+  if (!$('view-list').classList.contains('hidden')) loadShipments(lastOpenId || undefined); else refreshTrack();
+  refreshHelpBadge();
+});
+
 // ---------- DÉMARRAGE ----------
 // Anciens liens / anciens QR codes (?suivi=1&t=CODE) : redirigés vers le site de suivi séparé.
 const QS = new URLSearchParams(location.search);
 if (QS.has('t') || QS.has('suivi')) {
   const oldCode = QS.get('t') || '';
-  location.replace(TRACK_BASE + (oldCode ? '?t=' + encodeURIComponent(oldCode) : ''));
+  const go = () => location.replace(TRACK_BASE + (oldCode ? '?t=' + encodeURIComponent(oldCode) : ''));
+  // Le scan d'un ancien QR code est enregistré avant la redirection (accusé de réception du colis)
+  if (oldCode) { setTimeout(go, 1500); supabaseClient.rpc('sw_log_track_view', { p_code: oldCode }).then(go, go); } else go();
 } else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) showDashView(data.session.user); else showAuthView(); });
 </script>
 
@@ -1595,7 +1636,7 @@ select.x-in{cursor:pointer}
   // Filtres & file d'envoi de l'onglet WhatsApp
   const WA = { q: '', act: 'all', bal: 'all', min: '', max: '', shp: 'all', reg: 'all', msg: '', done: {}, list: [] };
   // Offre promotionnelle (Paramètres) : reçu offert à un groupe filtré
-  const PR = { seg: 'never_zero', camp: 'Offre promotionnelle', msg: '', excl: {}, list: [] };
+  const PR = { seg: 'never_zero', camp: 'Offre promotionnelle', msg: '', excl: {}, list: [], nb: '1', days: '30', min: '3', top: '0', cool: '30', cnt: {}, cntFor: '', cntErr: '', loading: false };
   // Journal d'activité (onglet JOURNAL)
   const J = { d: 30, adm: '', act: '', q: '', rows: [] };
   // Couleurs de statut : COL = fond / liseré des cartes ; TXT = classe de texte ; RTXT = statuts de recharge ; DONE = barre « livré »
@@ -1743,7 +1784,7 @@ select.x-in{cursor:pointer}
     S.st = null;
     if (isSuper) { try { const st = await supabaseClient.rpc('sw_admin_stats'); S.st = st.error ? null : st.data; } catch (e) { S.st = null; } }
     // Historique des reçus offerts (table créée par la migration SQL ; ignorée si absente)
-    S.grants = []; S.grantsOk = false;
+    S.grants = []; S.grantsOk = false; PR.cntFor = '';
     if (isSuper) { try { const gr = await supabaseClient.from('sw_free_grants').select('user_id,created_at,campaign').order('created_at', { ascending: false }).limit(5000); if (!gr.error) { S.grants = gr.data || []; S.grantsOk = true; } } catch (e) {} }
   }
 
@@ -2299,11 +2340,19 @@ select.x-in{cursor:pointer}
     waList();
   }
 
-  // ---------- OFFRE PROMOTIONNELLE : reçu offert à un groupe filtré (Super Admin) ----------
+  // ---------- OFFRE PROMOTIONNELLE : reçus offerts à un groupe filtré (Super Admin) ----------
+  // Segments classiques (un seul cadeau par utilisateur) + « fidélité » : récompense renouvelable des meilleurs utilisateurs
   function prTargets() {
     const mt = acctMeta(), now = Date.now(), got = new Set((S.grants || []).map(g => g.user_id));
-    return S.usr.filter(u => {
-      if (u.is_active === false || got.has(u.id)) return false;
+    const camp = (PR.camp || '').trim(), cool = +PR.cool || 0, minShip = Math.max(1, parseInt(PR.min, 10) || 1);
+    const out = S.usr.filter(u => {
+      if (u.is_active === false) return false;
+      if (PR.seg === 'loyal') {
+        if ((PR.cnt[u.id] || 0) < minShip) return false;
+        // déjà récompensé avec cette offre (une seule fois, ou depuis moins de N jours)
+        return !(S.grants || []).some(g => g.user_id === u.id && (g.campaign || '') === camp && (!cool || now - new Date(g.created_at).getTime() < cool * 864e5));
+      }
+      if (got.has(u.id)) return false;
       const bal = Number(S.bal[u.id] || 0), shipped = !!mt.cnt[u.id];
       if (PR.seg === 'never_zero') return !shipped && bal <= 0;
       if (PR.seg === 'never') return !shipped;
@@ -2311,32 +2360,74 @@ select.x-in{cursor:pointer}
       if (PR.seg === 'new7') return now - new Date(u.created_at).getTime() <= 7 * 864e5;
       if (PR.seg === 'dormant') return isDormant(u, mt);
       return true;
-    }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    });
+    if (PR.seg === 'loyal') {
+      out.sort((a, b) => (PR.cnt[b.id] || 0) - (PR.cnt[a.id] || 0));
+      const top = parseInt(PR.top, 10) || 0;
+      return top > 0 ? out.slice(0, top) : out;
+    }
+    return out.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  }
+  // Activité des utilisateurs (nombre de colis sur la période choisie) pour l'offre fidélité
+  async function loyalLoad() {
+    if (PR.loading) return;
+    PR.loading = true;
+    const days = String(+PR.days || 30), since = new Date(Date.now() - (+days) * 864e5).toISOString(), cnt = {};
+    let err = '';
+    try {
+      for (let from = 0; from < 20000; from += 1000) {
+        const { data, error } = await supabaseClient.from('sw_shipments').select('user_id').gte('created_at', since).order('created_at', { ascending: false }).range(from, from + 999);
+        if (error) { err = error.message; break; }
+        (data || []).forEach(s => { cnt[s.user_id] = (cnt[s.user_id] || 0) + 1; });
+        if (!data || data.length < 1000) break;
+      }
+    } catch (e) { err = String((e && e.message) || e); }
+    PR.cnt = cnt; PR.cntErr = err; PR.cntFor = days; PR.loading = false;
+    prList();
   }
   function prRead() {
-    const v = (id) => { const e = $(id); return e ? e.value : ''; };
-    PR.seg = v('pr-seg') || PR.seg; PR.camp = v('pr-camp'); PR.msg = v('pr-msg');
+    const v = (id, d) => { const e = $(id); return e ? e.value : d; };
+    PR.seg = v('pr-seg', PR.seg) || PR.seg; PR.camp = v('pr-camp', PR.camp); PR.msg = v('pr-msg', PR.msg);
+    PR.days = v('pr-days', PR.days); PR.min = v('pr-min', PR.min); PR.top = v('pr-top', PR.top); PR.cool = v('pr-cool', PR.cool); PR.nb = v('pr-nb', PR.nb);
+  }
+  // Affiche / masque les réglages « fidélité » et propose un nom d'offre adapté
+  function prSegUi() {
+    const loyal = PR.seg === 'loyal', c = (PR.camp || '').trim();
+    if (loyal && c === 'Offre promotionnelle') PR.camp = 'Récompense fidélité';
+    else if (!loyal && c === 'Récompense fidélité') PR.camp = 'Offre promotionnelle';
+    const ce = $('pr-camp'); if (ce) ce.value = PR.camp;
+    const l = $('pr-loyal'); if (l) l.style.display = loyal ? 'grid' : 'none';
   }
   function prList() {
     const box = $('pr-res'); if (!box) return;
-    const mt = acctMeta(), all = prTargets(), shown = all.slice(0, 150);
+    const loyal = PR.seg === 'loyal', days = String(+PR.days || 30);
+    if (loyal && PR.cntFor !== days) { box.innerHTML = '<p class="x-hint">Chargement de l\'activité des utilisateurs...</p>'; loyalLoad(); return; }
+    const mt = acctMeta(), all = prTargets(), shown = all.slice(0, 150), nb = Math.min(5, Math.max(1, parseInt(PR.nb, 10) || 1));
     PR.list = all.filter(u => !PR.excl[u.id]);
-    const rows = shown.map(u => `<label class="x-row" style="cursor:pointer;align-items:center"><span style="display:flex;gap:10px;align-items:center;min-width:0"><input type="checkbox" data-prx="${esc(u.id)}" ${PR.excl[u.id] ? '' : 'checked'}><span style="word-break:break-all;font-size:12.5px"><b>${esc(u.email || '-')}</b><br><span style="color:var(--mut)">${esc(u.phone || 'sans téléphone')} · ${fmtMoney(S.bal[u.id] || 0)} · ${mt.cnt[u.id] || 0} colis · inscrit le ${fmtDay(u.created_at)}</span></span></span></label>`).join('');
-    box.innerHTML = `<div class="x-bar" style="justify-content:space-between;margin:14px 0 8px"><span class="x-lead" style="margin:0"><b>${PR.list.length}</b> / ${all.length} sélectionné(s) · valeur offerte <b>${fmtMoney(PR.list.length * RECEIPT_PRICE)}</b></span>
+    const info = (u) => loyal ? (PR.cnt[u.id] || 0) + ' colis sur ' + days + ' j' : (mt.cnt[u.id] || 0) + ' colis';
+    const rows = shown.map(u => `<label class="x-row" style="cursor:pointer;align-items:center"><span style="display:flex;gap:10px;align-items:center;min-width:0"><input type="checkbox" data-prx="${esc(u.id)}" ${PR.excl[u.id] ? '' : 'checked'}><span style="word-break:break-all;font-size:12.5px"><b>${esc(u.email || '-')}</b><br><span style="color:var(--mut)">${esc(u.phone || 'sans téléphone')} · ${fmtMoney(S.bal[u.id] || 0)} · ${info(u)} · inscrit le ${fmtDay(u.created_at)}</span></span></span></label>`).join('');
+    box.innerHTML = `${loyal && PR.cntErr ? '<p class="x-hint t-warn">Activité indisponible : ' + esc(PR.cntErr) + '</p>' : ''}<div class="x-bar" style="justify-content:space-between;margin:14px 0 8px"><span class="x-lead" style="margin:0"><b>${PR.list.length}</b> / ${all.length} sélectionné(s) · valeur offerte <b>${fmtMoney(PR.list.length * nb * RECEIPT_PRICE)}</b></span>
         <span class="x-acts"><button class="x-btn" data-prall="1">TOUT COCHER</button><button class="x-btn" data-prnone="1">TOUT DÉCOCHER</button></span></div>
       ${all.length ? `<div style="max-height:300px;overflow-y:auto;border:1px solid var(--line);border-radius:12px;padding:0 10px;background:#fff">${rows}</div>${all.length > shown.length ? `<p class="x-hint">Affichage limité aux ${shown.length} premiers : les autres restent inclus dans l'offre.</p>` : ''}` : '<div class="x-empty">Aucun utilisateur ne correspond à ce segment (ou tous ont déjà reçu l\'offre).</div>'}
-      <button class="x-btn go" style="width:100%;margin-top:12px" data-prsend="1" ${PR.list.length ? '' : 'disabled'}>🎁 OFFRIR UN REÇU GRATUIT À ${PR.list.length} UTILISATEUR(S)</button>`;
+      <button class="x-btn go" style="width:100%;margin-top:12px" data-prsend="1" ${PR.list.length ? '' : 'disabled'}>🎁 OFFRIR ${nb} REÇU${nb > 1 ? 'S' : ''} GRATUIT${nb > 1 ? 'S' : ''} À ${PR.list.length} UTILISATEUR(S)</button>`;
   }
   function promoHtml() {
     if (!isSuper) return '';
-    const segOpts = [['never_zero', "Jamais généré d'expédition ET solde à 0 FCFA (prioritaire)"], ['never', "Jamais généré d'expédition"], ['zero', 'Solde à 0 FCFA'], ['new7', 'Nouveaux inscrits (7 jours)'], ['dormant', 'Inactifs depuis plus de 30 jours']];
-    return `<div class="x-panel" id="pr-box" style="margin-top:0;margin-bottom:12px"><p class="x-h">🎁 OFFRE PROMOTIONNELLE // reçu offert à un groupe</p>
-      <p class="x-lead" style="margin-bottom:14px">Crédite le prix d'un reçu (<b>${fmtMoney(RECEIPT_PRICE)}</b>) sur le portefeuille des utilisateurs sélectionnés : ils génèrent leur première expédition sans payer. Seuls les comptes actifs sont ciblés, et un utilisateur ne reçoit l'offre qu'une seule fois${S.grantsOk ? ' (' + new Set(S.grants.map(g => g.user_id)).size + ' déjà gratifié(s))' : ''}.</p>
+    const segOpts = [['never_zero', "Jamais généré d'expédition ET solde à 0 FCFA (prioritaire)"], ['never', "Jamais généré d'expédition"], ['zero', 'Solde à 0 FCFA'], ['new7', 'Nouveaux inscrits (7 jours)'], ['dormant', 'Inactifs depuis plus de 30 jours'], ['loyal', '⭐ Meilleurs utilisateurs : récompense fidélité (régulière)']];
+    const sel = (id, cur, opts) => `<select id="${id}" class="x-in" style="margin-top:4px">${opts.map(([v, l]) => `<option value="${v}" ${String(cur) === String(v) ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+    return `<div class="x-panel" id="pr-box" style="margin-top:0;margin-bottom:12px"><p class="x-h">🎁 OFFRE PROMOTIONNELLE // reçus offerts à un groupe</p>
+      <p class="x-lead" style="margin-bottom:14px">Crédite le prix d'un reçu (<b>${fmtMoney(RECEIPT_PRICE)}</b>) sur le portefeuille des utilisateurs sélectionnés : ils génèrent leurs expéditions sans payer. Seuls les comptes actifs sont ciblés. Les segments classiques ne reçoivent l'offre qu'une seule fois${S.grantsOk ? ' (' + new Set(S.grants.map(g => g.user_id)).size + ' déjà gratifié(s))' : ''} ; la <b>récompense fidélité</b> peut être renouvelée à intervalle régulier pour encourager vos meilleurs utilisateurs.</p>
       ${S.grantsOk ? '' : '<p class="x-hint t-warn" style="margin:0 0 12px">Migration SQL non exécutée : l\'envoi sera refusé tant que la fonction « sw_admin_grant_free_receipts » n\'existe pas.</p>'}
       <div style="display:grid;gap:12px">
-        <div><label class="x-lb">SEGMENT CIBLÉ</label><select id="pr-seg" class="x-in" style="margin-top:4px">${segOpts.map(([v, l]) => `<option value="${v}" ${PR.seg === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+        <div><label class="x-lb">SEGMENT CIBLÉ</label>${sel('pr-seg', PR.seg, segOpts)}</div>
+        <div id="pr-loyal" style="display:${PR.seg === 'loyal' ? 'grid' : 'none'};gap:12px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))">
+          <div><label class="x-lb">PÉRIODE D'ACTIVITÉ</label>${sel('pr-days', PR.days, [['30', '30 derniers jours'], ['60', '60 derniers jours'], ['90', '90 derniers jours'], ['180', '6 derniers mois']])}</div>
+          <div><label class="x-lb">COLIS MINIMUM SUR LA PÉRIODE</label><input id="pr-min" type="number" min="1" step="1" class="x-in" style="margin-top:4px" value="${esc(PR.min)}"></div>
+          <div><label class="x-lb">LIMITER AUX N MEILLEURS</label>${sel('pr-top', PR.top, [['0', 'Tous les éligibles'], ['5', 'Les 5 meilleurs'], ['10', 'Les 10 meilleurs'], ['20', 'Les 20 meilleurs'], ['50', 'Les 50 meilleurs']])}</div>
+          <div><label class="x-lb">RÉCOMPENSE RÉGULIÈRE</label>${sel('pr-cool', PR.cool, [['0', 'Une seule fois par utilisateur'], ['7', 'Renouvelable chaque semaine (7 j)'], ['30', 'Renouvelable chaque mois (30 j)'], ['90', 'Renouvelable tous les 90 jours']])}</div></div>
+        <div><label class="x-lb">NOMBRE DE REÇUS OFFERTS PAR UTILISATEUR</label>${sel('pr-nb', PR.nb, [['1', '1 reçu'], ['2', '2 reçus'], ['3', '3 reçus'], ['4', '4 reçus'], ['5', '5 reçus']])}</div>
         <div><label class="x-lb">NOM DE L'OFFRE</label><input id="pr-camp" class="x-in" maxlength="80" style="margin-top:4px" value="${esc(PR.camp)}" placeholder="Ex : Offre de lancement"></div>
-        <div><label class="x-lb">MESSAGE D'ANNONCE AUX BÉNÉFICIAIRES (facultatif)</label><textarea id="pr-msg" rows="3" maxlength="1000" class="x-in" style="margin-top:4px" placeholder="Ex : Bonne nouvelle ! Votre premier reçu est offert, créez votre expédition dès maintenant.">${esc(PR.msg)}</textarea></div>
+        <div><label class="x-lb">MESSAGE D'ANNONCE AUX BÉNÉFICIAIRES (facultatif)</label><textarea id="pr-msg" rows="3" maxlength="1000" class="x-in" style="margin-top:4px" placeholder="Ex : Merci pour votre fidélité ! Deux reçus vous sont offerts, créez vos expéditions dès maintenant.">${esc(PR.msg)}</textarea></div>
       </div>
       <div id="pr-res"></div></div>`;
   }
@@ -2363,13 +2454,13 @@ select.x-in{cursor:pointer}
       <div style="display:flex;gap:8px"><input id="cfg-price" type="number" min="0" step="1" class="x-in" value="${esc(RECEIPT_PRICE)}"><button class="x-btn go" data-price="1">ENREGISTRER</button></div></div>` : '';
     const payHtml = `<div class="x-panel" style="margin-top:0"><p class="x-h">NUMÉROS DE RECHARGE (affichés aux clients)</p>
       <div style="display:grid;gap:8px;margin-bottom:12px">
-        <select id="pn-op" class="x-in"><option value="mtn">MTN Money (MoMo)</option><option value="orange">Orange Money</option></select>
+        <select id="pn-op" class="x-in"><option value="mtn">MTN Money (MoMo)</option><option value="orange">Orange Money (OM)</option></select>
         <input id="pn-phone" class="x-in" placeholder="Numéro (ex : 6XX XX XX XX)">
         <input id="pn-name" class="x-in" placeholder="Nom du titulaire">
         <button class="x-btn go" data-pnadd="1">AJOUTER</button></div>
       ${(S.pn || []).map(p => S.pe === p.id
       ? `<div class="x-panel" style="margin:0 0 8px"><div style="display:grid;gap:8px">
-          <select id="pe-op" class="x-in"><option value="mtn" ${p.operator === 'mtn' ? 'selected' : ''}>MTN Money (MoMo)</option><option value="orange" ${p.operator === 'orange' ? 'selected' : ''}>Orange Money</option></select>
+          <select id="pe-op" class="x-in"><option value="mtn" ${p.operator === 'mtn' ? 'selected' : ''}>MTN Money (MoMo)</option><option value="orange" ${p.operator === 'orange' ? 'selected' : ''}>Orange Money (OM)</option></select>
           <input id="pe-phone" class="x-in" value="${esc(p.phone)}" placeholder="Numéro">
           <input id="pe-name" class="x-in" value="${esc(p.holder_name)}" placeholder="Nom du titulaire">
           <div style="display:flex;gap:8px"><button class="x-btn go" data-pesave="${esc(p.id)}">ENREGISTRER</button><button class="x-btn" data-pecancel="1">ANNULER</button></div></div></div>`
@@ -2383,7 +2474,7 @@ select.x-in{cursor:pointer}
       <div class="x-read" style="cursor:default"><small>PRIX DU REÇU</small><strong style="font-size:22px">${fmtMoney(RECEIPT_PRICE)}</strong><em>par expédition</em></div>
       <div class="x-read" style="cursor:default"><small>NUMÉROS ACTIFS</small><strong style="font-size:22px">${nAct} / ${nPay}</strong><em>visibles par les clients</em></div>
       <div class="x-read" style="cursor:default"><small>REÇUS OFFERTS</small><strong style="font-size:22px">${gifted == null ? '-' : gifted}</strong><em>utilisateurs gratifiés</em></div></div>` : '';
-    const lead = { price: "Fixez le montant débité aux clients pour la génération d'un reçu A5 et d'un code de suivi.", pay: 'Gérez les numéros Mobile Money affichés aux clients lors des demandes de recharge.', promo: "Offrez un reçu gratuit à un groupe ciblé d'utilisateurs, ou activez l'offre de bienvenue automatique." }[S.cs];
+    const lead = { price: "Fixez le montant débité aux clients pour la génération d'un reçu A5 et d'un code de suivi.", pay: 'Gérez les numéros MTN Money (MoMo) et Orange Money (OM) affichés aux clients lors des demandes de recharge.', promo: "Offrez des reçus gratuits à un groupe ciblé, récompensez régulièrement vos meilleurs utilisateurs, ou activez l'offre de bienvenue automatique." }[S.cs];
     M.innerHTML = `<div class="x-wrap"><p class="x-h"><b>●</b> PARAMÈTRES // ${isSuper ? 'TARIFICATION & OFFRES' : 'NUMÉROS DE PAIEMENT'}</p>
       <p class="x-lead">${lead}</p>
       ${sum}${tabs}
@@ -2510,14 +2601,21 @@ select.x-in{cursor:pointer}
     if (g('data-prsend')) {
       if (!needSuper()) return;
       prRead();
-      const ids = PR.list.map(u => u.id);
+      const ids = PR.list.map(u => u.id), nb = Math.min(5, Math.max(1, parseInt(PR.nb, 10) || 1));
       if (!ids.length) return toast('Aucun destinataire sélectionné.', 'error');
-      if (!confirm('Offrir un reçu gratuit (' + fmtMoney(RECEIPT_PRICE) + ') à ' + ids.length + ' utilisateur(s) ?\nLeur portefeuille sera crédité de ce montant.')) return;
+      if (!confirm('Offrir ' + nb + ' reçu(s) gratuit(s) (' + fmtMoney(RECEIPT_PRICE * nb) + ' par personne) à ' + ids.length + ' utilisateur(s) ?\nLeur portefeuille sera crédité de ce montant.')) return;
       const btn = g('data-prsend'); btn.disabled = true;
-      const { data, error } = await arpc('sw_admin_grant_free_receipts', { p_user_ids: ids, p_campaign: PR.camp.trim() || null, p_message: PR.msg.trim() || null, p_once: true });
+      // fidélité ou plusieurs reçus : envois répétables ; sinon un seul cadeau par utilisateur
+      const once = PR.seg !== 'loyal' && nb === 1;
+      let n = 0, err = null;
+      for (let i = 0; i < nb; i++) {
+        const r = await arpc('sw_admin_grant_free_receipts', { p_user_ids: ids, p_campaign: PR.camp.trim() || null, p_message: i === 0 ? (PR.msg.trim() || null) : null, p_once: once });
+        if (r.error) { err = r.error; break; }
+        if (i === 0) n = r.data;
+      }
       btn.disabled = false;
-      if (error) return toast('Erreur : ' + error.message, 'error');
-      toast('Reçu offert à ' + data + ' utilisateur(s).'); PR.excl = {}; PR.msg = '';
+      if (err) return toast('Erreur : ' + err.message, 'error');
+      toast(nb + ' reçu(s) offert(s) à ' + n + ' utilisateur(s).'); PR.excl = {}; PR.msg = '';
       await loadAll(); return cfg();
     }
     // ---- WhatsApp : file d'envoi, ouverture individuelle, copie des numéros ----
@@ -2751,7 +2849,7 @@ select.x-in{cursor:pointer}
     const t = e.target;
     if (t.id === 'dm-q') dmRefresh();
     if (t.closest && t.closest('#bc-box')) bcUpdate();
-    if (t.id === 'pr-q') { prList(); }
+    if (t.id === 'pr-min' || t.id === 'pr-camp') { prRead(); prList(); }
     waEv(e); flEv(e);
   });
   A.addEventListener('change', (e) => {
@@ -2760,7 +2858,7 @@ select.x-in{cursor:pointer}
     if (t.id === 'x-usort') { S.us = t.value; S.ulim = 60; acct(); }
     if (t.closest && t.closest('#pr-box')) {
       if (t.dataset && t.dataset.prx) { if (t.checked) delete PR.excl[t.dataset.prx]; else PR.excl[t.dataset.prx] = 1; prList(); }
-      else { prRead(); if (t.id === 'pr-seg') { PR.excl = {}; prList(); } }
+      else { prRead(); if (t.id === 'pr-seg') { PR.excl = {}; prSegUi(); } prList(); }
     }
     waEv(e); flEv(e);
   });
