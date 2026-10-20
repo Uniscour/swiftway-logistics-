@@ -27,57 +27,43 @@
 }
 </style>
 <style>
-/* ===== THÈME CLIENT (n'affecte pas la console admin) ===== */
-body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased;background:radial-gradient(1100px 520px at 8% -8%,#d9e7ff 0,transparent 60%),radial-gradient(900px 480px at 100% 0,#ece6ff 0,transparent 55%),#f5f7fb;background-attachment:fixed}
+/* ===== THÈME CLIENT : en-tête, navigation, cartes, formulaires, portefeuille, badges (n'affecte pas la console admin) ===== */
+body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased;background:radial-gradient(900px 420px at 100% 0,#d3e3ff 0,transparent 60%),radial-gradient(800px 420px at 0 35%,#e3deff 0,transparent 55%),#eef3ff;background-attachment:fixed}
 .brand-mark{width:60px;height:60px;margin:0 auto 12px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:30px;background:linear-gradient(135deg,#0047AB,#2a7bff);box-shadow:0 12px 26px -8px rgba(0,71,171,.7)}
 .brand-mark.sm{width:42px;height:42px;margin:0;border-radius:14px;font-size:21px}
 #auth-view{background:linear-gradient(160deg,#071d4d 0%,#0047AB 48%,#2a7bff 100%)}
-#auth-view>div.bg-white{border:0;border-radius:30px;box-shadow:0 40px 90px -25px rgba(0,15,70,.65);animation:swIn .5s ease both}
+#auth-view>div.bg-white{border:0;border-radius:30px;box-shadow:0 40px 90px -25px rgba(0,15,70,.65);animation:swIn .5s ease both;background:rgba(255,255,255,.97)}
 #auth-view #lang-toggle{background:rgba(255,255,255,.95)}
-#dash-view>header{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(15,23,42,.06)}
-#dash-view>header #logout-btn{border-radius:999px;background:#fff}
+#dash-view>header{position:sticky;top:0;z-index:30;background:linear-gradient(135deg,#071d4d 0%,#0a3a9a 55%,#2a7bff 100%);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:0;border-radius:0 0 30px 30px;box-shadow:0 22px 44px -22px rgba(0,30,100,.75)}
+#dash-view>header #logout-btn{border-radius:999px;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.35);backdrop-filter:blur(8px)}
 #dash-view main{padding-bottom:120px}
-#dtabs{position:fixed;left:50%;bottom:max(12px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(560px,calc(100% - 20px));z-index:45;margin:0!important;padding:6px;gap:4px;background:rgba(255,255,255,.92)!important;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(15,23,42,.07);border-radius:24px!important;box-shadow:0 20px 44px -14px rgba(15,23,42,.38)}
-#dtabs .dtab{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px!important;border-radius:18px!important;font-size:10.5px!important;background:transparent;box-shadow:none!important;transition:all .2s ease}
+#dtabs{position:fixed;left:50%;bottom:max(12px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(560px,calc(100% - 20px));z-index:45;margin:0!important;padding:6px;gap:4px;background:linear-gradient(135deg,rgba(7,29,77,.96),rgba(10,58,154,.96))!important;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.14);border-radius:24px!important;box-shadow:0 24px 50px -14px rgba(0,20,80,.7)}
+#dtabs .dtab{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px!important;border-radius:18px!important;font-size:10.5px!important;background:transparent;box-shadow:none!important;transition:all .2s ease;color:#a9c3ff!important;position:relative}
 #dtabs .dtab .ic{font-size:19px;line-height:1}
-#dtabs .dtab.text-swiftblue{background-image:linear-gradient(135deg,#0047AB,#2a7bff)!important;color:#fff!important;box-shadow:0 10px 20px -8px rgba(0,71,171,.65)!important}
+#dtabs .dtab.text-swiftblue{background-image:linear-gradient(135deg,#2a7bff,#7db4ff)!important;color:#fff!important;box-shadow:0 10px 22px -6px rgba(42,123,255,.85),inset 0 1px 0 rgba(255,255,255,.4)!important}
 #dash-view .bg-white.rounded-3xl,#dash-view .bg-white.rounded-2xl{border:1px solid rgba(15,23,42,.06);box-shadow:0 1px 2px rgba(15,23,42,.04),0 14px 34px -18px rgba(15,23,42,.2);transition:transform .2s ease,box-shadow .2s ease}
 #dash-view .bg-white.rounded-2xl:hover{transform:translateY(-1px);box-shadow:0 18px 38px -18px rgba(15,23,42,.28)}
 #dash-view input:not([type=checkbox]):not([type=file]),#dash-view select,#dash-view textarea,#auth-view input{border-radius:14px;background-color:#f8fafc;font-size:16px;transition:all .15s ease}
 #dash-view input:not([type=checkbox]):not([type=file]):focus,#dash-view select:focus,#dash-view textarea:focus,#auth-view input:focus{background-color:#fff;border-color:#2a7bff;box-shadow:0 0 0 4px rgba(42,123,255,.16)}
-#dash-view button.bg-swiftblue,#auth-view button.bg-swiftblue{background-image:linear-gradient(135deg,#0047AB,#2a7bff);box-shadow:0 12px 24px -10px rgba(0,71,171,.7);transition:transform .12s ease,box-shadow .2s ease}
+#dash-view button.bg-swiftblue,#auth-view button.bg-swiftblue{background-image:linear-gradient(135deg,#0047AB,#2a7bff);box-shadow:0 14px 28px -10px rgba(0,71,171,.8),inset 0 1px 0 rgba(255,255,255,.28);transition:transform .12s ease,box-shadow .2s ease;letter-spacing:.01em}
 #dash-view button.bg-swiftblue:active,#auth-view button.bg-swiftblue:active{transform:scale(.98)}
 #dash-view button:disabled{opacity:.6}
-.wallet-hero{position:relative;overflow:hidden;border-radius:28px;padding:26px 24px;color:#fff;background:linear-gradient(135deg,#071d4d,#0047AB 55%,#2a7bff);box-shadow:0 26px 50px -22px rgba(0,71,171,.75)}
+.wallet-hero{position:relative;overflow:hidden;border-radius:28px;padding:30px 26px;color:#fff;background:linear-gradient(135deg,#050f2e 0%,#0a3a9a 50%,#2a7bff 100%);box-shadow:0 30px 56px -24px rgba(0,71,171,.9),inset 0 1px 0 rgba(255,255,255,.25)}
 .wallet-hero::after{content:"";position:absolute;right:-50px;top:-50px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.12)}
 .wallet-hero::before{content:"";position:absolute;right:30px;bottom:-70px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.08)}
 .wallet-hero p{position:relative;z-index:1}
-#price-box{background:linear-gradient(135deg,#eef4ff,#f6f0ff)!important;border:1px solid #dbe6ff!important;border-radius:20px!important}
+#price-box{background:linear-gradient(135deg,#eef4ff,#f6f0ff)!important;border:1px solid #dbe6ff!important;border-radius:20px!important;box-shadow:0 20px 40px -24px rgba(0,71,171,.6)}
 #d-alert{border-radius:16px;box-shadow:0 10px 24px -14px rgba(15,23,42,.3)}
 @keyframes swIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 #dash-view section:not(.hidden){animation:swIn .35s ease both}
-@media (prefers-reduced-motion:reduce){#dash-view section,#auth-view>div{animation:none!important}}
-</style>
-<style>
-/* ===== THÈME CLIENT PREMIUM BLEU (v2) ===== */
-body.bg-gray-50{background:radial-gradient(900px 420px at 100% 0,#d3e3ff 0,transparent 60%),radial-gradient(800px 420px at 0 35%,#e3deff 0,transparent 55%),#eef3ff;background-attachment:fixed}
-/* En-tête bleu nuit */
-#dash-view>header{background:linear-gradient(135deg,#071d4d 0%,#0a3a9a 55%,#2a7bff 100%);border-bottom:0;border-radius:0 0 30px 30px;box-shadow:0 22px 44px -22px rgba(0,30,100,.75)}
 #dash-view>header h1{color:#fff!important;text-shadow:0 2px 12px rgba(0,0,0,.25)}
 #dash-view>header #user-email{color:rgba(255,255,255,.78)}
-#dash-view>header #logout-btn{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.35);backdrop-filter:blur(8px)}
 #dash-view>header #logout-btn:hover{background:rgba(255,255,255,.26);color:#fff}
 #dash-view .brand-mark.sm{background:#fff;box-shadow:0 10px 22px -8px rgba(0,0,0,.55),0 0 0 3px rgba(255,255,255,.25)}
-/* Barre de navigation sombre */
-#dtabs{background:linear-gradient(135deg,rgba(7,29,77,.96),rgba(10,58,154,.96))!important;border:1px solid rgba(255,255,255,.14);box-shadow:0 24px 50px -14px rgba(0,20,80,.7)}
-#dtabs .dtab{color:#a9c3ff!important}
-#dtabs .dtab.text-swiftblue{background-image:linear-gradient(135deg,#2a7bff,#7db4ff)!important;color:#fff!important;box-shadow:0 10px 22px -6px rgba(42,123,255,.85),inset 0 1px 0 rgba(255,255,255,.4)!important}
 #dtabs .dtab.text-swiftblue .ic{transform:scale(1.15)}
-/* Cartes avec liseré dégradé */
 #dash-view .bg-white.rounded-3xl{position:relative;overflow:hidden;border:1px solid #dfe9ff;box-shadow:0 2px 4px rgba(10,58,154,.05),0 24px 50px -26px rgba(10,58,154,.45)}
 #dash-view .bg-white.rounded-3xl::before{content:"";position:absolute;left:0;right:0;top:0;height:5px;background:linear-gradient(90deg,#071d4d,#0047AB,#2a7bff,#8cbcff)}
 #dash-view .bg-white.rounded-2xl{border:1px solid #dfe9ff;border-left:5px solid #2a7bff}
-/* Titres */
 #dash-view h2.text-lg{font-size:21px;font-weight:800;letter-spacing:-.01em;background:linear-gradient(90deg,#071d4d,#0047AB 70%,#2a7bff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 #dash-view h3.text-base{color:#071d4d;font-weight:800;display:flex;align-items:center;gap:10px}
 #dash-view h3.text-base::before{content:"";width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#0047AB,#2a7bff);box-shadow:0 0 0 4px rgba(42,123,255,.18)}
@@ -86,9 +72,6 @@ body.bg-gray-50{background:radial-gradient(900px 420px at 100% 0,#d3e3ff 0,trans
 #dash-view select{background-image:linear-gradient(45deg,transparent 50%,#0047AB 50%),linear-gradient(135deg,#0047AB 50%,transparent 50%);background-position:calc(100% - 20px) 55%,calc(100% - 14px) 55%;background-size:6px 6px;background-repeat:no-repeat;-webkit-appearance:none;appearance:none;padding-right:40px}
 #dash-view input:not([type=checkbox]):not([type=file]),#dash-view select,#dash-view textarea{border:1.5px solid #dbe6ff;background-color:#f6f9ff}
 #dash-view input[type=checkbox]{accent-color:#0047AB}
-/* Boutons principaux plus riches */
-#dash-view button.bg-swiftblue,#auth-view button.bg-swiftblue{letter-spacing:.01em;box-shadow:0 14px 28px -10px rgba(0,71,171,.8),inset 0 1px 0 rgba(255,255,255,.28)}
-/* Liste des colis */
 #dash-view p.font-bold.text-gray-900.break-all{display:inline-block;max-width:100%;background:#eaf1ff;color:#071d4d;font-size:14px;letter-spacing:.03em;padding:5px 11px;border-radius:11px;border:1px solid #cfe0ff;overflow-wrap:anywhere}
 #dash-view span.inline-block.rounded-full.text-xs.font-semibold{white-space:nowrap;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid rgba(0,0,0,.05)}
 #dash-view span.inline-block.rounded-full.text-xs.font-semibold::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
@@ -98,28 +81,18 @@ body.bg-gray-50{background:radial-gradient(900px 420px at 100% 0,#d3e3ff 0,trans
 #list-container .del-btn{background:#fff1f1;border-color:#fbcaca!important;padding:8px 14px!important}
 #list-container button:not(.bg-swiftblue){transition:transform .12s ease,box-shadow .2s ease}
 #list-container button:not(.bg-swiftblue):active{transform:scale(.97)}
-/* Détails de suivi */
 #dash-view .bg-gray-50.rounded-xl{background:#f2f7ff;border:1px solid #e0eaff}
 #dash-view .bg-white.rounded-xl{border:1px solid #e0eaff}
 #dash-view div.bg-swiftblue.rounded-full{background-image:linear-gradient(90deg,#0047AB,#7db4ff);box-shadow:0 0 12px rgba(42,123,255,.6)}
 #dash-view ol li span.bg-swiftblue{background-image:linear-gradient(135deg,#0047AB,#2a7bff)}
 #dash-view .bg-green-50.border,#dash-view .bg-red-50.border{border-radius:16px}
-/* Portefeuille */
-.wallet-hero{padding:30px 26px;background:linear-gradient(135deg,#050f2e 0%,#0a3a9a 50%,#2a7bff 100%);box-shadow:0 30px 56px -24px rgba(0,71,171,.9),inset 0 1px 0 rgba(255,255,255,.25)}
 .wallet-hero #wallet-balance{font-size:38px;letter-spacing:-.02em;text-shadow:0 4px 20px rgba(0,0,0,.3)}
 #dash-view .bg-blue-50.rounded-xl{background:linear-gradient(135deg,#eaf1ff,#f4f0ff);border:1px solid #cfe0ff}
 #dash-view input[type=file]{padding:8px;border:1.5px dashed #9dbfff;border-radius:14px;background:#f6f9ff}
-/* Toast */
 #toast{background-image:linear-gradient(135deg,#071d4d,#0a3a9a)!important;border-radius:16px!important;box-shadow:0 18px 40px -12px rgba(0,30,100,.6)!important}
-/* Signatures */
 #dash-view canvas{border-color:#8cbcff!important;background:#f8fbff!important}
-/* Écran de connexion encore plus soigné */
-#auth-view>div.bg-white{background:rgba(255,255,255,.97)}
 #auth-view h1.text-swiftblue{background:linear-gradient(90deg,#071d4d,#0047AB,#2a7bff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 #auth-view .bg-gray-100{background:#eaf1ff}
-</style>
-<style>
-/* ===== FORMULAIRE « NOUVELLE EXPÉDITION » : blocs colorés & champs lisibles ===== */
 #new-form{counter-reset:nfstep}
 #new-form>div:nth-of-type(1){--c:#0047AB;--c2:#5b9bff;--t:#eaf2ff;--b:#b9d3ff;--r:rgba(0,71,171,.18)}
 #new-form>div:nth-of-type(2){--c:#047857;--c2:#34d399;--t:#e8faf2;--b:#a7ebcf;--r:rgba(4,120,87,.18)}
@@ -128,7 +101,6 @@ body.bg-gray-50{background:radial-gradient(900px 420px at 100% 0,#d3e3ff 0,trans
 #new-form>div:nth-of-type(5){--c:#334155;--c2:#94a3b8;--t:#f1f5f9;--b:#c5d0de;--r:rgba(51,65,85,.18)}
 #new-form>div.rounded-3xl{background:var(--t);border:1.5px solid var(--b);box-shadow:0 2px 4px rgba(15,23,42,.04),0 26px 50px -28px var(--c)}
 #new-form>div.rounded-3xl::before{height:7px;background:linear-gradient(90deg,var(--c),var(--c2))}
-/* Titre de bloc avec numéro et étiquette */
 #new-form>div.rounded-3xl h3.text-base{color:var(--c);font-size:19px;font-weight:800;letter-spacing:-.01em;gap:12px}
 #new-form>div.rounded-3xl h3.text-base::before{counter-increment:nfstep;content:counter(nfstep);width:32px;height:32px;border-radius:11px;background:linear-gradient(135deg,var(--c),var(--c2));color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 16px -6px var(--c)}
 #new-form>div.rounded-3xl h3.text-base::after{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.12em;color:var(--c);background:#fff;border:1.5px solid var(--b);padding:4px 10px;border-radius:999px}
@@ -138,14 +110,11 @@ body.bg-gray-50{background:radial-gradient(900px 420px at 100% 0,#d3e3ff 0,trans
 #new-form>div:nth-of-type(4) h3.text-base::after{content:"SERVICE"}
 #new-form>div:nth-of-type(5) h3.text-base::after{content:"VALIDATION"}
 #new-form>div.rounded-3xl .text-gray-500{color:var(--c);opacity:.8;font-weight:500}
-/* Libellés */
 #new-form>div.rounded-3xl label.block,#new-form>div.rounded-3xl p.block{color:var(--c);font-weight:700;font-size:12.5px;letter-spacing:.01em;margin-bottom:6px}
 #new-form>div.rounded-3xl label.block span,#new-form>div.rounded-3xl p.block span{color:#64748b}
-/* Champs : fond blanc net, contour coloré */
 #new-form>div.rounded-3xl input:not([type=checkbox]),#new-form>div.rounded-3xl select,#new-form>div.rounded-3xl textarea{background-color:#fff;border:1.5px solid var(--b);color:#0f172a;font-weight:500;box-shadow:0 2px 6px -2px rgba(15,23,42,.1)}
 #new-form>div.rounded-3xl input:not([type=checkbox]):focus,#new-form>div.rounded-3xl select:focus,#new-form>div.rounded-3xl textarea:focus{border-color:var(--c);box-shadow:0 0 0 4px var(--r),0 2px 6px -2px rgba(15,23,42,.1)}
 #new-form>div.rounded-3xl ::placeholder{color:#a3aec0;font-weight:400}
-/* Éléments spéciaux */
 #new-form .bg-gray-50.rounded-xl{background:#fff;border:1.5px dashed var(--b)}
 #new-form .bg-gray-50 .text-gray-500{color:#475569;opacity:1}
 #new-form #dur-total{color:var(--c)}
@@ -155,38 +124,19 @@ body.bg-gray-50{background:radial-gradient(900px 420px at 100% 0,#d3e3ff 0,trans
 #new-form>div.rounded-3xl canvas{border:2px dashed var(--c)!important;background:#fff!important;box-shadow:0 2px 8px -3px rgba(15,23,42,.15)}
 #new-form .sig-clear{color:var(--c);font-weight:700}
 #new-form .text-gray-400{color:#64748b}
-/* Bloc prix + bouton final */
-#price-box{box-shadow:0 20px 40px -24px rgba(0,71,171,.6)}
 #new-btn{padding-top:17px;padding-bottom:17px;font-size:16px}
-</style>
-<style>
-/* ===== BADGES DE NOTIFICATION (Mes colis, Messages) & ÉTIQUETTE « NOUVEAU » ===== */
-#dtabs .dtab{position:relative}
 .dbadge{position:absolute;top:0;right:calc(50% - 30px);min-width:21px;height:21px;padding:0 6px;border-radius:999px;background:#ef4444;color:#fff;font-size:11px;font-weight:800;line-height:21px;text-align:center;box-shadow:0 0 0 2px #0a3a9a,0 4px 10px -2px rgba(239,68,68,.75);animation:swPulse 1.8s ease-in-out infinite;pointer-events:none}
 .dbadge.hidden{display:none}
 .newtag{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;letter-spacing:.06em;vertical-align:middle}
 @keyframes swPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
-@media (prefers-reduced-motion:reduce){.dbadge{animation:none}}
-/* Toucher une carte de colis ouvre son suivi */
 #list-container>div{cursor:pointer}
 #list-container [id^="ev-"]{cursor:default}
+@media (prefers-reduced-motion:reduce){#dash-view section,#auth-view>div,.dbadge{animation:none!important}}
 </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
 <div id="toast" class="hidden"></div>
 <div id="loading" class="min-h-screen flex items-center justify-center text-gray-500 font-medium">Chargement...</div>
-
-<!-- ============ SUIVI PUBLIC ISOLÉ (aucune marque, aucun lien) ============ -->
-<div id="pub-view" class="hidden min-h-screen">
-  <div class="max-w-xl mx-auto px-4 py-8">
-    <h1 class="text-2xl font-extrabold text-gray-900 text-center mb-6">Suivre mon colis</h1>
-    <form id="pub-form" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-3">
-      <input id="pub-code" required autocomplete="off" placeholder="Entrez votre code de suivi" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50 uppercase">
-      <button type="submit" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition shadow-md cursor-pointer">Rechercher</button>
-    </form>
-    <div id="pub-body" class="mt-4"></div>
-  </div>
-</div>
 
 <!-- ============ CONNEXION ============ -->
 <div id="auth-view" class="hidden min-h-screen flex items-center justify-center p-4 relative">
@@ -847,12 +797,13 @@ function setNewLabel() {
   refreshPriceBox();
 }
 // Encadré « Coût de génération du reçu » : prix (lu dans sw_settings) + solde de l'utilisateur
+const myWallet = () => supabaseClient.from('sw_wallets').select('balance').eq('user_id', currentUser.id).maybeSingle();
 async function refreshPriceBox() {
   const a = $('price-amount'); if (!a || !currentUser) return;
   a.textContent = fmtMoney(RECEIPT_PRICE);
   const balEl = $('price-balance'), st = $('price-status');
   try {
-    const wb = await supabaseClient.from('sw_wallets').select('balance').eq('user_id', currentUser.id).maybeSingle();
+    const wb = await myWallet();
     const bal = Number(wb.data ? wb.data.balance : 0);
     balEl.textContent = fmtMoney(bal);
     if (bal >= RECEIPT_PRICE) {
@@ -969,6 +920,7 @@ function cancelBtn(s) {
   return `<button type="button" data-id="${esc(s.id)}" class="cancel-btn text-sm font-semibold text-amber-700 border border-amber-200 rounded-full px-3 py-1 cursor-pointer">Demander l'annulation du colis</button>`;
 }
 
+const delBtn = (s) => `<button type="button" data-id="${esc(s.id)}" class="del-btn text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button>`;
 async function loadShipments(openId) {
   const box = $('list-container');
   if (!openId) box.innerHTML = '<p class="text-center text-gray-500 py-8">Chargement...</p>';
@@ -996,7 +948,7 @@ async function loadShipments(openId) {
       </div><span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700">Non payé</span></div>
       <div class="flex flex-wrap items-center gap-3 mt-3">
         <button type="button" data-id="${esc(s.id)}" class="receipt-btn text-sm font-semibold text-white bg-swiftblue rounded-full px-4 py-2 cursor-pointer">Voir le reçu A5 · ${fmtMoney(RECEIPT_PRICE)}</button>
-        <button type="button" data-id="${esc(s.id)}" class="del-btn text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button>
+        ${delBtn(s)}
       </div></div>`;
     return `
     <div data-sid="${esc(s.id)}" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3">
@@ -1013,7 +965,7 @@ async function loadShipments(openId) {
         <button type="button" data-id="${esc(s.id)}" class="receipt-btn text-sm font-semibold text-gray-700 border border-gray-200 rounded-full px-3 py-1 cursor-pointer">Voir le reçu A5</button>
         <button type="button" data-id="${esc(s.id)}" class="copy-btn text-sm font-semibold text-gray-700 border border-gray-200 rounded-full px-3 py-1 cursor-pointer">Copier le lien de suivi</button>
         ${cancelBtn(s)}
-        <button type="button" data-id="${esc(s.id)}" class="del-btn text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button>
+        ${delBtn(s)}
       </div>
       <div id="ev-${esc(s.id)}" class="hidden"></div></div>`;
   }).join('') + '<div id="lf-none" hidden class="bg-white rounded-3xl border border-gray-100 p-8 text-center text-gray-500">Aucun colis ne correspond à ces filtres.</div>';
@@ -1055,7 +1007,7 @@ $('new-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = $('new-btn');
   await loadPrice();
-  const wb = await supabaseClient.from('sw_wallets').select('balance').eq('user_id', currentUser.id).maybeSingle();
+  const wb = await myWallet();
   const bal = Number(wb.data ? wb.data.balance : 0);
   if (bal < RECEIPT_PRICE) { dShow('Solde insuffisant : ' + fmtMoney(RECEIPT_PRICE) + ' requis, vous avez ' + fmtMoney(bal) + ". Rechargez votre portefeuille. Aucune expédition n'a été créée."); window.scrollTo(0, 0); return; }
   if (!confirm("Confirmer le paiement ?\n" + fmtMoney(RECEIPT_PRICE) + " seront débités de votre portefeuille pour générer le reçu et le code de suivi.")) return;
@@ -1141,7 +1093,7 @@ let WR = {};
 async function loadWallet() {
   const list = $('recharge-list'); list.innerHTML = LOADING;
   const [w, r, pn] = await Promise.all([
-    supabaseClient.from('sw_wallets').select('balance').eq('user_id', currentUser.id).maybeSingle(),
+    myWallet(),
     supabaseClient.from('sw_recharges').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }),
     supabaseClient.from('sw_pay_numbers').select('*').order('created_at')
   ]);
@@ -1238,6 +1190,7 @@ async function markHelpRead(rows) {
   const seen = getSeen(); keys.forEach(k => seen.add(k)); saveSeen(seen);
   setHelpBadge(0);
 }
+const mDelBtn = (m) => `<button type="button" data-udel="${esc(m.id)}" class="u-mdel mt-3 text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button>`;
 const newTag = (m) => (NEWSET.has(m.id) || NEWSET.has(m.id + ':r')) ? '<span class="newtag">NOUVEAU</span>' : '';
 // Date d'envoi de la réponse de l'assistant (colonne replied_at, ajoutée par la migration SQL)
 const replyStamp = (m) => m.replied_at ? `<span class="text-gray-400 font-normal"> · ${fmtDate(m.replied_at)}</span>` : '';
@@ -1246,7 +1199,7 @@ const replyStamp = (m) => m.replied_at ? `<span class="text-gray-400 font-normal
 function replyOnlyCard(m) {
   return `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3"><div class="bg-blue-50 border border-blue-100 rounded-xl p-3">
     <p class="text-xs font-bold text-swiftblue mb-1">Réponse de l'assistant${replyStamp(m)}${newTag(m)}</p><p class="text-sm text-gray-800 whitespace-pre-wrap">${esc(m.admin_reply)}</p></div>
-    <button type="button" data-udel="${esc(m.id)}" class="u-mdel mt-3 text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button></div>`;
+    ${mDelBtn(m)}</div>`;
 }
 function broadcastCard(m) {
   return `<div class="bg-white rounded-2xl shadow-sm border-2 border-blue-200 p-4 mb-3">
@@ -1254,7 +1207,7 @@ function broadcastCard(m) {
     <p class="font-bold text-gray-900 mt-3">${esc(m.subject)}</p>
     <p class="text-sm text-gray-700 mt-1 whitespace-pre-wrap">${esc(m.body)}</p>
     <p class="text-xs text-gray-400 mt-2">— L'équipe SwiftWay Logistics</p>
-    <button type="button" data-udel="${esc(m.id)}" class="u-mdel mt-3 text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button></div>`;
+    ${mDelBtn(m)}</div>`;
 }
 function messageCard(m) {
   return `
@@ -1263,7 +1216,7 @@ function messageCard(m) {
       <p class="text-xs text-gray-400">${esc(MCAT[m.category] || m.category)} · ${fmtDate(m.created_at)}</p></div>
       <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold ${m.status === 'resolved' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}">${m.status === 'resolved' ? 'Résolu' : 'En cours'}</span></div>
       <p class="text-sm text-gray-700 mt-2 whitespace-pre-wrap">${esc(m.body)}</p>
-      ${m.admin_reply ? `<div class="mt-3 bg-blue-50 border border-blue-100 rounded-xl p-3"><p class="text-xs font-bold text-swiftblue mb-1">Réponse de l'assistant${replyStamp(m)}</p><p class="text-sm text-gray-800 whitespace-pre-wrap">${esc(m.admin_reply)}</p></div>` : ''}<button type="button" data-udel="${esc(m.id)}" class="u-mdel mt-3 text-sm font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 cursor-pointer">Supprimer</button></div>`;
+      ${m.admin_reply ? `<div class="mt-3 bg-blue-50 border border-blue-100 rounded-xl p-3"><p class="text-xs font-bold text-swiftblue mb-1">Réponse de l'assistant${replyStamp(m)}</p><p class="text-sm text-gray-800 whitespace-pre-wrap">${esc(m.admin_reply)}</p></div>` : ''}${mDelBtn(m)}</div>`;
 }
 // Sous-onglets : messages privés / annonces officielles / historique des interactions
 let HDATA = [], SUB = 'private';
@@ -1423,7 +1376,6 @@ function pubParties(d) {
   if (!parts && !d.stopover_country) return '';
   return `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">${parts}</div>` + (d.stopover_country ? `<p class="text-sm text-gray-700 mt-2"><span class="text-gray-400">Pays d'escale :</span> ${esc(d.stopover_country)}</p>` : '');
 }
-let pubTimer = null, pubCode = null;
 // Rendu UNIQUE du suivi : utilisé par le destinataire (lien / QR) ET par l'onglet « Suivre » de l'expéditeur.
 function pubRender(data) {
   data = { ...data, status: data.status === 'picked_up' ? 'pending' : data.status, events: (data.events || []).filter(e => e.status !== 'picked_up') };
@@ -1457,32 +1409,8 @@ async function fetchPublic(code) {
   if (lastErr) return { error: lastErr };
   return { data: null };
 }
-async function searchPublic(code, manual) {
-  code = (code || '').trim();
-  if (!code) return;
-  clearInterval(pubTimer); pubCode = null;
-  const body = $('pub-body');
-  if (manual) body.innerHTML = '<p class="text-center text-sm text-gray-400">Recherche...</p>';
-  const { data, error } = await fetchPublic(code);
-  if (error) { console.error(error); body.innerHTML = '<p class="text-center text-sm text-gray-500">Service momentanément indisponible. Réessayez dans un instant.<br><span class="text-xs text-gray-400">' + esc(error.message || '') + '</span></p>'; return; }
-  if (!data) { body.innerHTML = manual ? '<div class="bg-white rounded-2xl border border-gray-100 p-6 text-center text-gray-500">Aucun colis trouvé avec ce code. Vérifiez-le et réessayez.</div>' : ''; return; }
-  pubCode = code; body.innerHTML = pubRender(data);
-  pubTimer = setInterval(async () => {
-    const r = await fetchPublic(pubCode);
-    if (r.data) body.innerHTML = pubRender(r.data);
-    else if (r.data === null) { clearInterval(pubTimer); body.innerHTML = ''; } // livré, supprimé ou expiré
-  }, 15000);
-}
-function startPublic(code) {
-  document.title = 'Suivre mon colis';
-  $('loading').classList.add('hidden'); $('pub-view').classList.remove('hidden');
-  $('pub-form').addEventListener('submit', (e) => { e.preventDefault(); searchPublic($('pub-code').value, true); });
-  if (code) { $('pub-code').value = code; searchPublic(code, false); }
-}
-
 // ---------- ACTUALISATION AUTOMATIQUE (sans affichage de compte à rebours) ----------
 function refreshAfterCd() {
-  if (!$('pub-view').classList.contains('hidden')) { if (pubCode) searchPublic(pubCode, false); return; }
   if (currentUser && !isAdmin && !$('dash-view').classList.contains('hidden') && !$('view-list').classList.contains('hidden')) loadShipments(lastOpenId);
 }
 setInterval(() => {
@@ -1544,6 +1472,7 @@ if (QS.has('t') || QS.has('suivi')) {
 .x-rail button.on{color:var(--brand);background:var(--soft);box-shadow:inset 0 3px var(--brand)}
 .x-rail .n{position:absolute;top:4px;right:18%;background:#ef4444;color:#fff;border-radius:999px;font-size:10px;font-weight:800;padding:1px 6px;display:none;box-shadow:0 0 0 2px #fff}
 @media(max-width:480px){.x-rail button{font-size:8.5px;letter-spacing:0}.x-rail button b{font-size:18px}}
+@media(max-width:420px){.x-rail button{font-size:7.5px;min-width:0}.x-rail button b{font-size:17px}}
 @media(min-width:768px){.x-rail{top:58px;right:auto;width:92px;flex-direction:column;border-top:0;border-right:1px solid var(--line);box-shadow:12px 0 30px -24px rgba(10,58,154,.5);padding-top:8px}
  .x-rail button{flex:none;padding:14px 0;margin:2px 8px;border-radius:14px;width:auto}.x-rail button.on{box-shadow:none}
  .x-rail .n{right:12%}#x-main{margin-left:92px}}
@@ -1594,21 +1523,10 @@ select.x-in{cursor:pointer}
 #x-drawer{position:fixed;z-index:60;top:0;right:0;bottom:0;width:min(540px,100%);background:#f7f9fe;color:var(--ink);overflow-y:auto;padding:20px;transform:translateX(100%);transition:transform .25s ease;font-family:'Inter',system-ui,sans-serif;border-left:1px solid var(--line);box-shadow:-30px 0 70px -30px rgba(10,30,90,.45)}
 #x-drawer.open{transform:none}
 
-/* ===== Harmonisation des couleurs écrites en ligne dans les écrans (ancien thème sombre → thème clair) ===== */
-#admin-view [style*="color:#e9f1f8"]{color:#0f1f3d!important}
-#admin-view [style*="color:#7d8da0"]{color:#5b6b86!important}
-#admin-view [style*="color:#5b6b7c"]{color:#6b7a95!important}
-#admin-view [style*="color:#c6ff3d"]:not([style*="border-color"]){color:#059669!important}
-#admin-view [style*="color:#ff5a5f"]{color:#dc2626!important}
-#admin-view [style*="color:#ffb020"]{color:#d97706!important}
-#admin-view [style*="color:#4da3ff"]{color:#2563eb!important}
-#admin-view [style*="color:#ff7a1a"]{color:#ea580c!important}
-#admin-view [style*="border-color:#c6ff3d"]{border-color:#a9c4f5!important;box-shadow:inset 4px 0 0 #0047AB,0 18px 36px -28px rgba(10,58,154,.45)}
-#admin-view [style*="background:#c6ff3d"]{background:linear-gradient(90deg,#0047AB,#2a7bff)!important;border-radius:999px}
-#admin-view [style*="background:#101820"]{background:#e8eef8!important;border-radius:999px}
-#admin-view [style*="background:#0f1a12"]{background:#eaf1ff!important;border-left-color:#0047AB!important}
-#admin-view [style*="border:1px solid #1b2530"]{border:1px solid var(--line)!important;border-radius:12px}
-#admin-view [style*="border-top:1px dashed #1b2530"]{border-top:1px solid #edf2fa!important}
+/* ===== Couleurs de texte (statuts, mentions) et panneau mis en avant ===== */
+.t-ink{color:#0f1f3d!important}.t-mut{color:#5b6b86!important}.t-dim{color:#6b7a95!important}.t-ok{color:#059669!important}.t-bad{color:#dc2626!important}.t-warn{color:#d97706!important}.t-info{color:#2563eb!important}.t-org{color:#ea580c!important}.t-vio{color:#a78bfa!important}
+#admin-view .x-hl{border-color:#a9c4f5!important;box-shadow:inset 4px 0 0 #0047AB,0 18px 36px -28px rgba(10,58,154,.45)}
+.x-p0{margin-top:0;margin-bottom:14px}.x-sm{font-size:12px;margin:0 0 10px}.x-note{font-size:11px;margin-top:8px}.x-lb{font-size:11px;color:var(--mut);font-weight:600}
 
 /* ===== MISE EN PAGE AÉRÉE : Caisse, Messages, Annulations, Comptes, Offre promotionnelle ===== */
 .x-wrap{max-width:880px;margin:0 auto}
@@ -1680,12 +1598,18 @@ select.x-in{cursor:pointer}
   const PR = { seg: 'never_zero', camp: 'Offre promotionnelle', msg: '', excl: {}, list: [] };
   // Journal d'activité (onglet JOURNAL)
   const J = { d: 30, adm: '', act: '', q: '', rows: [] };
+  // Couleurs de statut : COL = fond / liseré des cartes ; TXT = classe de texte ; RTXT = statuts de recharge ; DONE = barre « livré »
   const COL = { pending: '#7d8da0', picked_up: '#4da3ff', in_transit: '#a78bfa', out_for_delivery: '#ffb020', delivered: '#c6ff3d', cancelled: '#ff5a5f' };
+  const TXT = { pending: 't-mut', picked_up: 't-info', in_transit: 't-vio', out_for_delivery: 't-warn', delivered: 't-ok', cancelled: 't-bad' };
+  const RTXT = { pending: 't-warn', approved: 't-ok', rejected: 't-bad' };
+  const segBg = (k) => k === 'delivered' ? 'linear-gradient(90deg,#0047AB,#2a7bff);border-radius:999px' : COL[k];
   const M = $('x-main');
   const win = s => s.delivery_window_hours || 48;
   const hrs = s => (Date.now() - new Date(s.created_at)) / 3600000;
   const live = s => s.status !== 'delivered' && s.status !== 'cancelled';
   const late = s => live(s) && hrs(s) > win(s);
+  // Liste de cartes, ou message « vide »
+  const listOr = (rows, card, msg) => rows.length ? rows.map(card).join('') : `<div class="x-empty">${msg}</div>`;
   // Filtre segmenté avec compteurs
   const segs = (items, cur, attr) => `<div class="x-segs">${items.map(([v, l, n]) => `<button class="x-sg ${cur === v ? 'on' : ''}" ${attr}="${v}">${l}${n != null ? `<em>${n}</em>` : ''}</button>`).join('')}</div>`;
 
@@ -1698,7 +1622,7 @@ select.x-in{cursor:pointer}
   };
   const FL = {}; Object.keys(flDef).forEach(k => { FL[k] = flDef[k](); });
   const REDRAW = { fx: () => pipe(), cash: () => cash(), msg: () => msgRefresh(), cx: () => cancelV() };
-  const flLb = (t) => `<label style="font-size:11px;color:var(--mut);font-weight:600;letter-spacing:.04em">${t}</label>`;
+  const flLb = (t) => `<label class="x-lb" style="letter-spacing:.04em">${t}</label>`;
   // Panneau de filtres réutilisable (recherche + période + champs supplémentaires + compteur + réinitialiser)
   function fbar(key, ph, extra, info) {
     const f = FL[key];
@@ -1723,11 +1647,11 @@ select.x-in{cursor:pointer}
     ['pay', 'Ajouter / modifier les numéros de paiement (autorisation explicite)']
   ];
   const PTAG = { ship: 'COLIS', rech: 'RECHARGES', msg: 'MESSAGES', cancel: 'ANNUL.', acct: 'COMPTES', pay: 'N° PAIEMENT' };
-  const can = (p) => isSuper || (!!myPerms && myPerms[p] === true);
+  const can = (p) => isSuper || (!!myPerms && (p === 'wa' ? myPerms.msg === true || myPerms.acct === true : myPerms[p] === true));
   const isSupU = (u) => String((u && u.email) || '').toLowerCase() === SUPER_EMAIL;
   const need = (p) => { if (can(p)) return true; toast('Action non autorisée pour votre rôle.', 'error'); return false; };
   const needSuper = () => { if (isSuper) return true; toast('Réservé au Super Admin Suprême.', 'error'); return false; };
-  const navOk = (n) => ({ radar: true, pipe: can('ship'), cash: can('rech'), acct: can('acct'), wa: can('msg') || can('acct'), cancel: can('cancel'), msg: can('msg'), cfg: isSuper || can('pay'), journal: true })[n] === true;
+  const navOk = (n) => ({ radar: true, pipe: can('ship'), cash: can('rech'), acct: can('acct'), wa: can('wa'), cancel: can('cancel'), msg: can('msg'), cfg: isSuper || can('pay'), journal: true })[n] === true;
   function applyNav() {
     A.querySelectorAll('.x-rail [data-v]').forEach(b => { b.style.display = navOk(b.dataset.v) ? '' : 'none'; });
   }
@@ -1736,13 +1660,13 @@ select.x-in{cursor:pointer}
     return `<div class="x-panel" style="margin:0 0 8px"><p class="x-h">PERMISSIONS</p>` +
       PERMS.map(([k, l]) => `<label style="display:flex;gap:8px;align-items:flex-start;padding:5px 0;font-size:12px;cursor:pointer"><input type="checkbox" id="${pre}-${k}" ${cur[k] === true ? 'checked' : ''} style="margin-top:2px"><span>${esc(l)}</span></label>`).join('') +
       `<button type="button" class="x-btn" style="margin-top:6px" data-permall="${pre}">TOUT ATTRIBUER</button>
-      <p style="font-size:11px;color:#5b6b7c;margin-top:8px">« Tout attribuer » coche toutes les fonctions opérationnelles, sauf la gestion des numéros de paiement (case dédiée). Il ne donne jamais la visibilité sur le Super Admin ou les autres admins, ni le droit de nommer/modifier des admins, ni celui de supprimer définitivement des données.</p></div>`;
+      <p class="t-dim x-note">« Tout attribuer » coche toutes les fonctions opérationnelles, sauf la gestion des numéros de paiement (case dédiée). Il ne donne jamais la visibilité sur le Super Admin ou les autres admins, ni le droit de nommer/modifier des admins, ni celui de supprimer définitivement des données.</p></div>`;
   }
   function readPerms(pre) { const o = {}; PERMS.forEach(([k]) => { const e = $(pre + '-' + k); o[k] = !!(e && e.checked); }); return o; }
   function permTags(p) {
     p = p || {};
-    const t = PERMS.filter(([k]) => p[k] === true).map(([k]) => `<span class="x-tag" style="color:#4da3ff;margin:2px 4px 2px 0">${PTAG[k]}</span>`).join('');
-    return t || '<span style="color:#5b6b7c;font-size:11px">aucune permission</span>';
+    const t = PERMS.filter(([k]) => p[k] === true).map(([k]) => `<span class="x-tag t-info" style="margin:2px 4px 2px 0">${PTAG[k]}</span>`).join('');
+    return t || '<span class="t-dim" style="font-size:11px">aucune permission</span>';
   }
 
   // ---------- JOURNAL D'ACTIVITÉ (sw_admin_activity_logs) ----------
@@ -1866,9 +1790,9 @@ select.x-in{cursor:pointer}
     </div>
     ${fin}
     <div class="x-panel"><p class="x-h">PIPELINE (${S.ship.length})</p>
-      <div class="x-seg">${seg.map(([k, n]) => `<span style="width:${S.ship.length ? n / S.ship.length * 100 : 0}%;background:${COL[k]}"></span>`).join('')}</div>
-      <div class="x-leg">${seg.map(([k, n]) => `<span><i style="background:${COL[k]}"></i>${esc(STATUS[k].label)} ${n}</span>`).join('')}</div></div>
-    <div class="x-panel"><p class="x-h">ALERTES RETARD (+${48} h)</p>${lt.length ? lt.slice(0, 8).map(s => `<button class="x-row" data-open="${esc(s.id)}"><span style="word-break:break-all">${esc(fmtCode(s.tracking_code))} <span style="color:#7d8da0">${esc(s.origin)} → ${esc(s.destination)}</span></span><span style="color:#ff5a5f">+${hoursText(hrs(s) - win(s))}</span></button>`).join('') : '<span style="color:#c6ff3d">RAS : aucun retard.</span>'}</div>`;
+      <div class="x-seg">${seg.map(([k, n]) => `<span style="width:${S.ship.length ? n / S.ship.length * 100 : 0}%;background:${segBg(k)}"></span>`).join('')}</div>
+      <div class="x-leg">${seg.map(([k, n]) => `<span><i style="background:${segBg(k)}"></i>${esc(STATUS[k].label)} ${n}</span>`).join('')}</div></div>
+    <div class="x-panel"><p class="x-h">ALERTES RETARD (+${48} h)</p>${lt.length ? lt.slice(0, 8).map(s => `<button class="x-row" data-open="${esc(s.id)}"><span style="word-break:break-all">${esc(fmtCode(s.tracking_code))} <span class="t-mut">${esc(s.origin)} → ${esc(s.destination)}</span></span><span class="t-bad">+${hoursText(hrs(s) - win(s))}</span></button>`).join('') : '<span class="t-ok">RAS : aucun retard.</span>'}</div>`;
   }
 
   // ---------- FLUX (kanban) : filtres période / client / statut / pays / service / agence + nettoyage des colis anciens ----------
@@ -1897,7 +1821,7 @@ select.x-in{cursor:pointer}
         ${sopt('o', "Pays d'envoi : tous", uniq('sender_country'))}${sopt('d', 'Pays de destination : tous', uniq('receiver_country'))}${sopt('e', "Pays d'escale : tous", uniq('stopover_country'))}
         ${sopt('sv', 'Service : tous', [['standard', 'Standard'], ['express', 'Express']])}${sopt('py', 'Payeur : tous', [['sender', 'Expéditeur'], ['receiver', 'Destinataire']])}
         ${sopt('ag', 'Agence : toutes', uniq('agency_name'))}${sopt('fr', 'Fragile : tous', [['1', 'Colis fragiles']])}</div></details>`;
-    const row = (s) => `<div class="x-row" style="cursor:default;align-items:center;gap:10px"><span style="min-width:0;word-break:break-all;font-size:12px"><b>${esc(fmtCode(s.tracking_code))}</b> <span class="x-tag" style="color:${COL[s.status] || '#7d8da0'}">${esc((STATUS[s.status] || { label: s.status }).label.toUpperCase())}</span><br><span style="color:var(--mut)">${esc(s.origin)} → ${esc(s.destination)} · ${esc((S.own[s.user_id] || {}).email || '-')} · créé le ${fmtDay(s.created_at)} (${Math.floor((now - new Date(s.created_at).getTime()) / 864e5)} j)</span></span>
+    const row = (s) => `<div class="x-row" style="cursor:default;align-items:center;gap:10px"><span style="min-width:0;word-break:break-all;font-size:12px"><b>${esc(fmtCode(s.tracking_code))}</b> <span class="x-tag ${TXT[s.status] || 't-mut'}">${esc((STATUS[s.status] || { label: s.status }).label.toUpperCase())}</span><br><span style="color:var(--mut)">${esc(s.origin)} → ${esc(s.destination)} · ${esc((S.own[s.user_id] || {}).email || '-')} · créé le ${fmtDay(s.created_at)} (${Math.floor((now - new Date(s.created_at).getTime()) / 864e5)} j)</span></span>
       <span class="x-acts" style="flex-shrink:0"><button type="button" class="x-btn" data-open="${esc(s.id)}">VOIR</button>${isSuper ? `<button type="button" class="x-btn no" data-shdel="${esc(s.id)}">SUPPRIMER</button>` : ''}</span></div>`;
     const clean = `<details class="x-sec" ${f.st === 'old' ? 'open' : ''} style="margin:0 0 16px"><summary>🧹 Nettoyage : colis anciens de plus de 30 jours (${cand.length})</summary><div>
       ${cand.length ? `<div class="x-acts" style="margin-bottom:10px"><button type="button" class="x-btn" data-fxold="1">N'AFFICHER QUE LES ANCIENS</button>${isSuper ? `<button type="button" class="x-btn no" data-shbulk="1">SUPPRIMER LES ${cand.length} COLIS LISTÉS</button>` : ''}</div>
@@ -1910,17 +1834,16 @@ select.x-in{cursor:pointer}
     ${clean}
     <div class="x-board">${Object.keys(STATUS).map(k => {
       const c = rows.filter(s => s.status === k);
-      return `<div class="x-col" data-drop="${k}"><h4 style="color:${COL[k]}"><span>${esc(STATUS[k].label.toUpperCase())}</span><span>${c.length}</span></h4>
+      return `<div class="x-col" data-drop="${k}"><h4 class="${TXT[k]}"><span>${esc(STATUS[k].label.toUpperCase())}</span><span>${c.length}</span></h4>
       ${c.map(s => `<div class="x-card" draggable="true" data-id="${esc(s.id)}" data-open="${esc(s.id)}" style="--c:${COL[k]}">
         <b style="word-break:break-all">${esc(fmtCode(s.tracking_code))}</b><span>${esc(s.origin)} → ${esc(s.destination)}</span><span>${esc(s.receiver_name)}</span>
-        ${late(s) ? `<span class="late">▲ retard ${hoursText(hrs(s) - win(s))}</span>` : ''}${old(s) ? `<span style="color:#d97706;font-weight:600">ancien · ${Math.floor((now - new Date(s.created_at).getTime()) / 864e5)} j</span>` : ''}</div>`).join('')}</div>`;
+        ${late(s) ? `<span class="late">▲ retard ${hoursText(hrs(s) - win(s))}</span>` : ''}${old(s) ? `<span class="t-warn" style="font-weight:600">ancien · ${Math.floor((now - new Date(s.created_at).getTime()) / 864e5)} j</span>` : ''}</div>`).join('')}</div>`;
     }).join('')}</div>`;
   }
 
   // ---------- CAISSE (recharges) : version aérée + filtres ----------
   function cash() {
     const f = FL.cash;
-    const col = { pending: '#ffb020', approved: '#c6ff3d', rejected: '#ff5a5f' };
     const amtOf = (r) => Number(r.status === 'approved' && r.approved_amount != null ? r.approved_amount : r.amount || 0);
     const base = S.rech.filter(r => { const u = S.own[r.user_id] || {}, a = amtOf(r); return perOk(r.created_at, f) && (!f.m || r.method === f.m) && (f.min === '' || a >= +f.min) && (f.max === '' || a <= +f.max) && hit(f.q, [u.email, u.phone, r.reference, r.amount, r.admin_note]); });
     const cnt = (k) => base.filter(r => !k || r.status === k).length;
@@ -1937,7 +1860,7 @@ select.x-in{cursor:pointer}
       const amt = r.status === 'approved' && r.approved_amount != null ? r.approved_amount : r.amount;
       const diff = r.status === 'approved' && r.approved_amount != null && Number(r.approved_amount) !== Number(r.amount) ? ` <span class="x-sub" style="display:inline;margin-left:6px;font-weight:400">(demandé : ${fmtMoney(r.amount)})</span>` : '';
       const adjH = (S.adj || []).filter(a => a.recharge_id === r.id).map(a => `<p class="x-hint" style="margin:2px 0;color:${a.delta > 0 ? '#059669' : '#dc2626'}">${a.delta > 0 ? '+' : ''}${fmtMoney(a.delta)} · ${fmtDate(a.created_at)}${a.note ? ' · ' + esc(a.note) : ''}</p>`).join('');
-      const proof = r.proof_path ? `<div class="x-acts" style="margin-top:14px"><button class="x-btn" data-proof="${esc(r.proof_path)}">VOIR LA CAPTURE</button></div>` : '<p class="x-hint" style="color:#dc2626">Aucune capture jointe.</p>';
+      const proof = r.proof_path ? `<div class="x-acts" style="margin-top:14px"><button class="x-btn" data-proof="${esc(r.proof_path)}">VOIR LA CAPTURE</button></div>` : '<p class="x-hint t-bad">Aucune capture jointe.</p>';
       let act = '';
       if (r.status === 'pending') {
         act = `<div class="x-form"><div><label>MONTANT À CRÉDITER (FCFA) · demandé : ${fmtMoney(r.amount)}</label>
@@ -1950,7 +1873,7 @@ select.x-in{cursor:pointer}
         act = `<details class="x-sec"><summary>Options avancées</summary><div>${adjBox}<div class="x-acts" style="margin-top:10px"><button class="x-btn no" data-rdel="${esc(r.id)}">SUPPRIMER CHEZ MOI</button><button class="x-btn no" data-rdel="${esc(r.id)}" data-both="1">SUPPRIMER AUSSI CHEZ LE CLIENT</button></div></div></details>`;
       }
       return `<div class="x-c2">
-        <div class="x-c2h"><div><strong class="x-amt">${fmtMoney(amt)}${diff}</strong><span class="x-sub">${esc(METHODS[r.method] || r.method)} · ID transaction : <b style="color:var(--ink)">${esc(r.reference)}</b></span></div><span class="x-tag" style="color:${col[r.status]}">${esc(RSTATUS[r.status].label.toUpperCase())}</span></div>
+        <div class="x-c2h"><div><strong class="x-amt">${fmtMoney(amt)}${diff}</strong><span class="x-sub">${esc(METHODS[r.method] || r.method)} · ID transaction : <b style="color:var(--ink)">${esc(r.reference)}</b></span></div><span class="x-tag ${RTXT[r.status]}">${esc(RSTATUS[r.status].label.toUpperCase())}</span></div>
         <div class="x-meta"><span><b>${esc(u.email || '-')}</b></span>${u.phone ? `<span>${esc(u.phone)}</span>` : ''}<span>Demandée le <b>${fmtFull(r.created_at)}</b></span></div>
         ${r.admin_note ? `<div class="x-quote">Note : ${esc(r.admin_note)}</div>` : ''}
         ${proof}${act}</div>`;
@@ -1960,7 +1883,7 @@ select.x-in{cursor:pointer}
       ${fbar('cash', '> rechercher : Gmail, téléphone, ID de transaction, montant', extra, info)}
       ${segs([['pending', 'En attente', cnt('pending')], ['approved', 'Approuvées', cnt('approved')], ['rejected', 'Rejetées', cnt('rejected')], ['', 'Toutes', cnt('')]], S.rf, 'data-rf')}
       ${clrBar}
-      ${rows.length ? rows.map(card).join('') : '<div class="x-empty">Aucune demande pour ce filtre.</div>'}</div>`;
+      ${listOr(rows, card, 'Aucune demande pour ce filtre.')}</div>`;
   }
 
   // ---------- COMPTES : tableau de bord filtrable + export ----------
@@ -1974,7 +1897,7 @@ select.x-in{cursor:pointer}
     const now = Date.now(), ls = mt.last[u.id], age = now - new Date(u.created_at).getTime();
     return u.is_active !== false && age > 30 * 864e5 && (!ls || now - ls > 30 * 864e5);
   }
-  function acctStatus(u, mt) { return u.is_active === false ? ['BLOQUÉ', '#ff5a5f'] : isDormant(u, mt) ? ['INACTIF', '#ffb020'] : ['ACTIF', '#c6ff3d']; }
+  function acctStatus(u, mt) { return u.is_active === false ? ['BLOQUÉ', 't-bad'] : isDormant(u, mt) ? ['INACTIF', 't-warn'] : ['ACTIF', 't-ok']; }
   function acctFilter(u, k, mt) {
     const bal = Number(S.bal[u.id] || 0);
     if (k === 'new') return Date.now() - new Date(u.created_at).getTime() <= 7 * 864e5;
@@ -2015,15 +1938,15 @@ select.x-in{cursor:pointer}
       const rows = S.admins.filter(u => hit(S.uq, [u.email, u.phone]));
       const cands = S.usr.slice().sort((a, b) => String(a.email || '').localeCompare(String(b.email || '')));
       tools = `<input id="x-uq" class="x-in" style="margin-bottom:12px" placeholder="> Gmail ou téléphone" value="${esc(S.uq || '')}">`;
-      body = `<div class="x-panel" style="margin-top:0;margin-bottom:14px;border-color:#c6ff3d"><p class="x-h"><b>●</b> NOMMER UN ADMINISTRATEUR</p>
+      body = `<div class="x-panel x-hl x-p0"><p class="x-h"><b>●</b> NOMMER UN ADMINISTRATEUR</p>
         <select id="nm-user" class="x-in" style="margin-bottom:8px"><option value="">— choisir un utilisateur —</option>${cands.map(u => `<option value="${esc(u.id)}" ${S.nm === u.id ? 'selected' : ''}>${esc(u.email || '-')} ${u.phone ? '· ' + esc(u.phone) : ''}</option>`).join('')}</select>
         ${permsHtml('nm', {})}
         <button class="x-btn go" style="width:100%" data-admnew="1">NOMMER ADMINISTRATEUR</button></div>` +
         (rows.length ? rows.map(u => `<div class="x-panel" style="margin-top:0;margin-bottom:10px">
-          <strong style="color:#e9f1f8;word-break:break-all">${esc(u.email || '-')}</strong> <span class="x-tag" style="color:${u.is_active ? '#c6ff3d' : '#ff5a5f'}">${u.is_active ? 'ACTIF' : 'COUPÉ'}</span>
-          <p style="font-size:12px;color:#7d8da0;margin:4px 0 6px">${esc(u.phone || 'sans téléphone')}</p>
+          <strong class="t-ink" style="word-break:break-all">${esc(u.email || '-')}</strong> <span class="x-tag ${u.is_active ? 't-ok' : 't-bad'}">${u.is_active ? 'ACTIF' : 'COUPÉ'}</span>
+          <p class="t-mut" style="font-size:12px;margin:4px 0 6px">${esc(u.phone || 'sans téléphone')}</p>
           <div style="margin-bottom:8px">${permTags(u.permissions)}</div>
-          <button class="x-btn go" data-admopen="${esc(u.id)}">OUVRIR : TABLEAU DE BORD & JOURNAL</button></div>`).join('') : '<p style="color:#5b6b7c">// aucun administrateur secondaire</p>');
+          <button class="x-btn go" data-admopen="${esc(u.id)}">OUVRIR : TABLEAU DE BORD & JOURNAL</button></div>`).join('') : '<p class="t-dim">// aucun administrateur secondaire</p>');
     } else {
       const { rows, mt } = acctRows();
       const cnt = (k) => S.usr.filter(u => acctFilter(u, k, mt)).length;
@@ -2037,7 +1960,7 @@ select.x-in{cursor:pointer}
       body = (shown.length ? shown.map(u => {
         const b = Number(S.bal[u.id] || 0), c = mt.cnt[u.id] || 0, ls = mt.last[u.id], st = acctStatus(u, mt);
         return `<div class="x-c2 sm">
-          <div class="x-c2h"><div><strong class="x-amt" style="font-size:15px">${esc(u.email || '-')}</strong><span class="x-sub">${esc(u.phone || 'sans téléphone')}</span></div><span class="x-tag" style="color:${st[1]}">${st[0]}</span></div>
+          <div class="x-c2h"><div><strong class="x-amt" style="font-size:15px">${esc(u.email || '-')}</strong><span class="x-sub">${esc(u.phone || 'sans téléphone')}</span></div><span class="x-tag ${st[1]}">${st[0]}</span></div>
           <div class="x-meta"><span>Solde <b>${fmtMoney(b)}</b></span><span><b>${c}</b> colis</span><span>Inscrit le <b>${fmtDay(u.created_at)}</b></span><span>Dernier colis <b>${ls ? fmtDay(ls) : 'jamais'}</b></span></div>
           <details class="x-sec"><summary>Gérer ce compte</summary><div>
             <div style="display:grid;grid-template-columns:1fr auto;gap:8px">
@@ -2062,18 +1985,18 @@ select.x-in{cursor:pointer}
     const rd = (l, v, e) => `<div class="x-read" style="cursor:default"><small>${l}</small><strong>${v}</strong><em>${e}</em></div>`;
     M.innerHTML = `<p class="x-h"><b>●</b> ADMINISTRATEUR // ${esc(u.email || '-')}</p>
     <div class="x-chips"><button class="x-btn" data-admback="1">← RETOUR</button><button class="x-btn" data-admopen="${esc(u.id)}">ACTUALISER</button></div>
-    <div class="x-panel" style="margin-top:0"><strong style="color:#e9f1f8;word-break:break-all">${esc(u.email || '-')}</strong> <span class="x-tag" style="color:${u.is_active ? '#c6ff3d' : '#ff5a5f'}">${u.is_active ? 'ACTIF' : 'COUPÉ'}</span>
-      <p style="font-size:12px;color:#7d8da0;margin:4px 0 6px">${esc(u.phone || 'sans téléphone')}</p><div>${permTags(u.permissions)}</div></div>
+    <div class="x-panel" style="margin-top:0"><strong class="t-ink" style="word-break:break-all">${esc(u.email || '-')}</strong> <span class="x-tag ${u.is_active ? 't-ok' : 't-bad'}">${u.is_active ? 'ACTIF' : 'COUPÉ'}</span>
+      <p class="t-mut" style="font-size:12px;margin:4px 0 6px">${esc(u.phone || 'sans téléphone')}</p><div>${permTags(u.permissions)}</div></div>
     <div class="x-panel"><p class="x-h">TABLEAU DE BORD PERSONNEL</p><div class="x-grid">
       ${rd('ACTIONS TOTALES', L.length, 'depuis la nomination')}${rd("AUJOURD'HUI", today, 'actions')}${rd('7 DERNIERS JOURS', wk, 'actions')}
       ${rd('DERNIÈRE ACTIVITÉ', L.length ? fmtDay(L[0].created_at) : '-', L.length ? new Date(L[0].created_at).toLocaleTimeString('fr-FR') : 'aucune')}${rd('TYPES D\'ACTIONS', rows.length, 'différents')}</div>
-      <div style="margin-top:12px">${rows.length ? rows.map(([k, n]) => `<div style="margin:6px 0"><div style="display:flex;justify-content:space-between;font-size:11px;color:#7d8da0"><span>${esc(actLabel(k))}</span><span>${n}</span></div><div style="height:6px;background:#101820"><div style="height:6px;width:${n / mx * 100}%;background:#c6ff3d"></div></div></div>`).join('') : '<p style="color:#5b6b7c;font-size:12px">// aucune action enregistrée</p>'}</div></div>
+      <div style="margin-top:12px">${rows.length ? rows.map(([k, n]) => `<div style="margin:6px 0"><div class="t-mut" style="display:flex;justify-content:space-between;font-size:11px"><span>${esc(actLabel(k))}</span><span>${n}</span></div><div style="height:6px;background:#e8eef8;border-radius:999px"><div style="height:6px;width:${n / mx * 100}%;background:linear-gradient(90deg,#0047AB,#2a7bff);border-radius:999px"></div></div></div>`).join('') : '<p class="t-dim" style="font-size:12px">// aucune action enregistrée</p>'}</div></div>
     <div class="x-panel"><p class="x-h">CONFIGURER LES PERMISSIONS</p>${permsHtml('ap', u.permissions)}
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="x-btn go" data-admsave="${esc(u.id)}">ENREGISTRER</button>
       <button class="x-btn" data-admtog="${u.is_active ? 0 : 1}" data-id="${esc(u.id)}">${u.is_active ? 'SUSPENDRE LE COMPTE' : 'RÉACTIVER LE COMPTE'}</button>
       <button class="x-btn no" data-admdemote="${esc(u.id)}">RÉTROGRADER EN UTILISATEUR</button></div></div>
     <div class="x-panel"><p class="x-h">JOURNAL D'ACTIVITÉ COMPLET (${L.length})</p>
-      ${L.length ? L.map(l => `<div class="x-row" style="cursor:default;flex-direction:column;gap:2px"><span style="color:#e9f1f8">${esc(actLabel(l.action))}</span><span style="color:#7d8da0;font-size:12px;white-space:pre-wrap;word-break:break-word">${esc(l.detail || l.details || '')}</span><span style="color:#5b6b7c;font-size:10px">${fmtDate(l.created_at)}</span></div>`).join('') : '<p style="color:#5b6b7c">// journal vide</p>'}</div>`;
+      ${L.length ? L.map(l => `<div class="x-row" style="cursor:default;flex-direction:column;gap:2px"><span class="t-ink">${esc(actLabel(l.action))}</span><span class="t-mut" style="font-size:12px;white-space:pre-wrap;word-break:break-word">${esc(l.detail || l.details || '')}</span><span class="t-dim" style="font-size:10px">${fmtDate(l.created_at)}</span></div>`).join('') : '<p class="t-dim">// journal vide</p>'}</div>`;
   }
 
   // ---------- JOURNAL (onglet) : actions des administrateurs, filtrable ----------
@@ -2091,7 +2014,7 @@ select.x-in{cursor:pointer}
     J.rows = data || [];
     const adms = [...new Map(J.rows.map(x => [x.admin_id, x.email])).entries()], acts = [...new Set(J.rows.map(x => x.action))];
     M.innerHTML = `<div class="x-wrap"><p class="x-h"><b>●</b> JOURNAL // ${isSuper ? 'tous les administrateurs' : 'mes actions'}</p><p class="x-lead">Les journaux sont effacés automatiquement après 30 jours.</p>
-    <div class="x-panel" style="margin-top:0;margin-bottom:14px"><input id="j-q" class="x-in" placeholder="> rechercher : client, montant, message, code..." style="margin-bottom:10px" value="${esc(J.q)}">
+    <div class="x-panel x-p0"><input id="j-q" class="x-in" placeholder="> rechercher : client, montant, message, code..." style="margin-bottom:10px" value="${esc(J.q)}">
     <div class="x-segs">${[[1, "Aujourd'hui"], [7, '7 jours'], [30, '30 jours']].map(([v, l]) => `<button class="x-sg ${J.d === v ? 'on' : ''}" data-jd="${v}">${l}</button>`).join('')}</div>
     <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">${isSuper ? `<select id="j-adm" class="x-in"><option value="">Tous les administrateurs</option>${adms.map(([i, e]) => `<option value="${esc(i)}" ${J.adm === i ? 'selected' : ''}>${esc(e || i)}</option>`).join('')}</select>` : ''}<select id="j-act" class="x-in"><option value="">Toutes les actions</option>${acts.map(a => `<option value="${esc(a)}" ${J.act === a ? 'selected' : ''}>${esc(actLabel(a))}</option>`).join('')}</select></div><p id="j-info" class="x-lead" style="margin:10px 0 0"></p></div><div id="j-list"></div></div>`;
     $('j-q').oninput = (e) => { J.q = e.target.value; jlist(); };
@@ -2106,7 +2029,7 @@ select.x-in{cursor:pointer}
   const auditRows = (a) => a.length ? a.map(x => `<div class="x-row" style="cursor:default;flex-direction:column;gap:2px"><span><b>${esc(x.field)}</b> : ${esc(x.old_value || '—')} → <b>${esc(x.new_value || '—')}</b></span><span style="font-size:11px;color:var(--mut)">${esc(x.code ? x.code + ' · ' : '')}${esc(fmtFull(x.happened_at || x.at))} · par ${esc(x.actor || 'Système')}</span></div>`).join('') : '<p class="x-hint">Aucune modification enregistrée.</p>';
   // Dans la fiche d'un colis (tiroir)
   async function svBox(id) {
-    const b = $('sv-box'); if (!b) return;
+    if (!$('sv-box')) return;
     const [v, a] = await Promise.all([supabaseClient.rpc('sw_admin_track_views', { p_shipment: String(id) }), supabaseClient.rpc('sw_admin_step_audit', { p_shipment: String(id) })]);
     if (S.open !== id || !$('sv-box')) return;
     const V = v.data || [], U = a.data || [];
@@ -2114,7 +2037,7 @@ select.x-in{cursor:pointer}
       const d = +$('sv-per').value, vv = perDays(V, 'viewed_at', d), uu = perDays(U, 'happened_at', d);
       $('sv-body').innerHTML = `<p class="x-h" style="margin-top:12px">👁 CONSULTATIONS DU LIEN / QR (${vv.length})</p>${vv.length ? vv.map((x, i) => `<div class="x-row" style="cursor:default"><span>#${vv.length - i}</span><span>${esc(fmtFull(x.viewed_at))}</span></div>`).join('') : '<p class="x-hint">Aucune consultation.</p>'}<p class="x-h" style="margin-top:12px">🧾 AUDIT DES ÉTAPES (${uu.length})</p>${auditRows(uu)}`;
     };
-    b.innerHTML = `<p class="x-h">SUPERVISION DU COLIS</p>${perSel('sv-per')}<div id="sv-body"></div>`; $('sv-per').onchange = paint; paint();
+    $('sv-box').innerHTML = `<p class="x-h">SUPERVISION DU COLIS</p>${perSel('sv-per')}<div id="sv-body"></div>`; $('sv-per').onchange = paint; paint();
   }
   // Pour un compte utilisateur (fenêtre)
   async function svModal(uid) {
@@ -2135,18 +2058,18 @@ select.x-in{cursor:pointer}
   // ---------- ANNULATIONS : version aérée + filtres ----------
   function cancelV() {
     if (S.cf === undefined) S.cf = 'pending';
-    const f = FL.cx;
+    const f = FL.cx, ctx = (r) => [S.ship.find(x => x.id === r.shipment_id) || {}, S.own[r.user_id] || {}];
     const all = (S.cx || []).filter(r => {
-      const s = S.ship.find(x => x.id === r.shipment_id) || {}, u = S.own[r.user_id] || {};
+      const [s, u] = ctx(r);
       return perOk(r.created_at, f) && hit(f.q, [s.tracking_code, s.tracking_code ? fmtCode(s.tracking_code) : '', s.origin, s.destination, r.reason, u.email, u.phone]);
     });
     const cnt = (k) => all.filter(r => !k || r.status === k).length;
     const rows = all.filter(r => !S.cf || r.status === S.cf);
-    const col = { pending: '#ffb020', approved: '#c6ff3d', rejected: '#ff5a5f' }, lab = { pending: 'EN ATTENTE', approved: 'ACCEPTÉE', rejected: 'REJETÉE' };
+    const lab = { pending: 'EN ATTENTE', approved: 'ACCEPTÉE', rejected: 'REJETÉE' };
     const card = (r) => {
-      const s = S.ship.find(x => x.id === r.shipment_id) || {}, u = S.own[r.user_id] || {};
+      const [s, u] = ctx(r);
       return `<div class="x-c2">
-        <div class="x-c2h"><div><strong class="x-amt" style="font-size:16px">${esc(s.tracking_code ? fmtCode(s.tracking_code) : '-')}</strong><span class="x-sub">${esc(s.origin || '')} → ${esc(s.destination || '')}</span></div><span class="x-tag" style="color:${col[r.status]}">${lab[r.status] || esc(r.status)}</span></div>
+        <div class="x-c2h"><div><strong class="x-amt" style="font-size:16px">${esc(s.tracking_code ? fmtCode(s.tracking_code) : '-')}</strong><span class="x-sub">${esc(s.origin || '')} → ${esc(s.destination || '')}</span></div><span class="x-tag ${RTXT[r.status]}">${lab[r.status] || esc(r.status)}</span></div>
         <div class="x-meta"><span><b>${esc(u.email || '-')}</b></span><span>Demandée le <b>${fmtFull(r.created_at)}</b></span></div>
         <div class="x-quote">${r.reason ? 'Motif : ' + esc(r.reason) : 'Aucun motif indiqué.'}</div>
         ${r.admin_note ? `<p class="x-hint">Note de l'administrateur : ${esc(r.admin_note)}</p>` : ''}
@@ -2158,14 +2081,14 @@ select.x-in{cursor:pointer}
       <p class="x-lead">Accepter une demande annule le colis. Aucun remboursement du reçu n'est prévu.</p>
       ${fbar('cx', '> rechercher : code de suivi, ville, Gmail, téléphone, motif', '', `<b>${rows.length}</b> demande(s) affichée(s)`)}
       ${segs([['pending', 'En attente', cnt('pending')], ['approved', 'Acceptées', cnt('approved')], ['rejected', 'Rejetées', cnt('rejected')], ['', 'Toutes', cnt('')]], S.cf, 'data-cf')}
-      ${rows.length ? rows.map(card).join('') : '<div class="x-empty">Aucune demande pour ce filtre.</div>'}</div>`;
+      ${listOr(rows, card, 'Aucune demande pour ce filtre.')}</div>`;
   }
 
   // ---------- ACCUSÉS DE RÉCEPTION (Lu / Non lu) ----------
   // Affiche « ✓ LU · date/heure » en vert ou « NON LU » en gris. Rien si la colonne n'existe pas encore (migration SQL non exécutée).
   function rcpt(m, field) {
     if (!m || !(field in m)) return '';
-    return m[field] ? `<span class="x-tag" style="color:#c6ff3d;white-space:nowrap">✓ LU · ${fmtFull(m[field])}</span>` : '<span class="x-tag" style="color:#7d8da0;white-space:nowrap">NON LU</span>';
+    return m[field] ? `<span class="x-tag t-ok" style="white-space:nowrap">✓ LU · ${fmtFull(m[field])}</span>` : '<span class="x-tag t-mut" style="white-space:nowrap">NON LU</span>';
   }
   // Date d'envoi de la réponse de l'administrateur (colonne replied_at)
   function replyDate(m) { return ('replied_at' in m && m.replied_at) ? fmtFull(m.replied_at) : ''; }
@@ -2182,9 +2105,9 @@ select.x-in{cursor:pointer}
       const m = list[0], direct = m.category === 'direct', has = 'read_at' in m, rd = list.filter(x => x.read_at).length, pct = list.length ? Math.round(rd / list.length * 100) : 0;
       const sorted = list.slice().sort((a, b) => (b.read_at ? 1 : 0) - (a.read_at ? 1 : 0) || new Date(b.read_at || 0) - new Date(a.read_at || 0));
       return `<div class="x-c2">
-        <div class="x-c2h"><div><strong class="x-amt" style="font-size:16px">${esc(m.subject)}</strong><span class="x-sub">Envoyé le <b style="color:var(--ink)">${fmtFull(m.created_at)}</b> · ${list.length} destinataire(s)</span></div><span class="x-tag" style="color:${direct ? '#4da3ff' : '#ffb020'}">${direct ? 'DIRECT' : 'ANNONCE'}</span></div>
+        <div class="x-c2h"><div><strong class="x-amt" style="font-size:16px">${esc(m.subject)}</strong><span class="x-sub">Envoyé le <b style="color:var(--ink)">${fmtFull(m.created_at)}</b> · ${list.length} destinataire(s)</span></div><span class="x-tag ${direct ? 't-info' : 't-warn'}">${direct ? 'DIRECT' : 'ANNONCE'}</span></div>
         <p class="x-body">${esc(m.body)}</p>
-        ${has ? `<div class="x-prog"><i style="width:${pct}%"></i></div><p class="x-hint" style="margin:0;color:${rd === list.length ? '#059669' : 'var(--mut)'}">✓ Lu par ${rd} / ${list.length}</p>` : '<p class="x-hint" style="color:#d97706">Suivi de lecture indisponible : exécutez la migration SQL fournie.</p>'}
+        ${has ? `<div class="x-prog"><i style="width:${pct}%"></i></div><p class="x-hint" style="margin:0;color:${rd === list.length ? '#059669' : 'var(--mut)'}">✓ Lu par ${rd} / ${list.length}</p>` : '<p class="x-hint t-warn">Suivi de lecture indisponible : exécutez la migration SQL fournie.</p>'}
         <details class="x-sec"><summary>Détail de lecture par utilisateur</summary><div>
         ${sorted.map(x => { const u = S.own[x.user_id] || {}; return `<div class="x-row" style="cursor:default;align-items:center"><span style="word-break:break-all;font-size:12px">${esc(u.email || '-')}</span>${has ? rcpt(x, 'read_at') : ''}</div>`; }).join('')}</div></details></div>`;
     }).join('');
@@ -2216,14 +2139,14 @@ select.x-in{cursor:pointer}
       else act = `<div class="x-acts" style="margin-top:14px"><button class="x-btn" data-mre="${esc(m.id)}">ROUVRIR</button>${wa}</div>` +
         (isSuper ? `<details class="x-sec"><summary>Options avancées</summary><div class="x-acts"><button class="x-btn no" data-mdel="${esc(m.id)}">SUPPRIMER CHEZ MOI</button><button class="x-btn no" data-mdel="${esc(m.id)}" data-both="1">SUPPRIMER AUSSI CHEZ LE CLIENT</button></div></details>` : '');
       return `<div class="x-c2">
-        <div class="x-c2h"><div><strong class="x-amt" style="font-size:16px">${esc(m.subject)}</strong><span class="x-sub">${esc(MCAT[m.category] || m.category)} · Reçu le <b style="color:var(--ink)">${fmtFull(m.created_at)}</b>${m.status === 'resolved' && m.resolved_at ? ' · Résolu le ' + fmtFull(m.resolved_at) : ''}${m.user_hidden ? ' · <span style="color:#d97706">supprimé par le client</span>' : ''}</span></div><span class="x-tag" style="color:${op ? '#ffb020' : '#c6ff3d'}">${op ? 'OUVERT' : 'RÉSOLU'}</span></div>
+        <div class="x-c2h"><div><strong class="x-amt" style="font-size:16px">${esc(m.subject)}</strong><span class="x-sub">${esc(MCAT[m.category] || m.category)} · Reçu le <b style="color:var(--ink)">${fmtFull(m.created_at)}</b>${m.status === 'resolved' && m.resolved_at ? ' · Résolu le ' + fmtFull(m.resolved_at) : ''}${m.user_hidden ? ' · <span class="t-warn">supprimé par le client</span>' : ''}</span></div><span class="x-tag ${op ? 't-warn' : 't-ok'}">${op ? 'OUVERT' : 'RÉSOLU'}</span></div>
         <div class="x-meta"><span><b>${esc(u.email || '-')}</b></span><span>${esc(u.phone || 'sans téléphone')}</span></div>
         <p class="x-body">${esc(m.body)}</p>
         ${reply}${info2}${act}</div>`;
     };
     return `${fbar('msg', '> rechercher : sujet, message, Gmail, téléphone', extra, info)}
       ${segs([['open', 'Ouverts', n('open')], ['', 'Tous', n('')], ['resolved', 'Résolus', n('resolved')], ['sent', 'Envoyés · lecture', sentGroups().length]], S.mf, 'data-mf')}
-      ${isSent ? sentHtml() : mBar + (rows.length ? rows.map(card).join('') : '<div class="x-empty">Aucun message pour ce filtre.</div>')}`;
+      ${isSent ? sentHtml() : mBar + listOr(rows, card, 'Aucun message pour ce filtre.')}`;
   }
   function msgRefresh() { const b = $('msg-fl'); if (b) b.innerHTML = msgFlHtml(); else inbox(); }
   function inbox() {
@@ -2254,9 +2177,9 @@ select.x-in{cursor:pointer}
     $('bc-count').textContent = n + ' destinataire(s) ciblé(s)';
   }
   function bcPanel() {
-    return `<div class="x-panel" id="bc-box" style="margin-top:0;margin-bottom:14px;border-color:#c6ff3d">
+    return `<div class="x-panel x-hl x-p0" id="bc-box">
       <p class="x-h"><b>●</b> ANNONCE GLOBALE // envoyée dans l'espace Messages des clients ciblés</p>
-      <label style="font-size:11px;color:#5b6b7c">DESTINATAIRES</label>
+      <label class="t-dim" style="font-size:11px">DESTINATAIRES</label>
       <select id="bc-f" class="x-in" style="margin:4px 0 8px">
         <option value="all">Tous les utilisateurs</option>
         <option value="positive">Solde positif (supérieur à 0)</option>
@@ -2266,11 +2189,11 @@ select.x-in{cursor:pointer}
       <div id="bc-range" style="display:none;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
         <input id="bc-min" type="number" min="0" step="1" class="x-in" placeholder="solde minimum (FCFA)">
         <input id="bc-max" type="number" min="0" step="1" class="x-in" placeholder="solde maximum (FCFA)"></div>
-      <p id="bc-count" style="font-size:12px;color:#c6ff3d;margin:0 0 10px"></p>
+      <p class="t-ok x-sm" id="bc-count"></p>
       <input id="bc-subject" class="x-in" maxlength="120" placeholder="Sujet / titre de l'annonce" style="margin-bottom:8px">
       <textarea id="bc-body" rows="7" maxlength="2000" class="x-in" placeholder="Votre message (promotion, information importante...)" style="margin-bottom:8px"></textarea>
       <button class="x-btn go" style="width:100%" data-bcsend="1">ENVOYER À TOUS LES DESTINATAIRES CIBLÉS</button>
-      <p style="font-size:11px;color:#5b6b7c;margin-top:8px">Seuls les comptes clients actifs reçoivent l'annonce. Le message apparaît dans leur espace Messages comme « Annonce officielle ».</p></div>`;
+      <p class="t-dim x-note">Seuls les comptes clients actifs reçoivent l'annonce. Le message apparaît dans leur espace Messages comme « Annonce officielle ».</p></div>`;
   }
 
   // ---------- MESSAGE DIRECT À UN UTILISATEUR ----------
@@ -2278,8 +2201,8 @@ select.x-in{cursor:pointer}
     const q = ($('dm-q') ? $('dm-q').value : '');
     const all = S.users.filter(u => hit(q, [u.email, u.phone]));
     const rows = all.slice(0, 50);
-    return (rows.length ? rows.map(u => `<button class="x-row" style="${S.dmu === u.id ? 'background:#0f1a12;border-left:3px solid #c6ff3d;padding-left:8px' : ''}" data-dmpick="${esc(u.id)}"><span style="word-break:break-all">${esc(u.email || '-')} <span style="color:#7d8da0">${esc(u.phone || '')}</span></span><span style="color:#c6ff3d;white-space:nowrap">${fmtMoney(S.bal[u.id] || 0)}</span></button>`).join('') : '<p style="color:#5b6b7c">// aucun utilisateur</p>')
-      + (all.length > 50 ? `<p style="font-size:11px;color:#5b6b7c;margin-top:6px">${all.length} résultats : affinez la recherche pour voir les autres.</p>` : '');
+    return (rows.length ? rows.map(u => `<button class="x-row" style="${S.dmu === u.id ? 'background:#eaf1ff;border-left:3px solid #0047AB;padding-left:8px' : ''}" data-dmpick="${esc(u.id)}"><span style="word-break:break-all">${esc(u.email || '-')} <span class="t-mut">${esc(u.phone || '')}</span></span><span class="t-ok" style="white-space:nowrap">${fmtMoney(S.bal[u.id] || 0)}</span></button>`).join('') : '<p class="t-dim">// aucun utilisateur</p>')
+      + (all.length > 50 ? `<p class="t-dim" style="font-size:11px;margin-top:6px">${all.length} résultats : affinez la recherche pour voir les autres.</p>` : '');
   }
   function dmLabel() {
     const u = S.own[S.dmu];
@@ -2287,15 +2210,15 @@ select.x-in{cursor:pointer}
   }
   function dmRefresh() { const l = $('dm-list'); if (l) { l.innerHTML = dmListHtml(); $('dm-sel').innerHTML = dmLabel(); } }
   function dmPanel() {
-    return `<div class="x-panel" id="dm-box" style="margin-top:0;margin-bottom:14px;border-color:#c6ff3d">
+    return `<div class="x-panel x-hl x-p0" id="dm-box">
       <p class="x-h"><b>●</b> MESSAGE DIRECT // écrire à un seul utilisateur (problème, information, suivi...)</p>
       <input id="dm-q" class="x-in" placeholder="> rechercher par Gmail ou téléphone (${S.users.length} utilisateurs)" style="margin-bottom:8px">
-      <div id="dm-list" style="max-height:230px;overflow-y:auto;border:1px solid #1b2530;padding:0 8px;margin-bottom:8px">${dmListHtml()}</div>
-      <p id="dm-sel" style="font-size:12px;color:#c6ff3d;margin:0 0 10px">${dmLabel()}</p>
+      <div id="dm-list" style="max-height:230px;overflow-y:auto;border:1px solid var(--line);border-radius:12px;padding:0 8px;margin-bottom:8px">${dmListHtml()}</div>
+      <p class="t-ok x-sm" id="dm-sel">${dmLabel()}</p>
       <input id="dm-subject" class="x-in" maxlength="120" placeholder="Sujet / titre du message" style="margin-bottom:8px">
       <textarea id="dm-body" rows="6" maxlength="2000" class="x-in" placeholder="Votre message à cet utilisateur" style="margin-bottom:8px"></textarea>
       <button class="x-btn go" style="width:100%" data-dmsend="1">ENVOYER À CET UTILISATEUR</button>
-      <p style="font-size:11px;color:#5b6b7c;margin-top:8px">Le message apparaît dans l'espace Messages de l'utilisateur comme « Message de l'assistant ».</p></div>`;
+      <p class="t-dim x-note">Le message apparaît dans l'espace Messages de l'utilisateur comme « Message de l'assistant ».</p></div>`;
   }
 
   // ---------- FILTRE UTILISATEURS & CONTACT WHATSAPP ----------
@@ -2345,21 +2268,21 @@ select.x-in{cursor:pointer}
     const all = waTargets(), ok = all.filter(u => waNum(u.phone)), bad = all.length - ok.length;
     WA.list = ok;
     const done = ok.filter(u => WA.done[u.id]).length;
-    box.innerHTML = `<p style="font-size:12px;color:#c6ff3d;margin:0 0 10px">${all.length} utilisateur(s) correspondant(s) · ${ok.length} avec numéro valide${bad ? ` · <span style="color:#ffb020">${bad} sans numéro exploitable</span>` : ''}</p>
+    box.innerHTML = `<p class="t-ok x-sm">${all.length} utilisateur(s) correspondant(s) · ${ok.length} avec numéro valide${bad ? ` · <span class="t-warn">${bad} sans numéro exploitable</span>` : ''}</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
         <button class="x-btn go" data-wanext="1" ${ok.length ? '' : 'disabled'}>💬 Écrire à ces utilisateurs sur WhatsApp</button>
         <button class="x-btn" data-wacopy="1" ${ok.length ? '' : 'disabled'}>COPIER LES NUMÉROS</button>
         <button class="x-btn" data-wareset="1">RÉINITIALISER LA FILE</button></div>
-      <p style="font-size:11px;color:#5b6b7c;margin:0 0 10px">WhatsApp n'ouvre qu'une discussion à la fois : chaque clic sur le bouton vert ouvre la suivante (${done} / ${ok.length} déjà ouvertes). Vous pouvez aussi ouvrir un utilisateur précis dans la liste.</p>
+      <p class="t-dim" style="font-size:11px;margin:0 0 10px">WhatsApp n'ouvre qu'une discussion à la fois : chaque clic sur le bouton vert ouvre la suivante (${done} / ${ok.length} déjà ouvertes). Vous pouvez aussi ouvrir un utilisateur précis dans la liste.</p>
       ${ok.length ? ok.map(u => { const d = !!WA.done[u.id]; return `<div class="x-row" style="cursor:default;align-items:center;${d ? 'opacity:.55' : ''}">
-        <span style="word-break:break-all;font-size:12px"><span style="color:#e9f1f8">${esc(u.email || '-')}</span><br><span style="color:#7d8da0">+${esc(waNum(u.phone))} · ${fmtMoney(S.bal[u.id] || 0)} · ${u.is_active === false ? 'coupé' : 'actif'}</span></span>
-        <button class="x-btn ${d ? '' : 'go'}" data-wasend="${esc(u.id)}">${d ? '✓ OUVERT' : 'WHATSAPP'}</button></div>`; }).join('') : '<p style="color:#5b6b7c">// aucun utilisateur ne correspond aux filtres</p>'}`;
+        <span style="word-break:break-all;font-size:12px"><span class="t-ink">${esc(u.email || '-')}</span><br><span class="t-mut">+${esc(waNum(u.phone))} · ${fmtMoney(S.bal[u.id] || 0)} · ${u.is_active === false ? 'coupé' : 'actif'}</span></span>
+        <button class="x-btn ${d ? '' : 'go'}" data-wasend="${esc(u.id)}">${d ? '✓ OUVERT' : 'WHATSAPP'}</button></div>`; }).join('') : '<p class="t-dim">// aucun utilisateur ne correspond aux filtres</p>'}`;
   }
   function waV() {
     const sel = (id, cur, opts) => `<select id="${id}" class="x-in">${opts.map(([v, l]) => `<option value="${v}" ${cur === v ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
-    const lb = (t) => `<label style="font-size:11px;color:#5b6b7c;letter-spacing:.1em">${t}</label>`;
+    const lb = (t) => `<label class="t-dim" style="font-size:11px;letter-spacing:.1em">${t}</label>`;
     M.innerHTML = `<p class="x-h"><b>●</b> WHATSAPP // filtrer les utilisateurs et leur écrire</p>
-    <div class="x-panel" id="wa-box" style="margin-top:0;margin-bottom:14px;border-color:#c6ff3d">
+    <div class="x-panel x-hl x-p0" id="wa-box">
       <p class="x-h">FILTRES</p>
       <input id="wa-q" class="x-in" style="margin-bottom:10px" placeholder="> Gmail ou téléphone" value="${esc(WA.q)}">
       <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:10px">
@@ -2409,11 +2332,11 @@ select.x-in{cursor:pointer}
     const segOpts = [['never_zero', "Jamais généré d'expédition ET solde à 0 FCFA (prioritaire)"], ['never', "Jamais généré d'expédition"], ['zero', 'Solde à 0 FCFA'], ['new7', 'Nouveaux inscrits (7 jours)'], ['dormant', 'Inactifs depuis plus de 30 jours']];
     return `<div class="x-panel" id="pr-box" style="margin-top:0;margin-bottom:12px"><p class="x-h">🎁 OFFRE PROMOTIONNELLE // reçu offert à un groupe</p>
       <p class="x-lead" style="margin-bottom:14px">Crédite le prix d'un reçu (<b>${fmtMoney(RECEIPT_PRICE)}</b>) sur le portefeuille des utilisateurs sélectionnés : ils génèrent leur première expédition sans payer. Seuls les comptes actifs sont ciblés, et un utilisateur ne reçoit l'offre qu'une seule fois${S.grantsOk ? ' (' + new Set(S.grants.map(g => g.user_id)).size + ' déjà gratifié(s))' : ''}.</p>
-      ${S.grantsOk ? '' : '<p class="x-hint" style="color:#d97706;margin:0 0 12px">Migration SQL non exécutée : l\'envoi sera refusé tant que la fonction « sw_admin_grant_free_receipts » n\'existe pas.</p>'}
+      ${S.grantsOk ? '' : '<p class="x-hint t-warn" style="margin:0 0 12px">Migration SQL non exécutée : l\'envoi sera refusé tant que la fonction « sw_admin_grant_free_receipts » n\'existe pas.</p>'}
       <div style="display:grid;gap:12px">
-        <div><label style="font-size:11px;color:var(--mut);font-weight:600">SEGMENT CIBLÉ</label><select id="pr-seg" class="x-in" style="margin-top:4px">${segOpts.map(([v, l]) => `<option value="${v}" ${PR.seg === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
-        <div><label style="font-size:11px;color:var(--mut);font-weight:600">NOM DE L'OFFRE</label><input id="pr-camp" class="x-in" maxlength="80" style="margin-top:4px" value="${esc(PR.camp)}" placeholder="Ex : Offre de lancement"></div>
-        <div><label style="font-size:11px;color:var(--mut);font-weight:600">MESSAGE D'ANNONCE AUX BÉNÉFICIAIRES (facultatif)</label><textarea id="pr-msg" rows="3" maxlength="1000" class="x-in" style="margin-top:4px" placeholder="Ex : Bonne nouvelle ! Votre premier reçu est offert, créez votre expédition dès maintenant.">${esc(PR.msg)}</textarea></div>
+        <div><label class="x-lb">SEGMENT CIBLÉ</label><select id="pr-seg" class="x-in" style="margin-top:4px">${segOpts.map(([v, l]) => `<option value="${v}" ${PR.seg === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+        <div><label class="x-lb">NOM DE L'OFFRE</label><input id="pr-camp" class="x-in" maxlength="80" style="margin-top:4px" value="${esc(PR.camp)}" placeholder="Ex : Offre de lancement"></div>
+        <div><label class="x-lb">MESSAGE D'ANNONCE AUX BÉNÉFICIAIRES (facultatif)</label><textarea id="pr-msg" rows="3" maxlength="1000" class="x-in" style="margin-top:4px" placeholder="Ex : Bonne nouvelle ! Votre premier reçu est offert, créez votre expédition dès maintenant.">${esc(PR.msg)}</textarea></div>
       </div>
       <div id="pr-res"></div></div>`;
   }
@@ -2423,7 +2346,7 @@ select.x-in{cursor:pointer}
     const { data, error } = await supabaseClient.rpc('sw_welcome_get');
     if (!$('wo-card')) return;
     const on = !!data;
-    c.innerHTML = `<p class="x-h">🎁 OFFRE DE BIENVENUE AUTOMATIQUE</p><p class="x-lead" style="margin-bottom:12px">Activée : chaque nouvel inscrit reçoit le prix d'un premier reçu (<b>${fmtMoney(RECEIPT_PRICE)}</b>). Désactivée : inscription classique.</p>${!error ? `<div class="x-acts"><span class="x-tag" style="color:${on ? '#c6ff3d' : '#ff5a5f'}">${on ? 'ACTIVÉE' : 'DÉSACTIVÉE'}</span><button class="x-btn ${on ? 'no' : 'go'}" id="wo-btn">${on ? 'DÉSACTIVER' : 'ACTIVER'}</button></div>` : '<p class="x-hint" style="color:#d97706">Migration SQL « migration-admin.sql » non exécutée.</p>'}`;
+    c.innerHTML = `<p class="x-h">🎁 OFFRE DE BIENVENUE AUTOMATIQUE</p><p class="x-lead" style="margin-bottom:12px">Activée : chaque nouvel inscrit reçoit le prix d'un premier reçu (<b>${fmtMoney(RECEIPT_PRICE)}</b>). Désactivée : inscription classique.</p>${!error ? `<div class="x-acts"><span class="x-tag ${on ? 't-ok' : 't-bad'}">${on ? 'ACTIVÉE' : 'DÉSACTIVÉE'}</span><button class="x-btn ${on ? 'no' : 'go'}" id="wo-btn">${on ? 'DÉSACTIVER' : 'ACTIVER'}</button></div>` : '<p class="x-hint t-warn">Migration SQL « migration-admin.sql » non exécutée.</p>'}`;
     const bt = $('wo-btn');
     if (bt) bt.onclick = async () => {
       const r = await supabaseClient.rpc('sw_admin_set_welcome', { p_on: !on });
@@ -2436,7 +2359,7 @@ select.x-in{cursor:pointer}
   function cfg() {
     if (!isSuper) S.cs = 'pay'; else if (!S.cs) S.cs = 'price';
     const priceHtml = isSuper ? `<div class="x-panel" style="margin-top:0"><p class="x-h">PRIX DU REÇU A5 / CODE DE SUIVI (FCFA)</p>
-      <p style="font-size:12px;color:#7d8da0;margin:0 0 10px">Montant débité du portefeuille du client à la première génération du reçu d'une expédition. Prix actuel : <span style="color:#c6ff3d">${fmtMoney(RECEIPT_PRICE)}</span></p>
+      <p class="t-mut x-sm">Montant débité du portefeuille du client à la première génération du reçu d'une expédition. Prix actuel : <span class="t-ok">${fmtMoney(RECEIPT_PRICE)}</span></p>
       <div style="display:flex;gap:8px"><input id="cfg-price" type="number" min="0" step="1" class="x-in" value="${esc(RECEIPT_PRICE)}"><button class="x-btn go" data-price="1">ENREGISTRER</button></div></div>` : '';
     const payHtml = `<div class="x-panel" style="margin-top:0"><p class="x-h">NUMÉROS DE RECHARGE (affichés aux clients)</p>
       <div style="display:grid;gap:8px;margin-bottom:12px">
@@ -2450,7 +2373,7 @@ select.x-in{cursor:pointer}
           <input id="pe-phone" class="x-in" value="${esc(p.phone)}" placeholder="Numéro">
           <input id="pe-name" class="x-in" value="${esc(p.holder_name)}" placeholder="Nom du titulaire">
           <div style="display:flex;gap:8px"><button class="x-btn go" data-pesave="${esc(p.id)}">ENREGISTRER</button><button class="x-btn" data-pecancel="1">ANNULER</button></div></div></div>`
-      : `<div class="x-row" style="cursor:default;flex-wrap:wrap"><span><span class="x-tag" style="color:${p.operator === 'mtn' ? '#ffb020' : '#ff7a1a'}">${p.operator === 'mtn' ? 'MTN' : 'ORANGE'}</span> ${esc(p.phone)} · ${esc(p.holder_name)}${p.is_active ? '' : ' <span style="color:#ff5a5f">(masqué)</span>'}</span><span><button class="x-btn" data-pedit="${esc(p.id)}">MODIFIER</button> <button class="x-btn" data-pntog="${esc(p.id)}" data-on="${p.is_active ? 0 : 1}">${p.is_active ? 'MASQUER' : 'AFFICHER'}</button>${isSuper ? ` <button class="x-btn no" data-pndel="${esc(p.id)}">SUPPRIMER</button>` : ''}</span></div>`).join('') || '<p style="color:#5b6b7c">// aucun numéro</p>'}</div>`;
+      : `<div class="x-row" style="cursor:default;flex-wrap:wrap"><span><span class="x-tag ${p.operator === 'mtn' ? 't-warn' : 't-org'}">${p.operator === 'mtn' ? 'MTN' : 'ORANGE'}</span> ${esc(p.phone)} · ${esc(p.holder_name)}${p.is_active ? '' : ' <span class="t-bad">(masqué)</span>'}</span><span><button class="x-btn" data-pedit="${esc(p.id)}">MODIFIER</button> <button class="x-btn" data-pntog="${esc(p.id)}" data-on="${p.is_active ? 0 : 1}">${p.is_active ? 'MASQUER' : 'AFFICHER'}</button>${isSuper ? ` <button class="x-btn no" data-pndel="${esc(p.id)}">SUPPRIMER</button>` : ''}</span></div>`).join('') || '<p class="t-dim">// aucun numéro</p>'}</div>`;
     const nPay = (S.pn || []).length, nAct = (S.pn || []).filter(p => p.is_active).length;
     const gifted = S.grantsOk ? new Set(S.grants.map(g => g.user_id)).size : null;
     const tabs = segs(isSuper
@@ -2464,7 +2387,7 @@ select.x-in{cursor:pointer}
     M.innerHTML = `<div class="x-wrap"><p class="x-h"><b>●</b> PARAMÈTRES // ${isSuper ? 'TARIFICATION & OFFRES' : 'NUMÉROS DE PAIEMENT'}</p>
       <p class="x-lead">${lead}</p>
       ${sum}${tabs}
-      ${S.cs === 'price' ? priceHtml : S.cs === 'promo' ? '<div id="wo-card" class="x-panel" style="margin-top:0;margin-bottom:14px"></div>' + promoHtml() : payHtml}</div>`;
+      ${S.cs === 'price' ? priceHtml : S.cs === 'promo' ? '<div id="wo-card" class="x-panel x-p0"></div>' + promoHtml() : payHtml}</div>`;
     prList();
     if (S.cs === 'promo') welcomeCard();
   }
@@ -2599,12 +2522,12 @@ select.x-in{cursor:pointer}
     }
     // ---- WhatsApp : file d'envoi, ouverture individuelle, copie des numéros ----
     if ((el = g('data-wasend'))) {
-      if (!(can('msg') || can('acct'))) return toast('Action non autorisée pour votre rôle.', 'error');
+      if (!need('wa')) return;
       const u = S.own[el.dataset.wasend]; if (!u) return;
       waRead(); waOpen(u); return waList();
     }
     if (g('data-wanext')) {
-      if (!(can('msg') || can('acct'))) return toast('Action non autorisée pour votre rôle.', 'error');
+      if (!need('wa')) return;
       waRead();
       const nx = WA.list.find(u => !WA.done[u.id]);
       if (!nx) return toast('Toutes les discussions de cette liste ont déjà été ouvertes.');
