@@ -2200,16 +2200,24 @@ select.x-per{height:46px;border-radius:14px;padding:0 14px;font-weight:600}
   }
 
   async function loadAll() {
-    await supabaseClient.rpc('sw_advance_shipments_v2');
-    if (isSuper) { try { const pg = await supabaseClient.rpc('sw_purge_old', { p_days: 5 }); if (!pg.error) removeProofs(pg.data); } catch (e) {} }
-    await loadPrice();
+    // Tâches de maintenance : au plus 1 fois par minute (avance des colis), 30 min (purge), 5 min (tarif), et en parallèle
+    const t0 = Date.now(), maint = [];
+    if (!S.advAt || t0 - S.advAt > 60000) { S.advAt = t0; maint.push(supabaseClient.rpc('sw_advance_shipments_v2').then(() => {}, () => {})); }
+    if (!S.priceAt || t0 - S.priceAt > 300000) { S.priceAt = t0; maint.push(Promise.resolve(loadPrice()).catch(() => {})); }
+    if (isSuper && (!S.purgeAt || t0 - S.purgeAt > 1800000)) { S.purgeAt = t0; supabaseClient.rpc('sw_purge_old', { p_days: 5 }).then(pg => { if (!pg.error) removeProofs(pg.data); }, () => {}); }
+    if (maint.length) await Promise.all(maint);
     const q = (t, f) => supabaseClient.from(t).select(f || '*');
-    const [sh, pr, rc, wl, pn, adj, mg, cx] = await Promise.all([
+    const safe = (r) => Promise.resolve(r).then(x => x, e => ({ error: e }));
+    const [sh, pr, rc, wl, pn, adj, mg, cx, spR, pwR, stR, grR] = await Promise.all([
       q('sw_shipments').order('created_at', { ascending: false }).limit(500),
       q('sw_profiles').order('created_at', { ascending: false }),
       q('sw_recharges').order('created_at', { ascending: false }).limit(300),
       q('sw_wallets', 'user_id,balance'), q('sw_pay_numbers').order('created_at'), q('sw_wallet_adjustments').order('created_at'), q('sw_messages').order('created_at', { ascending: false }).limit(1000),
-      q('sw_cancel_requests').order('created_at', { ascending: false }).limit(300)]);
+      q('sw_cancel_requests').order('created_at', { ascending: false }).limit(300),
+      safe(q('sw_support_contacts').order('created_at')),
+      can('acct') ? safe(supabaseClient.rpc('sw_admin_list_pw_requests')) : Promise.resolve({ error: true }),
+      isSuper && S.v === 'radar' ? safe(supabaseClient.rpc('sw_admin_stats')) : Promise.resolve(null),
+      isSuper && S.v === 'cfg' ? safe(supabaseClient.from('sw_free_grants').select('user_id,created_at,campaign').order('created_at', { ascending: false }).limit(5000)) : Promise.resolve(null)]);
     if (sh.error) { toast('Erreur : ' + sh.error.message, 'error'); return; }
     S.msgs = (mg.data || []).filter(m => !m.admin_hidden && !m.is_broadcast);
     // Messages et annonces envoyés par l'admin (suivi des accusés de lecture)
@@ -2231,16 +2239,16 @@ select.x-per{height:46px;border-radius:14px;padding:0 14px;font-weight:600}
     const ncx = S.cx.filter(r => r.status === 'pending').length, cb = $('nav-cx-badge');
     cb.textContent = ncx; cb.style.display = ncx && can('cancel') ? 'block' : 'none';
     S.sup = []; S.supOk = false;
-    try { const sp = await supabaseClient.from('sw_support_contacts').select('*').order('created_at'); if (!sp.error) { S.sup = sp.data || []; S.supOk = true; } } catch (e) {}
+    if (spR && !spR.error) { S.sup = spR.data || []; S.supOk = true; }
     S.pwr = []; S.pwrOk = false;
-    if (can('acct')) { try { const pw = await supabaseClient.rpc('sw_admin_list_pw_requests'); if (!pw.error) { S.pwr = pw.data || []; S.pwrOk = true; } } catch (e) {} }
+    if (pwR && !pwR.error) { S.pwr = pwR.data || []; S.pwrOk = true; }
     const npw = S.pwr.filter(r => r.status === 'pending').length, ab = $('nav-pw-badge');
     ab.textContent = npw; ab.style.display = npw && can('acct') ? 'block' : 'none';
-    S.st = null;
-    if (isSuper) { try { const st = await supabaseClient.rpc('sw_admin_stats'); S.st = st.error ? null : st.data; } catch (e) { S.st = null; } }
-    // Historique des reçus offerts (table créée par la migration SQL ; ignorée si absente)
-    S.grants = []; S.grantsOk = false; PR.cntFor = '';
-    if (isSuper) { try { const gr = await supabaseClient.from('sw_free_grants').select('user_id,created_at,campaign').order('created_at', { ascending: false }).limit(5000); if (!gr.error) { S.grants = gr.data || []; S.grantsOk = true; } } catch (e) {} }
+    // Statistiques (Radar) et reçus offerts (Paramètres) : chargés seulement quand l'écran en a besoin
+    if (stR !== null) { S.st = stR.error ? null : stR.data; S.stAt = Date.now(); }
+    if (grR !== null) { S.grants = []; S.grantsOk = false; if (!grR.error) { S.grants = grR.data || []; S.grantsOk = true; } S.grAt = Date.now(); }
+    PR.cntFor = '';
+    S.loadedAt = Date.now();
   }
 
   async function loadLogs(id) {
@@ -2259,6 +2267,16 @@ select.x-per{height:46px;border-radius:14px;padding:0 14px;font-weight:600}
     A.querySelectorAll('.x-rail [data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === name));
     syncMore(name);
     window.scrollTo(0, 0);
+    const need = isSuper && ((name === 'radar' && !S.stAt) || (name === 'cfg' && !S.grAt));
+    if (S.loadedAt && !need) {
+      draw(); // affichage immédiat avec les données en mémoire
+      if (Date.now() - S.loadedAt > 30000) loadAll().then(() => {
+        const ae = document.activeElement;
+        if (S.v === name && !S.open && !(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))) draw();
+      });
+      return;
+    }
+    if (!S.loadedAt) M.innerHTML = '<p class="x-hint" style="padding:28px 4px">Chargement des données…</p>';
     await loadAll(); draw();
   };
   function draw() { ({ radar, pipe, cash, acct, pwd: pwV, cfg, msg: inbox, cancel: cancelV, wa: waV, journal: journalV })[S.v](); if (S.open) openDrawer(S.open, true); }
@@ -3500,9 +3518,13 @@ select.x-per{height:46px;border-radius:14px;padding:0 14px;font-weight:600}
     if (live !== (e.type === 'input')) return;
     const key = t.dataset.fl, f = FL[key]; if (!f) return;
     f[t.dataset.fk] = t.value;
-    const id = t.id, p = live ? t.selectionStart : 0;
-    REDRAW[key]();
-    if (live && id) { const n = $(id); if (n) { n.focus(); try { n.setSelectionRange(p, p); } catch (er) {} } }
+    const id = t.id, go = () => {
+      const p = live ? t.selectionStart : 0;
+      REDRAW[key]();
+      if (live && id) { const n = $(id); if (n) { n.focus(); try { n.setSelectionRange(p, p); } catch (er) {} } }
+    };
+    clearTimeout(flEv.tm);
+    if (live) flEv.tm = setTimeout(go, 220); else go();
   };
   // Filtres WhatsApp : recalcul de la liste à chaque modification (sauf le message pré-rempli)
   const waEv = (e) => { if (!e.target.closest || !e.target.closest('#wa-box')) return; waRead(); waBadge(); if (e.target.id !== 'wa-msg' && e.target.id !== 'wa-sub') waList(); };
