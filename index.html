@@ -1948,24 +1948,130 @@ html[data-theme=dark] #admin-view [style*="color:#555"],html[data-theme=dark] #a
 html[data-theme=dark] #admin-view [style*="background:#eaf1ff"]{background:var(--soft)!important}
 html[data-theme=dark] #admin-view [style*="background:#e8eef8"]{background:var(--line)!important}
 </style>
+
+<style id="sw-ui2">
+/* ===== UI2 : espace administrateur plus clair (navigation 4+Plus, filtres repliables, titres) ===== */
+#admin-view{font-size:15px}
+#x-main{padding:20px 16px 112px}
+.x-title{font-size:26px;line-height:1.15;font-weight:800;letter-spacing:-.025em;margin:2px 0 6px;color:var(--ink)}
+#admin-view .x-lead{font-size:14px;margin:0 0 20px}
+#admin-view .x-lb{font-size:12px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--mut)}
+/* Barre du haut */
+@media(max-width:600px){
+  #admin-view .x-top{gap:10px;padding:0 14px}
+  #admin-view .x-mail{display:none}
+  #admin-view .x-clock{margin-left:auto}
+}
+/* Barre de recherche + filtres */
+.x-fb{display:grid;gap:10px;margin:0 0 20px}
+.x-fb-row2{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:stretch}
+.x-fb-row2.one{grid-template-columns:auto}
+.x-fb .x-segs{margin:0}
+.x-search{display:flex;align-items:center;gap:10px;height:50px;padding:0 16px;background:var(--inp);border:1.5px solid var(--line2);border-radius:16px;color:var(--mut);transition:border-color .15s,box-shadow .15s}
+.x-search:focus-within{border-color:var(--brand2);box-shadow:0 0 0 4px rgba(42,123,255,.16)}
+.x-search svg{flex:none}
+.x-search input{flex:1;min-width:0;height:100%;background:none;border:0;outline:0;font:inherit;font-size:15px;color:var(--ink)}
+.x-search input::placeholder{color:var(--mut);opacity:.75}
+select.x-per{height:46px;border-radius:14px;padding:0 14px;font-weight:600}
+.x-fbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:46px;padding:0 16px;border-radius:14px;border:1.5px solid var(--line2);background:var(--card);color:var(--btn);font:inherit;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap}
+.x-fbtn:hover{background:var(--soft)}
+.x-fbtn.on{border-color:var(--brand2);background:var(--soft)}
+.x-fbtn em{font-style:normal;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--brand2);color:#fff;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
+.x-fbtn em[hidden]{display:none}
+.x-more-body{display:grid;gap:14px;padding:16px;background:var(--card);border:1px solid var(--line);border-radius:16px}
+.x-more-body[hidden]{display:none}
+.x-more-body label{display:grid;gap:6px}
+.x-grid2{display:grid;gap:12px;grid-template-columns:1fr}
+@media(min-width:560px){.x-grid2,.x-more-body .x-g{grid-template-columns:1fr 1fr}}
+.x-fb-dates{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.x-fb-dates label{display:grid;gap:4px}
+.x-fb-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:24px;font-size:13px;color:var(--mut)}
+.x-fb-foot b{color:var(--ink)}
+.x-link{background:none;border:0;padding:6px 0;font:inherit;font-size:13px;font-weight:700;color:var(--brand2);cursor:pointer}
+.x-compose{margin:2px 0 0;border-top:0}
+.x-compose>div{display:grid;gap:8px;padding:4px 0}
+/* Boutons segmentés plus discrets */
+#admin-view .x-segs{padding:3px;gap:2px;border-radius:13px;box-shadow:none;margin-bottom:16px}
+#admin-view .x-sg{padding:9px 13px;font-size:13px}
+/* Cartes : un peu plus d'air */
+#admin-view .x-c2.sm{padding:16px 18px}
+#admin-view .x-panel{padding:18px}
+/* Navigation du bas : 4 onglets + « Plus » */
+.x-rail button svg{display:block;margin:0 auto 4px}
+.x-rail .x-sheet{display:none}
+@media(max-width:767px){
+  #admin-view .x-rail{padding-top:4px}
+  #admin-view .x-rail>button{font-size:11.5px;font-weight:600;letter-spacing:0;padding:8px 0 7px;min-width:0}
+  #admin-view .x-rail>button.on{box-shadow:inset 0 3px #7db4ff;border-radius:0}
+  #admin-view .x-rail .n{right:calc(50% - 22px);top:3px}
+  #admin-view .x-rail .x-sheet{position:absolute;left:10px;right:10px;bottom:calc(100% + 10px);grid-template-columns:repeat(3,1fr);gap:8px;padding:12px;border-radius:20px;background:#102a6e;border:1px solid rgba(255,255,255,.18);box-shadow:0 24px 60px -12px rgba(0,0,0,.6)}
+  #admin-view .x-rail.more .x-sheet{display:grid}
+  #admin-view .x-rail .x-sheet button{flex:none;display:grid;justify-items:center;gap:2px;padding:14px 4px 12px;margin:0;border-radius:14px;background:rgba(255,255,255,.07);font-size:12px;font-weight:600;color:#dbe7ff;letter-spacing:0}
+  #admin-view .x-rail .x-sheet button.on{background:rgba(255,255,255,.2);color:#fff;box-shadow:none}
+  #admin-view .x-rail .x-sheet button svg{margin:0 0 4px}
+  #admin-view .x-rail .x-sheet .n{right:10px;top:8px}
+}
+@media(min-width:768px){
+  #admin-view .x-rail .x-sheet{display:contents}
+  #admin-view .x-rail .x-morebtn{display:none!important}
+  #admin-view .x-rail button{font-size:12px;font-weight:600;letter-spacing:0}
+}
+@media(prefers-reduced-motion:reduce){#admin-view *{transition:none!important}}
+</style>
 <script>
 (() => {
   const A = $('admin-view');
   A.className = 'hidden';
+  const ic = (d, s = 22) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const IC = {
+    radar: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 12l5-5"/>',
+    pipe: '<rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="10" y="4" width="5" height="10" rx="1.5"/><rect x="17" y="4" width="4" height="6" rx="1.5"/>',
+    cash: '<rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/><circle cx="16.5" cy="14.5" r="1.2"/>',
+    msg: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>',
+    more: '<circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/>',
+    acct: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 5a3.5 3.5 0 0 1 0 6.5M18.5 14.3c1.9.8 3 2.7 3 5.7"/>',
+    pwd: '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3M14 9l2 2"/>',
+    wa: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+    cancel: '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
+    cfg: '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
+    journal: '<path d="M5 4h11l3 3v13H5z"/><path d="M8 10h8M8 14h8M8 18h5"/>',
+    search: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>',
+    filter: '<path d="M4 6h16M7 12h10M10 18h4"/>'
+  };
+  const SECOND = ['acct', 'pwd', 'wa', 'cancel', 'cfg', 'journal'];
   A.innerHTML = `
   <header class="x-top"><span class="x-logo">SW<i>//</i>CONTROL</span><span class="x-clock" id="x-clock"></span>
     <span class="x-mail" id="admin-email"></span><button class="x-btn theme-btn" id="x-theme" type="button" aria-label="Mode nuit">🌙</button><button class="x-btn" id="x-exit">QUITTER</button></header>
   <nav class="x-rail">
-    <button data-v="radar"><b>◉</b>RADAR</button><button data-v="pipe"><b>▦</b>FLUX</button>
-    <button data-v="cash"><b>◈</b>CAISSE<span class="n" id="nav-rech-badge"></span></button><button data-v="acct"><b>☷</b>COMPTES<span class="n" id="nav-acct-badge"></span></button><button data-v="pwd"><b>🔑</b>MOT DE PASSE<span class="n" id="nav-pw-badge"></span></button>
-    <button data-v="wa"><b>✆</b>CONTACT</button>
-    <button data-v="cancel"><b>⊘</b>ANNUL.<span class="n" id="nav-cx-badge"></span></button>
-    <button data-v="msg"><b>✉</b>MESSAGES<span class="n" id="nav-msg-badge"></span></button><button data-v="cfg"><b>⚙</b>PARAMS</button>
-    <button data-v="journal"><b>≣</b>JOURNAL</button>
+    <button data-v="radar">${ic(IC.radar)}<span>Radar</span></button>
+    <button data-v="pipe">${ic(IC.pipe)}<span>Flux</span></button>
+    <button data-v="cash">${ic(IC.cash)}<span>Caisse</span><span class="n" id="nav-rech-badge"></span></button>
+    <button data-v="msg">${ic(IC.msg)}<span>Messages</span><span class="n" id="nav-msg-badge"></span></button>
+    <button type="button" id="x-more" class="x-morebtn" aria-expanded="false">${ic(IC.more)}<span>Plus</span><span class="n" id="nav-more-badge"></span></button>
+    <div class="x-sheet">
+      <button data-v="acct">${ic(IC.acct)}<span>Comptes</span><span class="n" id="nav-acct-badge"></span></button>
+      <button data-v="pwd">${ic(IC.pwd)}<span>Mots de passe</span><span class="n" id="nav-pw-badge"></span></button>
+      <button data-v="wa">${ic(IC.wa)}<span>Contact</span></button>
+      <button data-v="cancel">${ic(IC.cancel)}<span>Annulations</span><span class="n" id="nav-cx-badge"></span></button>
+      <button data-v="cfg">${ic(IC.cfg)}<span>Paramètres</span></button>
+      <button data-v="journal">${ic(IC.journal)}<span>Journal</span></button>
+    </div>
   </nav>
   <main id="x-main"></main><div id="admin-home" class="hidden"></div>
   <div id="x-veil"></div><aside id="x-drawer"></aside>`;
   $('x-exit').onclick = doLogout;
+  // Menu « Plus » : ouverture / fermeture + pastille cumulée
+  A.addEventListener('click', (e) => {
+    const r = A.querySelector('.x-rail'); if (!r) return;
+    const open = e.target.closest('#x-more') ? !r.classList.contains('more') : false;
+    r.classList.toggle('more', open); const mb = $('x-more'); if (mb) mb.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  const syncMore = (name) => { const mb = $('x-more'); if (mb) mb.classList.toggle('on', SECOND.includes(name)); };
+  const moreBadge = () => {
+    let t = 0; A.querySelectorAll('.x-sheet .n').forEach(n => { if (n.style.display !== 'none') t += parseInt(n.textContent, 10) || 0; });
+    const b = $('nav-more-badge'); if (b) { b.textContent = t; b.style.display = t ? 'block' : 'none'; }
+  };
+  try { new MutationObserver(moreBadge).observe(A.querySelector('.x-sheet'), { subtree: true, childList: true, characterData: true, attributes: true }); } catch (e) {}
   setInterval(() => { const c = $('x-clock'); if (c) c.textContent = new Date().toLocaleTimeString('fr-FR'); }, 1000);
 
   const S = { ship: [], users: [], usr: [], admins: [], rech: [], bal: {}, own: {}, v: 'radar', q: '', rf: 'pending', open: null, ev: [], cx: [], st: null, af: 'users', adv: null, logs: [], sent: [], uf: 'all', us: 'recent', ulim: 60, grants: [], grantsOk: false, fxAdv: false };
@@ -1998,19 +2104,25 @@ html[data-theme=dark] #admin-view [style*="background:#e8eef8"]{background:var(-
     cx: () => ({ q: '', per: 'all', from: '', to: '' })
   };
   const FL = {}; Object.keys(flDef).forEach(k => { FL[k] = flDef[k](); });
+  const FLO = {}; // panneaux « Filtres » ouverts / fermés
   const REDRAW = { fx: () => pipe(), cash: () => cash(), msg: () => msgRefresh(), cx: () => cancelV() };
   const flLb = (t) => `<label class="x-lb" style="letter-spacing:.04em">${t}</label>`;
   // Panneau de filtres réutilisable (recherche + période + champs supplémentaires + compteur + réinitialiser)
+  // Filtres actifs (hors recherche, période et statut, déjà visibles)
+  const flActive = (key) => { const f = FL[key], d = flDef[key](); return Object.keys(d).filter(k => !['q', 'per', 'st', 'from', 'to'].includes(k) && f[k] !== d[k]).length; };
+  const fToggle = (key, n) => `<button type="button" class="x-fbtn ${FLO[key] ? 'on' : ''}" data-fltog="${key}" aria-controls="fltray-${key}">${ic(IC.filter, 18)}<span>Filtres</span><em id="fltog-${key}-n" ${n ? '' : 'hidden'}>${n}</em></button>`;
+  // Barre de filtres : recherche + période sur 2 lignes, le reste dans un panneau « Filtres » repliable
   function fbar(key, ph, extra, info) {
-    const f = FL[key];
-    return `<div class="x-panel" style="margin-top:0;margin-bottom:16px">
-      <p class="x-h" style="margin-bottom:10px"><b>●</b> FILTRES</p>
-      <input id="fl-${key}-q" type="text" class="x-in" data-fl="${key}" data-fk="q" autocomplete="off" placeholder="${esc(ph)}" value="${esc(f.q)}" style="margin-bottom:12px">
-      ${flLb('PÉRIODE')}
-      <div class="x-segs" style="margin:6px 0 12px">${PER_OPTS.map(([v, l]) => `<button type="button" class="x-sg ${f.per === v ? 'on' : ''}" data-flper="${key}" data-pv="${v}">${l}</button>`).join('')}</div>
-      ${f.per === 'custom' ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"><div>${flLb('DU')}<input type="date" class="x-in" data-fl="${key}" data-fk="from" value="${esc(f.from)}" style="margin-top:4px"></div><div>${flLb('AU')}<input type="date" class="x-in" data-fl="${key}" data-fk="to" value="${esc(f.to)}" style="margin-top:4px"></div></div>` : ''}
-      ${extra || ''}
-      <div class="x-bar" style="justify-content:space-between;margin:12px 0 0"><span class="x-lead" style="margin:0">${info || ''}</span><button type="button" class="x-btn" data-flreset="${key}">↺ RÉINITIALISER</button></div></div>`;
+    const f = FL[key], n = flActive(key), dirty = n || f.q || f.per !== 'all' || (f.st && f.st !== 'all');
+    return `<div class="x-fb">
+      <label class="x-search">${ic(IC.search, 20)}<input id="fl-${key}-q" type="text" autocomplete="off" data-fl="${key}" data-fk="q" placeholder="${esc(ph)}" value="${esc(f.q)}"></label>
+      <div class="x-fb-row2" ${extra ? '' : 'style="grid-template-columns:1fr"'}>
+        <select class="x-in x-per" data-fl="${key}" data-fk="per" aria-label="Période">${PER_OPTS.map(([v, l]) => `<option value="${v}" ${f.per === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
+        ${extra ? fToggle(key, n) : ''}
+      </div>
+      ${f.per === 'custom' ? `<div class="x-fb-dates"><label>${flLb('Du')}<input type="date" class="x-in" data-fl="${key}" data-fk="from" value="${esc(f.from)}"></label><label>${flLb('Au')}<input type="date" class="x-in" data-fl="${key}" data-fk="to" value="${esc(f.to)}"></label></div>` : ''}
+      ${extra ? `<div id="fltray-${key}" class="x-more-body" ${FLO[key] ? '' : 'hidden'}>${extra}</div>` : ''}
+      <div class="x-fb-foot"><span>${info || ''}</span>${dirty ? `<button type="button" class="x-link" data-flreset="${key}">Réinitialiser</button>` : ''}</div></div>`;
   }
 
   // ---------- PERMISSIONS & RÔLES ----------
@@ -2031,6 +2143,7 @@ html[data-theme=dark] #admin-view [style*="background:#e8eef8"]{background:var(-
   const navOk = (n) => ({ radar: true, pipe: can('ship'), cash: can('rech'), acct: can('acct'), pwd: can('acct'), wa: can('wa'), cancel: can('cancel'), msg: can('msg'), cfg: isSuper || can('pay'), journal: true })[n] === true;
   function applyNav() {
     A.querySelectorAll('.x-rail [data-v]').forEach(b => { b.style.display = navOk(b.dataset.v) ? '' : 'none'; });
+    const mb = $('x-more'); if (mb) mb.style.display = [...A.querySelectorAll('.x-sheet [data-v]')].some(b => b.style.display !== 'none') ? '' : 'none';
   }
   function permsHtml(pre, cur) {
     cur = cur || {};
@@ -2144,6 +2257,7 @@ html[data-theme=dark] #admin-view [style*="background:#e8eef8"]{background:var(-
     if (!navOk(name)) name = 'radar';
     S.v = name;
     A.querySelectorAll('.x-rail [data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === name));
+    syncMore(name);
     window.scrollTo(0, 0);
     await loadAll(); draw();
   };
@@ -2163,7 +2277,7 @@ html[data-theme=dark] #admin-view [style*="background:#e8eef8"]{background:var(-
     <div class="x-panel"><p class="x-h">TRÉSORERIE (FCFA)</p><div class="x-grid">
       ${rd('acct', 'FONDS CLIENTS', fmtMoney(S.st.funds), 'en circulation')}${rd('cash', 'RECHARGES APPROUVÉES', fmtMoney(S.st.recharges_total), 'cumul validé')}
       ${rd('cash', 'EN ATTENTE', fmtMoney(S.st.pending_total), 'à traiter', Number(S.st.pending_total) > 0 ? 'warn' : 'ok')}</div></div>` : '';
-    M.innerHTML = `<p class="x-h"><b>●</b> RADAR // ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</p>
+    M.innerHTML = `<h2 class="x-title">Radar</h2><p class="x-lead" style="text-transform:capitalize">${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
     <div class="x-grid">
       ${rd('pipe', 'COLIS ACTIFS', act.length, S.ship.filter(s => new Date(s.created_at) >= t0).length + ' créés aujourd\'hui')}
       ${rd('pipe', 'EN RETARD', lt.length, 'hors délai prévu', lt.length ? 'warn' : 'ok')}
@@ -2199,20 +2313,18 @@ html[data-theme=dark] #admin-view [style*="background:#e8eef8"]{background:var(-
     const uniq = (k) => [...new Set(S.ship.map(s => s[k]).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b), 'fr'));
     const sopt = (k, first, arr) => `<select class="x-in" data-fl="fx" data-fk="${k}"><option value="">${first}</option>${arr.map(v => { const [val, lab] = Array.isArray(v) ? v : [v, v]; return `<option value="${esc(val)}" ${f[k] === val ? 'selected' : ''}>${esc(lab)}</option>`; }).join('')}</select>`;
     const advOn = ['o', 'd', 'e', 'sv', 'py', 'ag', 'fr'].some(k => f[k]);
-    const adv = `<details class="x-panel" data-fxadv="1" ${advOn || S.fxAdv ? 'open' : ''} style="margin-top:0;margin-bottom:14px"><summary style="cursor:pointer;font-weight:700;font-size:12px">⚙ FILTRES AVANCÉS (pays, service, agence...)</summary>
-      <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-top:10px">
+    const adv = `<div class="x-grid2" style="padding-top:2px">
         ${sopt('o', "Pays d'envoi : tous", uniq('sender_country'))}${sopt('d', 'Pays de destination : tous', uniq('receiver_country'))}${sopt('e', "Pays d'escale : tous", uniq('stopover_country'))}
         ${sopt('sv', 'Service : tous', [['standard', 'Standard'], ['express', 'Express']])}${sopt('py', 'Payeur : tous', [['sender', 'Expéditeur'], ['receiver', 'Destinataire']])}
-        ${sopt('ag', 'Agence : toutes', uniq('agency_name'))}${sopt('fr', 'Fragile : tous', [['1', 'Colis fragiles']])}</div></details>`;
+        ${sopt('ag', 'Agence : toutes', uniq('agency_name'))}${sopt('fr', 'Fragile : tous', [['1', 'Colis fragiles']])}</div>`;
     const row = (s) => `<div class="x-row" style="cursor:default;align-items:center;gap:10px"><span style="min-width:0;word-break:break-all;font-size:12px"><b>${esc(fmtCode(s.tracking_code))}</b> <span class="x-tag ${TXT[s.status] || 't-mut'}">${esc((STATUS[s.status] || { label: s.status }).label.toUpperCase())}</span><br><span style="color:var(--mut)">${esc(s.origin)} → ${esc(s.destination)} · ${esc((S.own[s.user_id] || {}).email || '-')} · créé le ${fmtDay(s.created_at)} (${Math.floor((now - new Date(s.created_at).getTime()) / 864e5)} j)</span></span>
       <span class="x-acts" style="flex-shrink:0"><button type="button" class="x-btn" data-open="${esc(s.id)}">VOIR</button>${isSuper ? `<button type="button" class="x-btn no" data-shdel="${esc(s.id)}">SUPPRIMER</button>` : ''}</span></div>`;
     const clean = `<details class="x-sec" ${f.st === 'old' ? 'open' : ''} style="margin:0 0 16px"><summary>🧹 Nettoyage : colis anciens de plus de 30 jours (${cand.length})</summary><div>
       ${cand.length ? `<div class="x-acts" style="margin-bottom:10px"><button type="button" class="x-btn" data-fxold="1">N'AFFICHER QUE LES ANCIENS</button>${isSuper ? `<button type="button" class="x-btn no" data-shbulk="1">SUPPRIMER LES ${cand.length} COLIS LISTÉS</button>` : ''}</div>
         ${cand.slice(0, 100).map(row).join('')}${cand.length > 100 ? `<p class="x-hint">Affichage limité aux 100 premiers : le bouton de suppression groupée concerne bien les ${cand.length} colis.</p>` : ''}` : '<p class="x-hint">Aucun colis ancien pour les filtres actuels.</p>'}
       <p class="x-hint">${isSuper ? 'La suppression est définitive (aucun remboursement) et demande une confirmation de sécurité.' : 'La suppression définitive est réservée au Super Admin Suprême.'}</p></div></details>`;
-    M.innerHTML = `<p class="x-h"><b>●</b> FLUX // glissez une carte pour changer son statut</p>
-    ${fbar('fx', '> filtrer : code, nom, ville, téléphone, agence', extra, info)}
-    ${adv}
+    M.innerHTML = `<h2 class="x-title">Flux</h2><p class="x-lead">Glissez une carte pour changer son statut.</p>
+    ${fbar('fx', 'Code, nom, ville, téléphone, agence', extra + adv, info)}
     ${stSegs}
     ${clean}
     <div class="x-board">${Object.keys(STATUS).map(k => {
@@ -2261,7 +2373,7 @@ html[data-theme=dark] #admin-view [style*="background:#e8eef8"]{background:var(-
         ${r.admin_note ? `<div class="x-quote">Note : ${esc(r.admin_note)}</div>` : ''}
         ${proof}${act}</div>`;
     };
-    M.innerHTML = `<div class="x-wrap"><p class="x-h"><b>●</b> CAISSE // demandes de recharge</p>
+    M.innerHTML = `<div class="x-wrap"><h2 class="x-title">Caisse</h2><p class="x-lead">Demandes de recharge des clients.</p>
       <p class="x-lead">Vérifiez la capture et l'ID de transaction, puis créditez le portefeuille du client.</p>
       ${fbar('cash', '> rechercher : Gmail, téléphone, ID de transaction, montant', extra, info)}
       ${segs([['pending', 'En attente', cnt('pending')], ['approved', 'Approuvées', cnt('approved')], ['rejected', 'Rejetées', cnt('rejected')], ['', 'Toutes', cnt('')]], S.rf, 'data-rf')}
@@ -2355,14 +2467,14 @@ html[data-theme=dark] #admin-view [style*="background:#e8eef8"]{background:var(-
   }
 
   function pwV() {
-    M.innerHTML = `<div class="x-wrap"><p class="x-h"><b>●</b> MOTS DE PASSE OUBLIÉS // DEMANDES REÇUES DEPUIS LA PAGE DE CONNEXION</p>${pwPanel() || '<div class="x-empty">Accès non autorisé.</div>'}</div>`;
+    M.innerHTML = `<div class="x-wrap"><h2 class="x-title">Mots de passe</h2><p class="x-lead">Demandes reçues depuis la page de connexion.</p>${pwPanel() || '<div class="x-empty">Accès non autorisé.</div>'}</div>`;
   }
 
   function acct() {
     if (!isSuper) S.af = 'users';
     if (S.af === 'admins' && S.adv) return admDetail();
     const chips = isSuper ? `<div class="x-chips"><button class="x-btn ${S.af === 'users' ? 'on' : ''}" data-af="users">UTILISATEURS (${S.usr.length})</button><button class="x-btn ${S.af === 'admins' ? 'on' : ''}" data-af="admins">ADMINISTRATEURS (${S.admins.length})</button></div>` : '';
-    const head = `<p class="x-h"><b>●</b> COMPTES // ${S.af === 'admins' ? 'ADMINISTRATEURS ' + S.admins.length : 'UTILISATEURS ' + S.usr.length}</p>${chips}`;
+    const head = `<h2 class="x-title">Comptes</h2><p class="x-lead">${S.af === 'admins' ? S.admins.length + ' administrateur(s)' : S.usr.length + ' utilisateur(s)'}</p>${chips}`;
     let tools = '', body = '';
     if (S.af === 'admins') {
       const rows = S.admins.filter(u => hit(S.uq, [u.email, u.phone]));
@@ -2382,11 +2494,12 @@ html[data-theme=dark] #admin-view [style*="background:#e8eef8"]{background:var(-
       const cnt = (k) => S.usr.filter(u => acctFilter(u, k, mt)).length;
       const shown = rows.slice(0, S.ulim), totBal = rows.reduce((a, u) => a + Number(S.bal[u.id] || 0), 0);
       const sortOpts = [['recent', 'Plus récents'], ['bal_desc', 'Solde : du plus haut'], ['bal_asc', 'Solde : du plus bas'], ['ship_desc', 'Plus de colis']];
-      tools = segs([['all', 'Tous', cnt('all')], ['new', 'Nouveaux (7j)', cnt('new')], ['active', 'Actifs', cnt('active')], ['zero', 'Solde 0 FCFA', cnt('zero')], ['blocked', 'Bloqués / Inactifs', cnt('blocked')]], S.uf, 'data-uf') +
-        `<div class="x-bar"><input id="x-uq" class="x-in" style="flex:1 1 220px;width:auto" placeholder="> Gmail ou téléphone" value="${esc(S.uq || '')}">
+      const uSegs = segs([['all', 'Tous', cnt('all')], ['new', 'Nouveaux (7j)', cnt('new')], ['active', 'Actifs', cnt('active')], ['zero', 'Solde 0 FCFA', cnt('zero')], ['blocked', 'Bloqués / Inactifs', cnt('blocked')]], S.uf, 'data-uf');
+      tools = `<div class="x-bar"><input id="x-uq" class="x-in" style="flex:1 1 220px;width:auto" placeholder="> Gmail ou téléphone" value="${esc(S.uq || '')}">
           <select id="x-usort" class="x-in" style="flex:0 0 auto;width:auto">${sortOpts.map(([v, l]) => `<option value="${v}" ${S.us === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+        ${uSegs}
         <div class="x-bar" style="justify-content:space-between"><span class="x-lead" style="margin:0"><b>${rows.length}</b> compte(s) · solde cumulé <b>${fmtMoney(totBal)}</b></span>
-          <span class="x-acts"><button class="x-btn go" data-uexp="1" ${rows.length ? '' : 'disabled'}>⭳ EXPORTER (CSV)</button><button class="x-btn" data-ucopy="mail" ${rows.length ? '' : 'disabled'}>COPIER LES E-MAILS</button><button class="x-btn" data-ucopy="tel" ${rows.length ? '' : 'disabled'}>COPIER LES NUMÉROS</button></span></div>`;
+          <span class="x-acts"><button class="x-btn go" data-uexp="1" ${rows.length ? '' : 'disabled'}>Exporter CSV</button><button class="x-btn" data-ucopy="mail" ${rows.length ? '' : 'disabled'}>Copier les e-mails</button><button class="x-btn" data-ucopy="tel" ${rows.length ? '' : 'disabled'}>Copier les numéros</button></span></div>`;
       body = (shown.length ? shown.map(u => {
         const b = Number(S.bal[u.id] || 0), c = mt.cnt[u.id] || 0, ls = mt.last[u.id], st = acctStatus(u, mt);
         return `<div class="x-c2 sm">
@@ -2443,13 +2556,20 @@ html[data-theme=dark] #admin-view [style*="background:#e8eef8"]{background:var(-
     if (error) { M.innerHTML = '<div class="x-wrap"><div class="x-empty">Journal indisponible : ' + esc(error.message) + '<br>Exécutez « migration-admin.sql ».</div></div>'; return; }
     J.rows = data || [];
     const adms = [...new Map(J.rows.map(x => [x.admin_id, x.email])).entries()], acts = [...new Set(J.rows.map(x => x.action))];
-    M.innerHTML = `<div class="x-wrap"><p class="x-h"><b>●</b> JOURNAL // ${isSuper ? 'tous les administrateurs' : 'mes actions'}</p><p class="x-lead">Les journaux sont effacés automatiquement après 30 jours.</p>
-    <div class="x-panel x-p0"><input id="j-q" class="x-in" placeholder="> rechercher : client, montant, message, code..." style="margin-bottom:10px" value="${esc(J.q)}">
-    <div class="x-segs">${[[1, "Aujourd'hui"], [7, '7 jours'], [30, '30 jours']].map(([v, l]) => `<button class="x-sg ${J.d === v ? 'on' : ''}" data-jd="${v}">${l}</button>`).join('')}</div>
-    <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">${isSuper ? `<select id="j-adm" class="x-in"><option value="">Tous les administrateurs</option>${adms.map(([i, e]) => `<option value="${esc(i)}" ${J.adm === i ? 'selected' : ''}>${esc(e || i)}</option>`).join('')}</select>` : ''}<select id="j-act" class="x-in"><option value="">Toutes les actions</option>${acts.map(a => `<option value="${esc(a)}" ${J.act === a ? 'selected' : ''}>${esc(actLabel(a))}</option>`).join('')}</select></div><p id="j-info" class="x-lead" style="margin:10px 0 0"></p></div><div id="j-list"></div></div>`;
+    const jb = () => { const n = (J.adm ? 1 : 0) + (J.act ? 1 : 0), e = $('j-n'); if (e) { e.textContent = n; e.hidden = !n; } };
+    M.innerHTML = `<div class="x-wrap"><h2 class="x-title">Journal</h2><p class="x-lead">${isSuper ? 'Actions de tous les administrateurs' : 'Mes actions'} · effacées automatiquement après 30 jours.</p>
+    <div class="x-fb">
+      <label class="x-search">${ic(IC.search, 20)}<input id="j-q" type="text" autocomplete="off" placeholder="Client, montant, message, code..." value="${esc(J.q)}"></label>
+      <div class="x-fb-row2">${segs([[1, "Aujourd'hui"], [7, '7 jours'], [30, '30 jours']].map(([v, l]) => [v, l, null]), J.d, 'data-jd')}${fToggle('j', (J.adm ? 1 : 0) + (J.act ? 1 : 0)).replace('fltog-j-n', 'j-n')}</div>
+      <div id="fltray-j" class="x-more-body" ${FLO.j ? '' : 'hidden'}>
+        ${isSuper ? `<label>${flLb('Administrateur')}<select id="j-adm" class="x-in"><option value="">Tous les administrateurs</option>${adms.map(([i, e]) => `<option value="${esc(i)}" ${J.adm === i ? 'selected' : ''}>${esc(e || i)}</option>`).join('')}</select></label>` : ''}
+        <label>${flLb('Type d\'action')}<select id="j-act" class="x-in"><option value="">Toutes les actions</option>${acts.map(a => `<option value="${esc(a)}" ${J.act === a ? 'selected' : ''}>${esc(actLabel(a))}</option>`).join('')}</select></label>
+      </div>
+      <div class="x-fb-foot"><span id="j-info"></span></div>
+    </div><div id="j-list"></div></div>`;
     $('j-q').oninput = (e) => { J.q = e.target.value; jlist(); };
-    if ($('j-adm')) $('j-adm').onchange = (e) => { J.adm = e.target.value; jlist(); };
-    $('j-act').onchange = (e) => { J.act = e.target.value; jlist(); };
+    if ($('j-adm')) $('j-adm').onchange = (e) => { J.adm = e.target.value; jb(); jlist(); };
+    $('j-act').onchange = (e) => { J.act = e.target.value; jb(); jlist(); };
     jlist();
   }
 
@@ -2527,7 +2647,7 @@ html[data-theme=dark] #admin-view [style*="background:#e8eef8"]{background:var(-
           <button class="x-btn go" data-cxok="${esc(r.id)}">ACCEPTER</button><button class="x-btn no" data-cxno="${esc(r.id)}">REJETER</button>
           ${s.id ? `<button class="x-btn" data-open="${esc(s.id)}">VOIR LE COLIS</button>` : ''}</div></div>` : (s.id ? `<div class="x-acts" style="margin-top:12px"><button class="x-btn" data-open="${esc(s.id)}">VOIR LE COLIS</button></div>` : '')}</div>`;
     };
-    M.innerHTML = `<div class="x-wrap"><p class="x-h"><b>●</b> ANNULATIONS // demandes des clients</p>
+    M.innerHTML = `<div class="x-wrap"><h2 class="x-title">Annulations</h2><p class="x-lead">Demandes d'annulation des clients.</p>
       <p class="x-lead">Accepter une demande annule le colis. Aucun remboursement du reçu n'est prévu.</p>
       ${fbar('cx', '> rechercher : code de suivi, ville, Gmail, téléphone, motif', '', `<b>${rows.length}</b> demande(s) affichée(s)`)}
       ${segs([['pending', 'En attente', cnt('pending')], ['approved', 'Acceptées', cnt('approved')], ['rejected', 'Rejetées', cnt('rejected')], ['', 'Toutes', cnt('')]], S.cf, 'data-cf')}
@@ -2600,7 +2720,7 @@ html[data-theme=dark] #admin-view [style*="background:#e8eef8"]{background:var(-
   }
   function msgRefresh() { const b = $('msg-fl'); if (b) b.innerHTML = msgFlHtml(); else inbox(); }
   function inbox() {
-    M.innerHTML = `<div class="x-wrap"><p class="x-h"><b>●</b> MESSAGES // assistance & annonces</p>
+    M.innerHTML = `<div class="x-wrap"><h2 class="x-title">Messages</h2>
       <p class="x-lead">Répondez aux clients, diffusez des annonces et suivez qui a lu vos messages (date et heure exactes).</p>
       <div class="x-bar"><button class="x-btn ${S.bc ? 'on' : 'go'}" data-bcopen="1">${S.bc ? 'FERMER LA DIFFUSION ✕' : '📢 ANNONCE GLOBALE'}</button> <button class="x-btn ${S.dm ? 'on' : 'go'}" data-dmopen="1">${S.dm ? 'FERMER ✕' : '✉ ÉCRIRE À UN UTILISATEUR'}</button></div>
       ${S.dm ? dmPanel() : ''}
@@ -2762,26 +2882,32 @@ html[data-theme=dark] #admin-view [style*="background:#e8eef8"]{background:var(-
         <span style="word-break:break-all;font-size:12px"><span class="t-ink">${esc(u.email || '-')}</span><br><span class="t-mut">+${esc(waNum(u.phone))} · ${fmtMoney(S.bal[u.id] || 0)} · ${u.is_active === false ? 'coupé' : 'actif'}</span></span>
         <button class="x-btn ${d ? '' : 'go'}" data-wasend="${esc(u.id)}">${d ? '✓ OUVERT' : 'WHATSAPP'}</button></div>`; }).join('') : '<p class="t-dim">// aucun utilisateur ne correspond aux filtres</p>'}`;
   }
+  function waBadge() { const n = ['act', 'bal', 'shp', 'reg'].filter(k => WA[k] !== 'all').length, e = $('fltog-wa-n'); if (e) { e.textContent = n; e.hidden = !n; } }
   function waV() {
     const sel = (id, cur, opts) => `<select id="${id}" class="x-in">${opts.map(([v, l]) => `<option value="${v}" ${cur === v ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
-    const lb = (t) => `<label class="t-dim" style="font-size:11px;letter-spacing:.1em">${t}</label>`;
-    M.innerHTML = `<p class="x-h"><b>●</b> CONTACT // filtrer les utilisateurs et leur écrire (WhatsApp ou e-mail)</p>
-    <div class="x-panel x-hl x-p0" id="wa-box">
-      <p class="x-h">FILTRES</p>
-      <input id="wa-q" class="x-in" style="margin-bottom:10px" placeholder="> Gmail ou téléphone" value="${esc(WA.q)}">
-      <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:10px">
-        <div>${lb('STATUT DU COMPTE')}${sel('wa-act', WA.act, [['all', 'Tous'], ['active', 'Actifs'], ['off', 'Coupés']])}</div>
-        <div>${lb('SOLDE')}${sel('wa-bal', WA.bal, [['all', 'Tous'], ['positive', 'Solde positif (> 0)'], ['zero', 'Solde à zéro'], ['range', 'Tranche personnalisée']])}</div>
-        <div>${lb('ACTIVITÉ COLIS')}${sel('wa-shp', WA.shp, [['all', 'Tous'], ['yes', 'Ont déjà expédié'], ['no', "N'ont jamais expédié"], ['recent', 'Expédié ces 30 derniers jours'], ['dormant', 'Inactifs depuis plus de 30 jours']])}</div>
-        <div>${lb('INSCRIPTION')}${sel('wa-reg', WA.reg, [['all', 'Toutes dates'], ['7', '7 derniers jours'], ['30', '30 derniers jours'], ['90', '90 derniers jours']])}</div></div>
-      <div id="wa-range" style="display:${WA.bal === 'range' ? 'grid' : 'none'};grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-        <input id="wa-min" type="number" min="0" step="1" class="x-in" placeholder="solde minimum (FCFA)" value="${esc(WA.min)}">
-        <input id="wa-max" type="number" min="0" step="1" class="x-in" placeholder="solde maximum (FCFA)" value="${esc(WA.max)}"></div>
-      ${lb("OBJET DE L'E-MAIL (facultatif)")}
-      <input id="wa-sub" class="x-in" maxlength="150" style="margin:4px 0 10px" placeholder="Objet du message..." value="${esc(WA.sub)}">
-      ${lb('MESSAGE PRÉ-REMPLI (WhatsApp et e-mail, facultatif)')}
-      <textarea id="wa-msg" rows="4" maxlength="1000" class="x-in" style="margin-top:4px" placeholder="Bonjour, ici l'équipe SwiftWay Logistics...">${esc(WA.msg)}</textarea></div>
-    <div id="wa-res"></div>`;
+    const lb = (t) => `<span class="x-lb">${t}</span>`;
+    const nW = ['act', 'bal', 'shp', 'reg'].filter(k => WA[k] !== 'all').length;
+    M.innerHTML = `<div class="x-wrap"><h2 class="x-title">Contact</h2><p class="x-lead">Filtrez les utilisateurs, puis écrivez-leur par WhatsApp ou e-mail.</p>
+    <div class="x-fb" id="wa-box">
+      <label class="x-search">${ic(IC.search, 20)}<input id="wa-q" type="text" autocomplete="off" placeholder="Gmail ou téléphone" value="${esc(WA.q)}"></label>
+      <div class="x-fb-row2 one">${fToggle('wa', nW)}</div>
+      <div id="fltray-wa" class="x-more-body" ${FLO.wa ? '' : 'hidden'}>
+        <div class="x-grid2">
+          <label>${lb('Statut du compte')}${sel('wa-act', WA.act, [['all', 'Tous'], ['active', 'Actifs'], ['off', 'Coupés']])}</label>
+          <label>${lb('Solde')}${sel('wa-bal', WA.bal, [['all', 'Tous'], ['positive', 'Solde positif (> 0)'], ['zero', 'Solde à zéro'], ['range', 'Tranche personnalisée']])}</label>
+          <label>${lb('Activité colis')}${sel('wa-shp', WA.shp, [['all', 'Tous'], ['yes', 'Ont déjà expédié'], ['no', "N'ont jamais expédié"], ['recent', 'Expédié ces 30 derniers jours'], ['dormant', 'Inactifs depuis plus de 30 jours']])}</label>
+          <label>${lb('Inscription')}${sel('wa-reg', WA.reg, [['all', 'Toutes dates'], ['7', '7 derniers jours'], ['30', '30 derniers jours'], ['90', '90 derniers jours']])}</label>
+        </div>
+        <div id="wa-range" style="display:${WA.bal === 'range' ? 'grid' : 'none'};grid-template-columns:1fr 1fr;gap:8px">
+          <input id="wa-min" type="number" min="0" step="1" class="x-in" placeholder="solde minimum (FCFA)" value="${esc(WA.min)}">
+          <input id="wa-max" type="number" min="0" step="1" class="x-in" placeholder="solde maximum (FCFA)" value="${esc(WA.max)}"></div>
+      </div>
+      <details class="x-sec x-compose" ${WA.msg || WA.sub ? 'open' : ''}><summary>Rédiger le message (facultatif)</summary><div>
+        <input id="wa-sub" class="x-in" maxlength="150" placeholder="Objet de l'e-mail (facultatif)" value="${esc(WA.sub)}">
+        <textarea id="wa-msg" rows="4" maxlength="1000" class="x-in" placeholder="Bonjour, ici l'équipe SwiftWay Logistics...">${esc(WA.msg)}</textarea>
+        <p class="x-hint">Ce message est pré-rempli pour WhatsApp et pour l'e-mail.</p></div></details>
+    </div>
+    <div id="wa-res"></div></div>`;
     waList();
   }
 
@@ -2920,7 +3046,7 @@ html[data-theme=dark] #admin-view [style*="background:#e8eef8"]{background:var(-
       <div class="x-read" style="cursor:default"><small>NUMÉROS ACTIFS</small><strong style="font-size:22px">${nAct} / ${nPay}</strong><em>visibles par les clients</em></div>
       <div class="x-read" style="cursor:default"><small>REÇUS OFFERTS</small><strong style="font-size:22px">${gifted == null ? '-' : gifted}</strong><em>utilisateurs gratifiés</em></div></div>` : '';
     const lead = { price: "Fixez le montant débité aux clients pour la génération d'un reçu A5 et d'un code de suivi.", pay: 'Gérez les numéros MTN Money (MoMo) et Orange Money (OM) affichés aux clients lors des demandes de recharge.', support: "Définissez l'adresse e-mail et les numéros WhatsApp que les utilisateurs voient dans leur espace (onglet Messages) pour contacter l'assistance. Ajoutez ou retirez un contact à tout moment.", promo: "Offrez des reçus gratuits à un groupe ciblé, récompensez régulièrement vos meilleurs utilisateurs, ou activez l'offre de bienvenue automatique." }[S.cs];
-    M.innerHTML = `<div class="x-wrap"><p class="x-h"><b>●</b> PARAMÈTRES // ${isSuper ? 'TARIFICATION & OFFRES' : 'NUMÉROS DE PAIEMENT'}</p>
+    M.innerHTML = `<div class="x-wrap"><h2 class="x-title">Paramètres</h2><p class="x-lead">${isSuper ? 'Tarification et offres.' : 'Numéros de paiement.'}</p>
       <p class="x-lead">${lead}</p>
       ${sum}${tabs}
       ${S.cs === 'support' ? supportPanel() : S.cs === 'price' ? priceHtml : S.cs === 'promo' ? '<div id="wo-card" class="x-panel x-p0"></div>' + promoHtml() : payHtml}</div>`;
@@ -3012,6 +3138,7 @@ html[data-theme=dark] #admin-view [style*="background:#e8eef8"]{background:var(-
     if (g('data-close') || e.target.id === 'x-veil') return closeDrawer();
     // ---- Filtres communs (FLUX, Caisse, Messages, Annulations) ----
     if ((el = g('data-flper'))) { const f = FL[el.dataset.flper]; f.per = el.dataset.pv; if (f.per !== 'custom') { f.from = ''; f.to = ''; } return REDRAW[el.dataset.flper](); }
+    if ((el = g('data-fltog'))) { const k = el.dataset.fltog, t = $('fltray-' + k); if (t) { t.hidden = !t.hidden; FLO[k] = !t.hidden; el.classList.toggle('on', !t.hidden); } return; }
     if ((el = g('data-flreset'))) { const k = el.dataset.flreset; FL[k] = flDef[k](); return REDRAW[k](); }
     if ((el = g('data-fxst'))) { FL.fx.st = el.dataset.fxst; return pipe(); }
     if (g('data-fxold')) { FL.fx.st = 'old'; return pipe(); }
@@ -3378,7 +3505,7 @@ html[data-theme=dark] #admin-view [style*="background:#e8eef8"]{background:var(-
     if (live && id) { const n = $(id); if (n) { n.focus(); try { n.setSelectionRange(p, p); } catch (er) {} } }
   };
   // Filtres WhatsApp : recalcul de la liste à chaque modification (sauf le message pré-rempli)
-  const waEv = (e) => { if (!e.target.closest || !e.target.closest('#wa-box')) return; waRead(); if (e.target.id !== 'wa-msg' && e.target.id !== 'wa-sub') waList(); };
+  const waEv = (e) => { if (!e.target.closest || !e.target.closest('#wa-box')) return; waRead(); waBadge(); if (e.target.id !== 'wa-msg' && e.target.id !== 'wa-sub') waList(); };
   A.addEventListener('input', (e) => {
     const t = e.target;
     if (t.id === 'dm-q') dmRefresh();
