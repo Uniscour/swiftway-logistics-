@@ -674,7 +674,7 @@ function qrUrl(code) { return TRACK_BASE + '?t=' + encodeURIComponent(code); }
 // est trop grand, receiptScale() réduit la taille des caractères juste ce qu'il faut (rien n'est supprimé ni coupé).
 function receiptHtml(s, sc) {
   sc = sc || 1;
-  const f = (n) => (n * sc).toFixed(2) + 'px', mm = (n) => (n * sc).toFixed(1) + 'mm';
+  const f = (n) => n + 'px', mm = (n) => n + 'mm'; // tailles de base : la réduction se fait par l'échelle de la page entière (voir #receipt-page)
   const ag = (s.agency_name || '').trim(), cur = s.currency || 'XAF', m = v => fmtCur(v, cur), NAVY = '#0f2a4a';
   let qrSvg = '';
   try { const q = qrcode(0, 'M'); q.addData(qrUrl(s.tracking_code)); q.make(); qrSvg = q.createSvgTag(3, 0).replace('<svg', '<svg style="width:100%;height:100%;display:block"'); } catch (e) {}
@@ -692,7 +692,7 @@ function receiptHtml(s, sc) {
   const sigAgency = s.agency_signature ? `<img src="${esc(s.agency_signature)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">` : '';
   const wmRow = (i) => `<div style="white-space:nowrap;margin-left:${i % 2 ? -170 : 0}px">${(esc(ag) + '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;').repeat(6)}</div>`;
   const wm = ag ? `<div style="position:absolute;inset:0;pointer-events:none;overflow:hidden"><div style="position:absolute;left:-40%;top:-40%;width:180%;height:180%;transform:rotate(-30deg);display:flex;flex-direction:column;justify-content:space-around;font-size:44px;font-weight:900;line-height:1;color:${NAVY};opacity:.06;text-transform:uppercase;letter-spacing:.08em">${[0, 1, 2, 3, 4, 5, 6].map(wmRow).join('')}</div></div>` : '';
-  return `<div id="receipt-sheet" style="position:relative;width:148mm;height:210mm;box-sizing:border-box;padding:6mm;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif;font-size:${f(10.5)};line-height:1.35;overflow-wrap:anywhere;margin:0 auto;box-shadow:0 4px 24px #0006;overflow:hidden">
+  return `<div id="receipt-sheet" style="position:relative;width:148mm;height:210mm;background:#fff;margin:0 auto;box-shadow:0 4px 24px #0006;overflow:hidden"><style>#receipt-inner>*{flex-shrink:0}</style><div id="receipt-page" style="position:absolute;left:0;top:0;width:${(148 / sc).toFixed(3)}mm;height:${(210 / sc).toFixed(3)}mm;transform:scale(${sc});transform-origin:0 0;box-sizing:border-box;padding:6mm;color:#111;font-family:Arial,Helvetica,sans-serif;font-size:${f(10.5)};line-height:1.35;overflow-wrap:anywhere">
     <div style="position:absolute;inset:6mm;border:2px solid ${NAVY};outline:1px solid ${NAVY};outline-offset:-5px;pointer-events:none"></div>
     ${wm}
     <div id="receipt-inner" style="position:relative;height:100%;box-sizing:border-box;padding:5mm;display:flex;flex-direction:column">
@@ -719,7 +719,7 @@ function receiptHtml(s, sc) {
         <div style="flex:1;min-width:0;border:1px dashed #556;padding:5px 8px;min-height:${mm(27)};font-size:${f(8.5)};color:#667;display:flex;flex-direction:column"><div>SIGNATURE DE L'AGENCE</div><div style="flex:1;position:relative;display:flex;align-items:center;justify-content:center">${sigAgency}${stamp}</div></div>
       </div>
       <div style="margin-top:8px;border-top:2px solid ${NAVY};padding-top:4px;text-align:center;font-size:${f(9.5)}"><div style="font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:${NAVY}">${esc(ag)}</div><div style="color:#667">Document émis le ${fmtDay(new Date())}</div></div>
-    </div></div>`;
+    </div></div></div>`;
 }
 // Cherche (par dichotomie) la plus grande échelle de caractères pour laquelle tout le contenu tient dans le cadre
 function receiptScale(s) {
@@ -731,16 +731,17 @@ function receiptScale(s) {
     const inner = host.querySelector('#receipt-inner'), sp = host.querySelector('#receipt-spacer');
     if (!inner || !sp) return true;
     sp.style.flex = '0 0 0px'; // on mesure la hauteur réelle du contenu, sans l'espace libre
-    const ir = inner.getBoundingClientRect(), lr = inner.lastElementChild.getBoundingClientRect();
-    const cs = getComputedStyle(inner), padB = parseFloat(cs.paddingBottom) || 0;
-    return (lr.bottom - ir.top + padB) <= ir.height - 2 && inner.scrollWidth <= inner.clientWidth + 1;
+    // Mesure en unités de mise en page (offsetTop/offsetHeight) : insensible au zoom et à l'échelle appliquée
+    const last = inner.lastElementChild, padB = parseFloat(getComputedStyle(inner).paddingBottom) || 0;
+    const bottom = last.offsetTop + last.offsetHeight;
+    return bottom <= inner.clientHeight - padB + 1 && inner.scrollWidth <= inner.clientWidth + 1;
   };
   let res = 1;
   try {
     if (!fits(1)) {
-      let lo = 0.35, hi = 1;
-      for (let k = 0; k < 9; k++) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; }
-      res = Math.floor(lo * 100) / 100;
+      let lo = 0.2, hi = 1;
+      for (let k = 0; k < 11; k++) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; }
+      res = Math.max(0.2, Math.floor(lo * 100) / 100 - 0.02); // petite marge de sécurité
     }
   } catch (e) { res = 1; }
   host.remove();
