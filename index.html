@@ -4,9 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0047AB">
+<meta name="color-scheme" content="light dark">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <title>SwiftWay Logistics</title>
+<script>try{document.documentElement.setAttribute("data-theme",localStorage.getItem("sw_theme")==="dark"?"dark":"light")}catch(e){document.documentElement.setAttribute("data-theme","light")}</script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
@@ -140,7 +142,7 @@ body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sa
 
 <!-- ============ CONNEXION ============ -->
 <div id="auth-view" class="hidden min-h-screen flex items-center justify-center p-4 relative">
-  <div class="absolute top-6 right-6">
+  <div class="absolute top-6 right-6" style="display:flex;gap:8px;align-items:center"><button id="theme-toggle-a" type="button" class="theme-btn" aria-label="Mode nuit">🌙</button>
     <button id="lang-toggle" type="button" class="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition cursor-pointer">🌐 <span id="current-lang-text">EN</span></button>
   </div>
   <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border border-gray-100">
@@ -182,7 +184,7 @@ body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sa
   <header class="bg-white border-b border-gray-200">
     <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
       <div class="flex items-center gap-3"><div class="brand-mark sm">📦</div><div><h1 class="text-xl font-extrabold text-swiftblue tracking-tight">SwiftWay Logistics</h1><p id="user-email" class="text-xs text-gray-500 break-all"></p></div></div>
-      <button id="logout-btn" type="button" class="text-sm font-semibold text-gray-600 hover:text-red-600 border border-gray-200 rounded-full px-4 py-2 bg-white transition cursor-pointer">Se déconnecter</button>
+      <div class="flex items-center gap-2"><button id="theme-toggle-c" type="button" class="theme-btn" aria-label="Mode nuit">🌙</button><button id="logout-btn" type="button" class="text-sm font-semibold text-gray-600 hover:text-red-600 border border-gray-200 rounded-full px-4 py-2 bg-white transition cursor-pointer">Se déconnecter</button></div>
     </div>
   </header>
   <main class="max-w-3xl mx-auto px-4 py-6">
@@ -1613,13 +1615,145 @@ select.x-in{cursor:pointer}
 .x-prog{height:6px;border-radius:999px;background:#e8eef8;overflow:hidden;margin:12px 0 6px}
 .x-prog i{display:block;height:100%;background:linear-gradient(90deg,#0047AB,#2a7bff)}
 </style>
+<style id="sw-theme">
+/* ===================== THÈMES : clair « bleu mixte chaleureux » + mode nuit (admin et clients) ===================== */
+.theme-btn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;padding:0!important;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.14);color:#fff;font-size:18px;line-height:1;cursor:pointer;flex-shrink:0;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+#auth-view .theme-btn{background:rgba(255,255,255,.95);border-color:#e5e7eb;color:#111}
+html[data-theme=dark] #auth-view .theme-btn{background:rgba(19,28,56,.95);border-color:#33466f;color:#fff}
+.x-top .theme-btn{width:36px;height:36px;font-size:16px}
+
+/* ---------- CONSOLE ADMIN : thème clair (moins blanc, bleus + lavande + sable chaud) ---------- */
+#admin-view{--ink:#10204a;--mut:#4d5f86;--line:#b9c9e8;--line2:#a9bde3;--soft:#d6e3fb;--card:#eaf0fb;--card2:#dde7f8;--inp:#f3f7fe;--hov:#d9e5fa;--col:rgba(222,232,248,.7);--drawer:#e6edf9;--btn:#1e3a8a;--cs:light;
+  background:radial-gradient(900px 520px at 100% 0,#9dbfff 0,transparent 60%),radial-gradient(800px 520px at 0 40%,#c8bcf4 0,transparent 58%),radial-gradient(900px 520px at 60% 105%,#f3d2ae 0,transparent 60%),#bfd0ee;background-attachment:fixed}
+#admin-view .x-top{background:linear-gradient(135deg,#0a1f55,#123d99 62%,#2a6fe0);border-bottom:0;box-shadow:0 14px 30px -18px rgba(5,20,70,.7)}
+#admin-view .x-logo{background:linear-gradient(90deg,#fff,#b9d4ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+#admin-view .x-clock{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.28);color:#dbe7ff}
+#admin-view .x-mail{color:rgba(255,255,255,.82)}
+#admin-view .x-top .x-btn{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.35);color:#fff}
+#admin-view .x-top .x-btn:hover{background:rgba(255,255,255,.26);color:#fff}
+#admin-view .x-rail{background:linear-gradient(135deg,#0a1f55,#123d99);border-color:rgba(255,255,255,.1)}
+#admin-view .x-rail button{color:#a9c3ff}
+#admin-view .x-rail button:hover{background:rgba(255,255,255,.1);color:#fff}
+#admin-view .x-rail button.on{background:rgba(255,255,255,.16);color:#fff;box-shadow:inset 0 3px #7db4ff}
+#admin-view .x-rail .n{box-shadow:0 0 0 2px #0a1f55}
+@media(min-width:768px){#admin-view .x-rail button.on{box-shadow:none}}
+#admin-view .x-read,#admin-view .x-panel,#admin-view .x-card,#admin-view .x-c2,#admin-view .x-segs{background:var(--card);border-color:var(--line)}
+#admin-view .x-col{background:var(--col);border-color:var(--line)}
+#admin-view .x-col.over{background:var(--soft)}
+#admin-view .x-col h4{border-color:var(--line)}
+#admin-view .x-btn{background:var(--card);border-color:var(--line2);color:var(--btn)}
+#admin-view .x-btn:hover{background:var(--soft)}
+#admin-view .x-btn.go{background:linear-gradient(135deg,#0047AB,#2a7bff);color:#fff;border-color:transparent}
+#admin-view .x-btn.no{background:var(--card);color:#dc2626;border-color:#f3b4b4}
+#admin-view .x-chips .x-btn.on{background:#0047AB;border-color:#0047AB;color:#fff}
+#admin-view .x-in{background:var(--inp);border-color:var(--line2);color:var(--ink);color-scheme:var(--cs)}
+#admin-view .x-in::placeholder{color:var(--mut);opacity:.7}
+#admin-view .x-row{border-color:var(--line)}
+#admin-view button.x-row:hover{background:var(--hov)}
+#admin-view .x-seg,#admin-view .x-prog{background:var(--card2)}
+#admin-view .x-sg{color:var(--mut)}
+#admin-view .x-sg em{background:var(--soft)}
+#admin-view .x-tag{background:color-mix(in srgb,currentColor 12%,var(--card))}
+#admin-view .x-quote{background:var(--card2);border-left-color:var(--line2)}
+#admin-view .x-reply{background:var(--soft);border-color:var(--line)}
+#admin-view .x-empty{background:var(--col);border-color:var(--line2)}
+#admin-view .x-form,#admin-view .x-sec{border-color:var(--line)}
+#x-drawer{background:var(--drawer)!important;color:var(--ink)}
+
+/* ---------- CONSOLE ADMIN : mode nuit ---------- */
+html[data-theme=dark] #admin-view{--ink:#e8edfb;--mut:#9fb0d3;--line:#27375f;--line2:#35487a;--soft:#1b2a52;--card:#131c38;--card2:#0f1730;--inp:#0d1530;--hov:#1a264a;--col:rgba(19,28,56,.6);--drawer:#0e1530;--btn:#bcd1ff;--cs:dark;--brand:#6aa3ff;--brand2:#7db4ff;
+  background:radial-gradient(900px 520px at 100% 0,rgba(42,92,200,.45) 0,transparent 60%),radial-gradient(800px 520px at 0 40%,rgba(98,72,190,.36) 0,transparent 58%),radial-gradient(900px 520px at 60% 105%,rgba(214,140,60,.22) 0,transparent 60%),#0a1024;background-attachment:fixed}
+html[data-theme=dark] #admin-view .x-top{background:linear-gradient(135deg,#070d1f,#0d1a3d 62%,#1a2c63)}
+html[data-theme=dark] #admin-view .x-rail{background:linear-gradient(135deg,#070d1f,#0d1a3d);border-color:rgba(255,255,255,.07)}
+html[data-theme=dark] #admin-view .x-rail .n{box-shadow:0 0 0 2px #070d1f}
+html[data-theme=dark] #admin-view .x-chips .x-btn.on{background:#2a6fe0;border-color:#2a6fe0}
+html[data-theme=dark] #admin-view .x-btn.no{color:#f87171;border-color:#6b2a35}
+html[data-theme=dark] #admin-view .x-sg em{color:#9cc3ff}
+html[data-theme=dark] #admin-view .x-sg:hover{color:#fff}
+html[data-theme=dark] #admin-view .x-read:hover{border-color:#4b6bb5}
+html[data-theme=dark] #admin-view .x-hl{border-color:#35487a!important}
+html[data-theme=dark] #admin-view .x-reply-h{color:#9cc3ff}
+html[data-theme=dark] .t-ink{color:#e8edfb!important}
+html[data-theme=dark] .t-mut{color:#9fb0d3!important}
+html[data-theme=dark] .t-dim{color:#8596bb!important}
+html[data-theme=dark] .t-ok{color:#4ade80!important}
+html[data-theme=dark] .t-bad{color:#f87171!important}
+html[data-theme=dark] .t-warn{color:#fbbf24!important}
+html[data-theme=dark] .t-info{color:#7db4ff!important}
+html[data-theme=dark] #x-veil{background:rgba(0,0,0,.55)}
+
+/* ---------- ESPACE CLIENT + CONNEXION : mode nuit ---------- */
+html[data-theme=dark] body.bg-gray-50{background:radial-gradient(900px 480px at 100% 0,rgba(42,92,200,.42) 0,transparent 60%),radial-gradient(800px 480px at 0 35%,rgba(98,72,190,.34) 0,transparent 55%),radial-gradient(900px 480px at 60% 105%,rgba(214,140,60,.2) 0,transparent 60%),#0a1024;background-attachment:fixed;color:#e8edfb}
+html[data-theme=dark] #loading{color:#9fb0d3}
+html[data-theme=dark] #dash-view>header{background:linear-gradient(135deg,#070d1f,#0d1a3d 60%,#1a2c63)}
+html[data-theme=dark] #dtabs{background:linear-gradient(135deg,rgba(5,10,28,.97),rgba(13,26,61,.97))!important}
+html[data-theme=dark] #dash-view .bg-white,html[data-theme=dark] #auth-view .bg-white{background-color:#131c38}
+html[data-theme=dark] #auth-view>div.bg-white{background:rgba(19,28,56,.97);border:1px solid #27375f}
+html[data-theme=dark] #auth-view #lang-toggle{background:rgba(19,28,56,.95);color:#e8edfb;border-color:#33466f}
+html[data-theme=dark] #auth-view .bg-gray-100{background:#1b2a52}
+html[data-theme=dark] #dash-view .bg-gray-50,html[data-theme=dark] #auth-view .bg-gray-50{background-color:#0f1730}
+html[data-theme=dark] #dash-view .bg-gray-100{background-color:#1b2a52}
+html[data-theme=dark] #dash-view .bg-gray-200{background-color:#27375f}
+html[data-theme=dark] #dash-view .bg-blue-50,html[data-theme=dark] #dash-view .bg-indigo-50{background-color:#172a57}
+html[data-theme=dark] #dash-view .bg-green-50{background-color:#0f2b24}
+html[data-theme=dark] #dash-view .bg-red-50{background-color:#33161c}
+html[data-theme=dark] #dash-view .bg-amber-50{background-color:#33260f}
+html[data-theme=dark] #dash-view .hover\:bg-gray-100:hover{background-color:#1b2a52}
+html[data-theme=dark] #dash-view .text-gray-900,html[data-theme=dark] #dash-view .text-gray-800,html[data-theme=dark] #auth-view .text-gray-900,html[data-theme=dark] #auth-view .text-gray-800{color:#e8edfb}
+html[data-theme=dark] #dash-view .text-gray-700,html[data-theme=dark] #dash-view .text-gray-600,html[data-theme=dark] #auth-view .text-gray-700,html[data-theme=dark] #auth-view .text-gray-600{color:#c3cfe8}
+html[data-theme=dark] #dash-view .text-gray-500,html[data-theme=dark] #auth-view .text-gray-500{color:#9fb0d3}
+html[data-theme=dark] #dash-view .text-gray-400,html[data-theme=dark] #auth-view .text-gray-400{color:#8596bb}
+html[data-theme=dark] #dash-view .text-swiftblue{color:#7db4ff}
+html[data-theme=dark] #dash-view .text-green-700,html[data-theme=dark] #dash-view .text-green-800{color:#4ade80}
+html[data-theme=dark] #dash-view .text-red-600,html[data-theme=dark] #dash-view .text-red-700,html[data-theme=dark] #dash-view .text-red-800{color:#f87171}
+html[data-theme=dark] #dash-view .text-amber-700{color:#fbbf24}
+html[data-theme=dark] #dash-view .text-indigo-700{color:#a5b4fc}
+html[data-theme=dark] #dash-view .border-gray-50,html[data-theme=dark] #dash-view .border-gray-100,html[data-theme=dark] #dash-view .border-gray-200,html[data-theme=dark] #dash-view .border-gray-300,html[data-theme=dark] #auth-view .border-gray-100,html[data-theme=dark] #auth-view .border-gray-200{border-color:#27375f}
+html[data-theme=dark] #dash-view .border-blue-100,html[data-theme=dark] #dash-view .border-blue-200{border-color:#2a4280}
+html[data-theme=dark] #dash-view .border-red-100,html[data-theme=dark] #dash-view .border-red-200{border-color:#5b2530}
+html[data-theme=dark] #dash-view .border-green-100,html[data-theme=dark] #dash-view .border-green-200{border-color:#1f5a45}
+html[data-theme=dark] #dash-view .border-amber-200{border-color:#6b4a14}
+html[data-theme=dark] #dash-view .bg-white.rounded-3xl,html[data-theme=dark] #dash-view .bg-white.rounded-2xl{border-color:#27375f;box-shadow:0 1px 2px rgba(0,0,0,.3),0 14px 34px -18px rgba(0,0,0,.7)}
+html[data-theme=dark] #dash-view .bg-white.rounded-xl{border-color:#27375f}
+html[data-theme=dark] #dash-view .bg-white.rounded-2xl{border-left-color:#2a7bff}
+html[data-theme=dark] #dash-view .bg-gray-50.rounded-xl{background:#0f1a3a;border-color:#27375f}
+html[data-theme=dark] #dash-view .bg-blue-50.rounded-xl{background:linear-gradient(135deg,#14275a,#221c4d);border-color:#2a4280}
+html[data-theme=dark] #dash-view input:not([type=checkbox]):not([type=file]),html[data-theme=dark] #dash-view select,html[data-theme=dark] #dash-view textarea,html[data-theme=dark] #auth-view input{background-color:#0d1530;border-color:#35487a;color:#e8edfb}
+html[data-theme=dark] #dash-view input:focus,html[data-theme=dark] #dash-view select:focus,html[data-theme=dark] #dash-view textarea:focus,html[data-theme=dark] #auth-view input:focus{background-color:#101a3b;border-color:#2a7bff}
+html[data-theme=dark] #dash-view ::placeholder,html[data-theme=dark] #auth-view ::placeholder{color:#6f81a8}
+html[data-theme=dark] #dash-view input[type=file]{background:#0d1530;border-color:#35487a}
+html[data-theme=dark] #dash-view select{background-image:linear-gradient(45deg,transparent 50%,#7db4ff 50%),linear-gradient(135deg,#7db4ff 50%,transparent 50%)}
+html[data-theme=dark] #dash-view h2.text-lg{background:linear-gradient(90deg,#e3edff,#7db4ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+html[data-theme=dark] #dash-view h3.text-base{color:#e8edfb}
+html[data-theme=dark] #dash-view h3.text-sm{color:#bcd1ff}
+html[data-theme=dark] #dash-view label.block{color:#a9c3ff}
+html[data-theme=dark] #auth-view h1.text-swiftblue{background:linear-gradient(90deg,#e3edff,#7db4ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+html[data-theme=dark] #dash-view p.font-bold.text-gray-900.break-all{background:#1b2a52;color:#e8edfb;border-color:#35487a}
+html[data-theme=dark] #list-container .details-btn{background:#1b2a52;border-color:#35487a}
+html[data-theme=dark] #list-container .receipt-btn:not(.bg-swiftblue),html[data-theme=dark] #list-container .copy-btn{background:#131c38;color:#bcd1ff!important;border-color:#35487a!important}
+html[data-theme=dark] #list-container .cancel-btn{background:#33260f;border-color:#6b4a14!important}
+html[data-theme=dark] #list-container .del-btn{background:#33161c;border-color:#5b2530!important}
+html[data-theme=dark] #price-box{background:linear-gradient(135deg,#14275a,#221c4d)!important;border-color:#2a4280!important}
+html[data-theme=dark] #dash-view .bg-white.rounded-3xl::before{opacity:.9}
+html[data-theme=dark] #new-form>div:nth-of-type(1){--c:#7db4ff;--c2:#2a7bff;--t:#12214a;--b:#27437f;--r:rgba(125,180,255,.2)}
+html[data-theme=dark] #new-form>div:nth-of-type(2){--c:#34d399;--c2:#047857;--t:#0f2a26;--b:#1f5a45;--r:rgba(52,211,153,.2)}
+html[data-theme=dark] #new-form>div:nth-of-type(3){--c:#a78bfa;--c2:#6d28d9;--t:#211a46;--b:#46358a;--r:rgba(167,139,250,.2)}
+html[data-theme=dark] #new-form>div:nth-of-type(4){--c:#fb923c;--c2:#c2410c;--t:#2e2013;--b:#6b4a14;--r:rgba(251,146,60,.2)}
+html[data-theme=dark] #new-form>div:nth-of-type(5){--c:#94a3b8;--c2:#475569;--t:#18213a;--b:#35487a;--r:rgba(148,163,184,.2)}
+html[data-theme=dark] #new-form>div.rounded-3xl input:not([type=checkbox]),html[data-theme=dark] #new-form>div.rounded-3xl select,html[data-theme=dark] #new-form>div.rounded-3xl textarea{background-color:#0d1530;color:#e8edfb}
+html[data-theme=dark] #new-form .bg-gray-50.rounded-xl,html[data-theme=dark] #new-form #eta-note,html[data-theme=dark] #new-form label.flex.items-center{background:#0d1530}
+html[data-theme=dark] #new-form>div.rounded-3xl h3.text-base::after{background:#0d1530}
+html[data-theme=dark] #new-form .bg-gray-50 .text-gray-500{color:#c3cfe8}
+html[data-theme=dark] #new-form .text-gray-400,html[data-theme=dark] #new-form>div.rounded-3xl label.block span,html[data-theme=dark] #new-form>div.rounded-3xl p.block span{color:#9fb0d3}
+html[data-theme=dark] #new-form>div.rounded-3xl ::placeholder{color:#6f81a8}
+</style>
 <script>
 (() => {
   const A = $('admin-view');
   A.className = 'hidden';
   A.innerHTML = `
   <header class="x-top"><span class="x-logo">SW<i>//</i>CONTROL</span><span class="x-clock" id="x-clock"></span>
-    <span class="x-mail" id="admin-email"></span><button class="x-btn" id="x-exit">QUITTER</button></header>
+    <span class="x-mail" id="admin-email"></span><button class="x-btn theme-btn" id="x-theme" type="button" aria-label="Mode nuit">🌙</button><button class="x-btn" id="x-exit">QUITTER</button></header>
   <nav class="x-rail">
     <button data-v="radar"><b>◉</b>RADAR</button><button data-v="pipe"><b>▦</b>FLUX</button>
     <button data-v="cash"><b>◈</b>CAISSE<span class="n" id="nav-rech-badge"></span></button><button data-v="acct"><b>☷</b>COMPTES</button>
@@ -2551,13 +2685,20 @@ select.x-in{cursor:pointer}
   }
   // Suppression définitive de colis (Super Admin) : par lots pour éviter les requêtes trop longues
   async function delShipments(ids) {
-    let n = 0;
+    if (!isSuper) return toast('Réservé au Super Admin Suprême.', 'error');
+    let n = 0, err = null;
     for (let i = 0; i < ids.length; i += 50) {
-      const { data, error } = await supabaseClient.from('sw_shipments').delete().in('id', ids.slice(i, i + 50)).select('id');
-      if (error) { toast('Erreur : ' + error.message, 'error'); break; }
-      n += (data || []).length;
+      const chunk = ids.slice(i, i + 50).map(String);
+      let r = await supabaseClient.rpc('sw_admin_delete_shipments', { p_ids: chunk });
+      // Fonction SQL pas encore installée : on retente l'ancienne méthode directe
+      if (r.error && /Could not find the function|PGRST202|schema cache/i.test((r.error.code || '') + ' ' + (r.error.message || ''))) {
+        r = await supabaseClient.from('sw_shipments').delete().in('id', chunk).select('id');
+      }
+      if (r.error) { err = r.error; break; }
+      n += Array.isArray(r.data) ? r.data.length : (Number(r.data) || 0);
     }
-    if (!n) return toast('Suppression refusée ou aucun colis supprimé (droits insuffisants côté base).', 'error');
+    if (err) return toast('Erreur : ' + err.message, 'error');
+    if (!n) return toast("Aucun colis supprimé : installez le script SQL « sw_admin_delete_shipments » dans Supabase.", 'error');
     toast(n + ' colis supprimé(s).');
     logAct('d:delete_shipments', n + ' colis supprimé(s) définitivement');
     if (S.open && ids.includes(S.open)) closeDrawer();
@@ -2898,6 +3039,27 @@ select.x-in{cursor:pointer}
     if (!s || s.status === to) return;
     if (confirm('Passer ' + s.tracking_code + ' à « ' + STATUS[to].label + ' » ?')) rpc('sw_admin_update_status', { p_id: s.id, p_status: to, p_note: null }, 'Statut mis à jour.');
   });
+})();
+</script>
+<script>
+// ---------- MODE NUIT (admin + clients) : mémorisé sur l'appareil ----------
+(function () {
+  const root = document.documentElement;
+  function applyTheme(t) {
+    root.setAttribute('data-theme', t);
+    try { localStorage.setItem('sw_theme', t); } catch (e) {}
+    document.querySelectorAll('.theme-btn').forEach(b => {
+      b.textContent = t === 'dark' ? '☀️' : '🌙';
+      b.title = t === 'dark' ? 'Passer en mode clair' : 'Passer en mode nuit';
+      b.setAttribute('aria-label', b.title);
+    });
+    const m = document.querySelector('meta[name=theme-color]');
+    if (m) m.setAttribute('content', t === 'dark' ? '#0a1024' : '#0047AB');
+  }
+  document.addEventListener('click', (e) => {
+    if (e.target.closest && e.target.closest('.theme-btn')) applyTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  });
+  applyTheme(root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
 })();
 </script>
 </body>
