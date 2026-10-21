@@ -2270,7 +2270,7 @@ select.x-per{height:46px;border-radius:14px;padding:0 14px;font-weight:600}
     const need = isSuper && ((name === 'radar' && !S.stAt) || (name === 'cfg' && !S.grAt));
     if (S.loadedAt && !need) {
       draw(); // affichage immédiat avec les données en mémoire
-      if (Date.now() - S.loadedAt > 30000) loadAll().then(() => {
+      if (Date.now() - S.loadedAt > 8000) loadAll().then(() => {
         const ae = document.activeElement;
         if (S.v === name && !S.open && !(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))) draw();
       });
@@ -2279,6 +2279,35 @@ select.x-per{height:46px;border-radius:14px;padding:0 14px;font-weight:600}
     if (!S.loadedAt) M.innerHTML = '<p class="x-hint" style="padding:28px 4px">Chargement des données…</p>';
     await loadAll(); draw();
   };
+  // ---------- TEMPS RÉEL : les nouveautés des clients arrivent toutes seules ----------
+  // 1) Abonnement Supabase Realtime (instantané)  2) filet de sécurité : vérification toutes les 15 s
+  let rtTimer = null, rtCh = null, rtBusy = false;
+  const NOREDRAW = ['journal', 'cfg', 'wa'];
+  async function refreshLive() {
+    if (rtBusy || A.classList.contains('hidden')) return;
+    rtBusy = true;
+    try {
+      await loadAll(); // met aussi à jour les pastilles de la barre du bas
+      const ae = document.activeElement;
+      if (!S.open && !NOREDRAW.includes(S.v) && !(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))) draw();
+    } catch (e) {} finally { rtBusy = false; }
+  }
+  const onRt = () => { clearTimeout(rtTimer); rtTimer = setTimeout(() => { if (Date.now() - (S.loadedAt || 0) > 1500) refreshLive(); }, 500); };
+  function startRealtime() {
+    if (rtCh || !supabaseClient.channel) return;
+    try {
+      rtCh = supabaseClient.channel('sw-admin-live');
+      ['sw_recharges', 'sw_messages', 'sw_cancel_requests', 'sw_shipments', 'sw_profiles'].forEach(t => rtCh.on('postgres_changes', { event: '*', schema: 'public', table: t }, onRt));
+      rtCh.subscribe();
+    } catch (e) { rtCh = null; }
+  }
+  setInterval(() => {
+    if (A.classList.contains('hidden')) return;
+    if (!rtCh) startRealtime();
+    if (document.visibilityState === 'visible' && Date.now() - (S.loadedAt || 0) > 15000) refreshLive();
+  }, 15000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !A.classList.contains('hidden') && Date.now() - (S.loadedAt || 0) > 5000) refreshLive(); });
+
   function draw() { ({ radar, pipe, cash, acct, pwd: pwV, cfg, msg: inbox, cancel: cancelV, wa: waV, journal: journalV })[S.v](); if (S.open) openDrawer(S.open, true); }
 
   function radar() {
@@ -3136,6 +3165,8 @@ select.x-per{height:46px;border-radius:14px;padding:0 14px;font-weight:600}
     toast(n + ' colis supprimé(s).');
     logAct('d:delete_shipments', n + ' colis supprimé(s) définitivement');
     if (S.open && ids.includes(S.open)) closeDrawer();
+    // Disparition immédiate à l'écran, puis resynchronisation en arrière-plan
+    const gone = new Set(ids.map(String)); S.ship = S.ship.filter(x => !gone.has(String(x.id))); draw();
     await loadAll(); draw();
   }
 
