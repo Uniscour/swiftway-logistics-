@@ -1478,8 +1478,8 @@ const QS = new URLSearchParams(location.search);
 if (QS.has('t') || QS.has('suivi')) {
   const oldCode = QS.get('t') || '';
   const go = () => location.replace(TRACK_BASE + (oldCode ? '?t=' + encodeURIComponent(oldCode) : ''));
-  // Le scan d'un ancien QR code est enregistré avant la redirection (accusé de réception du colis)
-  if (oldCode) { setTimeout(go, 1500); supabaseClient.rpc('sw_log_track_view', { p_code: oldCode }).then(go, go); } else go();
+  // Redirection simple : c'est le site de suivi qui enregistre la consultation (accusé de réception), pas la plateforme
+  go();
 } else supabaseClient.auth.getSession().then(({ data }) => { if (data.session) showDashView(data.session.user); else showAuthView(); });
 </script>
 
