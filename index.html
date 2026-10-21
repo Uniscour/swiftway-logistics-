@@ -180,7 +180,11 @@ body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sa
     <form id="forgot-form" class="space-y-4 hidden">
       <p id="fg-title" class="text-lg font-bold text-gray-900 text-center">Mot de passe oublié</p>
       <p id="fg-help" class="text-sm text-gray-500 text-center">Indiquez votre e-mail ou votre numéro de téléphone. L'assistance reçoit votre demande et vous renvoie un nouveau mot de passe sur WhatsApp.</p>
-      <input type="text" id="fg-id" required autocapitalize="none" spellcheck="false" placeholder="votre@gmail.com ou 6XXXXXXXX" class="w-full px-5 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
+      <div><label id="fg-l-email" class="block text-xs font-semibold text-gray-700 mb-1">Adresse e-mail</label>
+        <input type="email" id="fg-email" autocapitalize="none" spellcheck="false" autocomplete="email" placeholder="votre@gmail.com" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50"></div>
+      <div><label id="fg-l-phone" class="block text-xs font-semibold text-gray-700 mb-1">Numéro de téléphone</label>
+        <input type="tel" id="fg-phone" autocomplete="tel" placeholder="6XX XX XX XX" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50"></div>
+      <p id="fg-note" class="text-xs text-gray-400 text-center">Remplissez les deux cases si possible : votre compte sera retrouvé plus sûrement.</p>
       <button type="submit" id="fg-btn" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition duration-200 shadow-md cursor-pointer">Envoyer la demande</button>
       <div id="fg-support" class="space-y-2"></div>
       <div class="text-center"><button type="button" id="fg-back" class="text-sm font-semibold text-gray-500 hover:text-gray-900 cursor-pointer">← Retour à la connexion</button></div>
@@ -204,6 +208,15 @@ body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sa
       <button data-tab="wallet" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">💳</span><span>Portefeuille</span></button>
       <button data-tab="help" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">💬</span><span>Messages</span><span id="help-badge" class="dbadge hidden"></span></button>
     </div>
+    <form id="pwforce-form" class="hidden mb-6 bg-white rounded-3xl shadow-sm border-2 border-amber-300 p-6 space-y-3">
+      <h2 class="text-lg font-bold text-gray-900">🔑 Choisissez votre nouveau mot de passe</h2>
+      <p class="text-xs text-gray-500">Vous venez de récupérer votre accès avec un mot de passe provisoire. Saisissez-le ci-dessous, puis choisissez le mot de passe de votre choix.</p>
+      <input id="pwf-old" type="password" required autocomplete="current-password" placeholder="Mot de passe reçu (provisoire)" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
+      <input id="pwf-new" type="password" minlength="6" required autocomplete="new-password" placeholder="Nouveau mot de passe (6 caractères minimum)" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
+      <input id="pwf-new2" type="password" minlength="6" required autocomplete="new-password" placeholder="Confirmer le nouveau mot de passe" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50">
+      <button type="submit" id="pwf-btn" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition shadow-md cursor-pointer">Enregistrer mon mot de passe</button>
+      <button type="button" id="pwf-later" class="w-full text-sm font-semibold text-gray-500 hover:text-gray-900 cursor-pointer">Plus tard</button>
+    </form>
     <div id="d-alert" class="hidden mb-4 p-4 rounded-xl text-sm text-center font-medium"></div>
     <section id="view-list"><div id="list-filters"></div><div id="list-container"></div></section>
     <section id="view-new" class="hidden"><form id="new-form" class="space-y-5"></form></section>
@@ -317,6 +330,9 @@ async function showDashView(user) {
   $('user-email').textContent = (user && user.email) || '';
   $('dash-view').classList.remove('hidden');
   loadPrice(); showTab('list'); refreshHelpBadge();
+  // Compte dont le mot de passe vient d'être réinitialisé par l'assistance : invitation à choisir le sien
+  const pf = $('pwforce-form');
+  if (pf) pf.classList.toggle('hidden', !(user && user.user_metadata && user.user_metadata.must_change_pw === true));
 }
 
 // ---------- CONNEXION ----------
@@ -393,13 +409,17 @@ function swForgotLang() {
   const en = currentLang === 'en';
   $('forgot-link').textContent = en ? 'Forgot password?' : 'Mot de passe oublié ?';
   $('fg-title').textContent = en ? 'Forgot password' : 'Mot de passe oublié';
-  $('fg-help').textContent = en ? 'Enter your e-mail or phone number. Support receives your request and sends you a new password on WhatsApp or by e-mail.' : "Indiquez votre e-mail ou votre numéro de téléphone. L'assistance reçoit votre demande et vous renvoie un nouveau mot de passe sur WhatsApp ou par e-mail.";
+  $('fg-help').textContent = en ? 'Enter your account e-mail and phone number (at least one of them). Support receives your request and sends you a new password on WhatsApp or by e-mail.' : "Indiquez l'e-mail et le numéro de téléphone de votre compte (au minimum l'un des deux). L'assistance reçoit votre demande et vous renvoie un nouveau mot de passe sur WhatsApp ou par e-mail.";
   $('fg-btn').textContent = en ? 'Send request' : 'Envoyer la demande';
+  $('fg-l-email').textContent = en ? 'E-mail address' : 'Adresse e-mail';
+  $('fg-l-phone').textContent = en ? 'Phone number' : 'Numéro de téléphone';
+  $('fg-note').textContent = en ? 'Fill in both boxes if you can: your account will be found more reliably.' : 'Remplissez les deux cases si possible : votre compte sera retrouvé plus sûrement.';
   $('fg-back').textContent = en ? '← Back to login' : '← Retour à la connexion';
 }
 $('forgot-link').addEventListener('click', async () => {
   loginForm.classList.add('hidden'); signupForm.classList.add('hidden'); forgotForm.classList.remove('hidden'); hideAlert();
-  $('fg-id').value = $('login-email').value; swForgotLang();
+  const li = $('login-email').value.trim();
+  $('fg-email').value = li.includes('@') ? li : ''; $('fg-phone').value = (li && !li.includes('@')) ? li : ''; swForgotLang();
   const html = supportButtons(await loadSupport());
   $('fg-support').innerHTML = html ? '<p class="text-xs text-gray-500 text-center">' + (currentLang === 'en' ? 'Or contact support directly:' : "Ou contactez directement l'assistance :") + '</p>' + html : '';
 });
@@ -408,12 +428,38 @@ tabLogin.addEventListener('click', () => forgotForm.classList.add('hidden'));
 tabSignup.addEventListener('click', () => forgotForm.classList.add('hidden'));
 forgotForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const v = $('fg-id').value.trim(), btn = $('fg-btn'); if (!v) return;
+  const em = $('fg-email').value.trim(), ph = $('fg-phone').value.trim(), btn = $('fg-btn'), en = currentLang === 'en';
+  if (!em && !ph) { showAlert(en ? 'Enter your e-mail and/or your phone number.' : "Indiquez votre adresse e-mail et/ou votre numéro de téléphone.", 'error'); return; }
+  if (em && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { showAlert(en ? 'Invalid e-mail address.' : 'Adresse e-mail invalide.', 'error'); return; }
+  if (ph && ph.replace(/\D/g, '').length < 9) { showAlert(en ? 'Phone number too short (9 digits minimum).' : 'Numéro de téléphone trop court (9 chiffres minimum).', 'error'); return; }
   btn.disabled = true;
-  const { error } = await supabaseClient.rpc('sw_request_password_reset', { p_identifier: v });
+  // Le compte est recherché avec l'e-mail ET le numéro saisis (ou avec celui des deux qui est rempli)
+  let { error } = await supabaseClient.rpc('sw_request_password_reset2', { p_email: em, p_phone: ph });
+  if (error && /could not find|does not exist|PGRST202|42883/i.test((error.message || '') + ' ' + (error.code || ''))) {
+    // Ancienne version de la base : repli sur la fonction à une seule saisie
+    ({ error } = await supabaseClient.rpc('sw_request_password_reset', { p_identifier: em || ph }));
+  }
   btn.disabled = false;
   if (error) { showAlert(currentLang === 'en' ? 'Service unavailable. Please try again later or contact support.' : "Service momentanément indisponible. Réessayez plus tard ou contactez l'assistance.", 'error'); return; }
   showAlert(currentLang === 'en' ? 'Request sent. Support will send you a new password on WhatsApp or by e-mail.' : "Demande envoyée. L'assistance vous enverra un nouveau mot de passe sur WhatsApp ou par e-mail.", 'success');
+});
+$('pwf-later').addEventListener('click', () => $('pwforce-form').classList.add('hidden'));
+$('pwforce-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const o = $('pwf-old').value, a = $('pwf-new').value, b = $('pwf-new2').value, btn = $('pwf-btn');
+  if (a.length < 6) return toast('Mot de passe trop court (6 caractères minimum).', 'error');
+  if (a !== b) return toast('Les deux mots de passe ne correspondent pas.', 'error');
+  if (a === o) return toast('Choisissez un mot de passe différent de celui reçu.', 'error');
+  btn.disabled = true;
+  // Vérifie le mot de passe provisoire reçu avant de le remplacer
+  const chk = await supabaseClient.auth.signInWithPassword({ email: currentUser.email, password: o });
+  if (chk.error) { btn.disabled = false; return toast('Le mot de passe reçu est incorrect.', 'error'); }
+  const { error } = await supabaseClient.auth.updateUser({ password: a, data: { must_change_pw: false } });
+  btn.disabled = false;
+  if (error) return toast('Erreur : ' + error.message, 'error');
+  $('pwf-old').value = ''; $('pwf-new').value = ''; $('pwf-new2').value = '';
+  $('pwforce-form').classList.add('hidden');
+  toast('Mot de passe modifié. Utilisez-le pour vos prochaines connexions.');
 });
 $('pw-form').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -2231,7 +2277,7 @@ html[data-theme=dark] #new-form>div.rounded-3xl ::placeholder{color:#6f81a8}
     crypto.getRandomValues(a);
     return Array.from(a, x => L[x % L.length]).join('');
   }
-  function pwMsg(pwd, who, ident) { return "Bonjour" + (who ? " " + who : "") + ",\nVoici votre nouveau mot de passe pour accéder à votre compte SwiftWay Logistics :\n\nIdentifiant : " + (ident || who || "") + "\nNouveau mot de passe : " + pwd + "\n\nConnectez-vous avec ces informations. Ne partagez ce mot de passe avec personne."; }
+  function pwMsg(pwd, who, ident) { return "Bonjour" + (who ? " " + who : "") + ",\nVoici votre nouveau mot de passe pour accéder à votre compte SwiftWay Logistics :\n\nIdentifiant : " + (ident || who || "") + "\nNouveau mot de passe : " + pwd + "\n\nConnectez-vous avec ces informations : le site vous proposera ensuite de choisir votre propre mot de passe. Ne partagez ce mot de passe avec personne."; }
   function pwPanel() {
     if (!can('acct')) return '';
     if (!S.pwrOk) return isSuper ? '<div class="x-panel" style="margin-top:0;margin-bottom:14px"><p class="x-h">🔑 DEMANDES DE MOT DE PASSE</p><p class="t-warn x-sm">Fonction introuvable : exécutez le script SQL « sw_assistance_motdepasse.sql » dans Supabase.</p></div>' : '';
