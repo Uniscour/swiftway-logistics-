@@ -242,7 +242,7 @@ body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sa
     <section id="view-help" class="hidden space-y-4">
       <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-5"><h2 class="text-lg font-bold text-gray-900">Messages &amp; Notifications</h2><div id="help-subnav" class="mt-3"></div></div>
       <div id="support-card" class="hidden bg-white rounded-3xl shadow-sm border border-gray-100 p-6"></div>
-      <form id="pw-form" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-3">
+      <form id="pw-form" class="hidden bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-3">
         <h2 class="text-lg font-bold text-gray-900">Changer mon mot de passe</h2>
         <p class="text-xs text-gray-500">Après une réinitialisation par l'assistance, choisissez ici votre propre mot de passe.</p>
         <input id="pw-new" type="password" minlength="6" required autocomplete="new-password" placeholder="Nouveau mot de passe (6 caractères minimum)" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue outline-none bg-gray-50">
@@ -393,7 +393,7 @@ function swForgotLang() {
   const en = currentLang === 'en';
   $('forgot-link').textContent = en ? 'Forgot password?' : 'Mot de passe oublié ?';
   $('fg-title').textContent = en ? 'Forgot password' : 'Mot de passe oublié';
-  $('fg-help').textContent = en ? 'Enter your e-mail or phone number. Support receives your request and sends you a new password on WhatsApp.' : "Indiquez votre e-mail ou votre numéro de téléphone. L'assistance reçoit votre demande et vous renvoie un nouveau mot de passe sur WhatsApp.";
+  $('fg-help').textContent = en ? 'Enter your e-mail or phone number. Support receives your request and sends you a new password on WhatsApp or by e-mail.' : "Indiquez votre e-mail ou votre numéro de téléphone. L'assistance reçoit votre demande et vous renvoie un nouveau mot de passe sur WhatsApp ou par e-mail.";
   $('fg-btn').textContent = en ? 'Send request' : 'Envoyer la demande';
   $('fg-back').textContent = en ? '← Back to login' : '← Retour à la connexion';
 }
@@ -413,7 +413,7 @@ forgotForm.addEventListener('submit', async (e) => {
   const { error } = await supabaseClient.rpc('sw_request_password_reset', { p_identifier: v });
   btn.disabled = false;
   if (error) { showAlert(currentLang === 'en' ? 'Service unavailable. Please try again later or contact support.' : "Service momentanément indisponible. Réessayez plus tard ou contactez l'assistance.", 'error'); return; }
-  showAlert(currentLang === 'en' ? 'Request sent. Support will send you a new password on WhatsApp.' : "Demande envoyée. L'assistance vous enverra un nouveau mot de passe sur WhatsApp.", 'success');
+  showAlert(currentLang === 'en' ? 'Request sent. Support will send you a new password on WhatsApp or by e-mail.' : "Demande envoyée. L'assistance vous enverra un nouveau mot de passe sur WhatsApp ou par e-mail.", 'success');
 });
 $('pw-form').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -894,7 +894,7 @@ async function openReceipt(s, btn) {
     btn.disabled = true;
     const { data, error } = await supabaseClient.rpc('sw_buy_receipt', { p_shipment_id: s.id });
     btn.disabled = false;
-    if (error) { toast(error.message || 'Paiement refusé.', 'error'); return; }
+    if (error) { if (isLowBalance(error)) { goRecharge(0); return; } toast(error.message || 'Paiement refusé.', 'error'); return; }
     receiptSet.add(s.id); btn.textContent = 'Voir le reçu A5';
     if (data && data.charged) toast('Reçu débloqué · ' + fmtMoney(data.price) + ' débités.');
     loadShipments(s.id);
@@ -1138,7 +1138,7 @@ $('new-form').addEventListener('submit', async (e) => {
   await loadPrice();
   const wb = await myWallet();
   const bal = Number(wb.data ? wb.data.balance : 0);
-  if (bal < RECEIPT_PRICE) { dShow('Solde insuffisant : ' + fmtMoney(RECEIPT_PRICE) + ' requis, vous avez ' + fmtMoney(bal) + ". Rechargez votre portefeuille. Aucune expédition n'a été créée."); window.scrollTo(0, 0); return; }
+  if (bal < RECEIPT_PRICE) { goRecharge(RECEIPT_PRICE - bal); return; }
   if (!confirm("Confirmer le paiement ?\n" + fmtMoney(RECEIPT_PRICE) + " seront débités de votre portefeuille pour générer le reçu et le code de suivi.")) return;
   btn.disabled = true; btn.textContent = 'Paiement...';
   const txt = (id) => $(id).value.trim() || null, val = (id) => $(id).value.trim();
@@ -1166,6 +1166,7 @@ $('new-form').addEventListener('submit', async (e) => {
   const { data, error } = await supabaseClient.rpc('sw_create_paid_shipment', { p_row: row });
   if (error || !data) {
     btn.disabled = false; setNewLabel();
+    if (isLowBalance(error)) { goRecharge(0); return; }
     dShow((error && error.message ? error.message : 'Paiement refusé') + ". Aucune expédition n'a été créée."); window.scrollTo(0, 0); return;
   }
   btn.disabled = false; setNewLabel();
@@ -1212,6 +1213,13 @@ function toast(msg, type) {
   const t = $('toast'); t.textContent = msg;
   t.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 z-[90] w-[90%] max-w-sm px-4 py-3 rounded-xl text-sm font-semibold text-center shadow-lg ' + (type === 'error' ? 'bg-red-600 text-white' : 'bg-gray-900 text-white');
   clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.add('hidden'), 3500);
+}
+// Solde insuffisant : message en bas + redirection automatique vers l'onglet Portefeuille
+const isLowBalance = (err) => !!err && /insuffisan|insufficient|solde/i.test(String(err.message || err));
+function goRecharge(missing) {
+  showTab('wallet'); window.scrollTo(0, 0);
+  toast('Solde insuffisant : rechargez votre compte pour continuer.', 'error');
+  if (missing > 0) dShow('Il vous manque ' + fmtMoney(missing) + ". Rechargez votre portefeuille ci-dessous ; vos informations saisies sont conservées.");
 }
 async function openProof(path) {
   const { data, error } = await supabaseClient.storage.from('sw-proofs').createSignedUrl(path, 300);
@@ -1850,7 +1858,7 @@ html[data-theme=dark] #new-form>div.rounded-3xl ::placeholder{color:#6f81a8}
     <span class="x-mail" id="admin-email"></span><button class="x-btn theme-btn" id="x-theme" type="button" aria-label="Mode nuit">🌙</button><button class="x-btn" id="x-exit">QUITTER</button></header>
   <nav class="x-rail">
     <button data-v="radar"><b>◉</b>RADAR</button><button data-v="pipe"><b>▦</b>FLUX</button>
-    <button data-v="cash"><b>◈</b>CAISSE<span class="n" id="nav-rech-badge"></span></button><button data-v="acct"><b>☷</b>COMPTES<span class="n" id="nav-acct-badge"></span></button>
+    <button data-v="cash"><b>◈</b>CAISSE<span class="n" id="nav-rech-badge"></span></button><button data-v="acct"><b>☷</b>COMPTES<span class="n" id="nav-acct-badge"></span></button><button data-v="pwd"><b>🔑</b>MOT DE PASSE<span class="n" id="nav-pw-badge"></span></button>
     <button data-v="wa"><b>✆</b>CONTACT</button>
     <button data-v="cancel"><b>⊘</b>ANNUL.<span class="n" id="nav-cx-badge"></span></button>
     <button data-v="msg"><b>✉</b>MESSAGES<span class="n" id="nav-msg-badge"></span></button><button data-v="cfg"><b>⚙</b>PARAMS</button>
@@ -1921,7 +1929,7 @@ html[data-theme=dark] #new-form>div.rounded-3xl ::placeholder{color:#6f81a8}
   const isSupU = (u) => String((u && u.email) || '').toLowerCase() === SUPER_EMAIL;
   const need = (p) => { if (can(p)) return true; toast('Action non autorisée pour votre rôle.', 'error'); return false; };
   const needSuper = () => { if (isSuper) return true; toast('Réservé au Super Admin Suprême.', 'error'); return false; };
-  const navOk = (n) => ({ radar: true, pipe: can('ship'), cash: can('rech'), acct: can('acct'), wa: can('wa'), cancel: can('cancel'), msg: can('msg'), cfg: isSuper || can('pay'), journal: true })[n] === true;
+  const navOk = (n) => ({ radar: true, pipe: can('ship'), cash: can('rech'), acct: can('acct'), pwd: can('acct'), wa: can('wa'), cancel: can('cancel'), msg: can('msg'), cfg: isSuper || can('pay'), journal: true })[n] === true;
   function applyNav() {
     A.querySelectorAll('.x-rail [data-v]').forEach(b => { b.style.display = navOk(b.dataset.v) ? '' : 'none'; });
   }
@@ -2014,7 +2022,7 @@ html[data-theme=dark] #new-form>div.rounded-3xl ::placeholder{color:#6f81a8}
     try { const sp = await supabaseClient.from('sw_support_contacts').select('*').order('created_at'); if (!sp.error) { S.sup = sp.data || []; S.supOk = true; } } catch (e) {}
     S.pwr = []; S.pwrOk = false;
     if (can('acct')) { try { const pw = await supabaseClient.rpc('sw_admin_list_pw_requests'); if (!pw.error) { S.pwr = pw.data || []; S.pwrOk = true; } } catch (e) {} }
-    const npw = S.pwr.filter(r => r.status === 'pending').length, ab = $('nav-acct-badge');
+    const npw = S.pwr.filter(r => r.status === 'pending').length, ab = $('nav-pw-badge');
     ab.textContent = npw; ab.style.display = npw && can('acct') ? 'block' : 'none';
     S.st = null;
     if (isSuper) { try { const st = await supabaseClient.rpc('sw_admin_stats'); S.st = st.error ? null : st.data; } catch (e) { S.st = null; } }
@@ -2040,7 +2048,7 @@ html[data-theme=dark] #new-form>div.rounded-3xl ::placeholder{color:#6f81a8}
     window.scrollTo(0, 0);
     await loadAll(); draw();
   };
-  function draw() { ({ radar, pipe, cash, acct, cfg, msg: inbox, cancel: cancelV, wa: waV, journal: journalV })[S.v](); if (S.open) openDrawer(S.open, true); }
+  function draw() { ({ radar, pipe, cash, acct, pwd: pwV, cfg, msg: inbox, cancel: cancelV, wa: waV, journal: journalV })[S.v](); if (S.open) openDrawer(S.open, true); }
 
   function radar() {
     const act = S.ship.filter(live), lt = S.ship.filter(late);
@@ -2223,7 +2231,7 @@ html[data-theme=dark] #new-form>div.rounded-3xl ::placeholder{color:#6f81a8}
     crypto.getRandomValues(a);
     return Array.from(a, x => L[x % L.length]).join('');
   }
-  function pwMsg(pwd, who) { return "Bonjour" + (who ? " " + who : "") + ", voici votre nouveau mot de passe pour accéder à votre compte SwiftWay Logistics : " + pwd + "\nConnectez-vous avec ce mot de passe, puis changez-le dans l'onglet Messages > « Changer mon mot de passe »."; }
+  function pwMsg(pwd, who, ident) { return "Bonjour" + (who ? " " + who : "") + ",\nVoici votre nouveau mot de passe pour accéder à votre compte SwiftWay Logistics :\n\nIdentifiant : " + (ident || who || "") + "\nNouveau mot de passe : " + pwd + "\n\nConnectez-vous avec ces informations. Ne partagez ce mot de passe avec personne."; }
   function pwPanel() {
     if (!can('acct')) return '';
     if (!S.pwrOk) return isSuper ? '<div class="x-panel" style="margin-top:0;margin-bottom:14px"><p class="x-h">🔑 DEMANDES DE MOT DE PASSE</p><p class="t-warn x-sm">Fonction introuvable : exécutez le script SQL « sw_assistance_motdepasse.sql » dans Supabase.</p></div>' : '';
@@ -2233,18 +2241,22 @@ html[data-theme=dark] #new-form>div.rounded-3xl ::placeholder{color:#6f81a8}
       const d = S.pwDone[id], wa = waNum(d.phone);
       return `<div class="x-c2 sm" style="border-left:4px solid #059669"><strong class="x-amt" style="font-size:15px;word-break:break-all">${esc(d.email || d.identifier || '-')}</strong>
         <span class="x-sub t-ok">Nouveau mot de passe créé : <b style="font-family:monospace;font-size:15px;letter-spacing:.04em">${esc(d.pwd)}</b></span>
-        <div class="x-acts" style="margin-top:10px">${wa ? `<a class="x-btn go" style="text-decoration:none" href="https://wa.me/${wa}?text=${encodeURIComponent(pwMsg(d.pwd, d.email || d.identifier))}" target="_blank" rel="noopener" data-pwsent="${esc(id)}">💬 ENVOYER SUR WHATSAPP</a>` : '<span class="t-warn x-sm" style="margin:0">Aucun numéro valide sur ce compte : copiez le mot de passe.</span>'}
-        <button class="x-btn" data-pwcopy="${esc(id)}">COPIER</button><button class="x-btn" data-pwclose="${esc(id)}">TERMINÉ</button></div></div>`;
+        <div class="x-acts" style="margin-top:10px">${wa ? `<a class="x-btn go" style="text-decoration:none" href="https://wa.me/${wa}?text=${encodeURIComponent(pwMsg(d.pwd, d.email || d.identifier, d.email || d.phone || d.identifier))}" target="_blank" rel="noopener" data-pwsent="${esc(id)}">💬 ENVOYER SUR WHATSAPP</a>` : '<span class="t-warn x-sm" style="margin:0">Aucun numéro valide sur ce compte : utilisez l\'e-mail ou copiez le mot de passe.</span>'}
+        ${d.email ? `<a class="x-btn" style="text-decoration:none" href="mailto:${esc(d.email)}?subject=${encodeURIComponent('Votre nouveau mot de passe SwiftWay Logistics')}&body=${encodeURIComponent(pwMsg(d.pwd, d.email, d.email))}" data-pwsent="${esc(id)}">✉ ENVOYER PAR E-MAIL</a>` : ''}<button class="x-btn" data-pwcopy="${esc(id)}">COPIER</button><button class="x-btn" data-pwclose="${esc(id)}">TERMINÉ</button></div></div>`;
     };
     const reqCard = (r) => {
       const known = !!r.user_id;
       return `<div class="x-c2 sm"><div class="x-c2h"><div><strong class="x-amt" style="font-size:15px;word-break:break-all">${esc(r.email || r.identifier)}</strong><span class="x-sub">${known ? esc(r.phone || 'sans téléphone') : 'Aucun compte trouvé pour cette saisie'}</span></div><span class="x-tag ${known ? 't-warn' : 't-bad'}">${known ? 'À TRAITER' : 'INCONNU'}</span></div>
         <div class="x-meta"><span>Saisi : <b>${esc(r.identifier)}</b></span><span>Demandé le <b>${esc(fmtDate(r.created_at))}</b></span></div>
-        <div class="x-acts" style="margin-top:10px">${known ? `<button class="x-btn go" data-pwreset="${esc(r.id)}">🔑 RENVOYER LE MOT DE PASSE VIA WHATSAPP</button>` : ''}<button class="x-btn no" data-pwdel="${esc(r.id)}">IGNORER</button></div></div>`;
+        <div class="x-acts" style="margin-top:10px">${known ? `<button class="x-btn go" data-pwreset="${esc(r.id)}">🔑 RENVOYER UN NOUVEAU MOT DE PASSE</button>` : ''}<button class="x-btn no" data-pwdel="${esc(r.id)}">IGNORER</button></div></div>`;
     };
     return `<div class="x-panel x-hl" style="margin-top:0;margin-bottom:14px"><p class="x-h">🔑 DEMANDES DE RÉINITIALISATION (${pend.length})</p>
-      <p class="x-hint" style="margin:0 0 10px">Un mot de passe existant ne peut pas être relu (il est chiffré). Le bouton crée un nouveau mot de passe temporaire, l'enregistre sur le compte, puis prépare son envoi sur WhatsApp au numéro du compte.</p>
+      <p class="x-hint" style="margin:0 0 10px">Un mot de passe existant ne peut pas être relu (il est chiffré). Le bouton crée un nouveau mot de passe temporaire, l'enregistre sur le compte, puis prépare son envoi sur WhatsApp (numéro du compte) ou par e-mail. Les informations du compte et le nouveau mot de passe sont déjà inclus dans le message.</p>
       ${done.map(doneCard).join('')}${pend.length ? pend.map(reqCard).join('') : (done.length ? '' : '<p class="t-dim">// aucune demande en attente</p>')}</div>`;
+  }
+
+  function pwV() {
+    M.innerHTML = `<div class="x-wrap"><p class="x-h"><b>●</b> MOTS DE PASSE OUBLIÉS // DEMANDES REÇUES DEPUIS LA PAGE DE CONNEXION</p>${pwPanel() || '<div class="x-empty">Accès non autorisé.</div>'}</div>`;
   }
 
   function acct() {
@@ -2289,7 +2301,7 @@ html[data-theme=dark] #new-form>div.rounded-3xl ::placeholder{color:#6f81a8}
       }).join('') : '<div class="x-empty">Aucun compte ne correspond à ce filtre.</div>') +
         (rows.length > shown.length ? `<div class="x-acts" style="justify-content:center;margin:6px 0 10px"><button class="x-btn" data-umore="1">AFFICHER PLUS (${rows.length - shown.length} restant(s))</button></div>` : '');
     }
-    M.innerHTML = `<div class="x-wrap">${head}${S.af === 'admins' ? '' : pwPanel()}${tools}${body}</div>`;
+    M.innerHTML = `<div class="x-wrap">${head}${tools}${body}</div>`;
     const qi = $('x-uq'); qi.oninput = () => { S.uq = qi.value; S.ulim = 60; const p = qi.selectionStart; acct(); const n = $('x-uq'); n.focus(); n.setSelectionRange(p, p); };
   }
 
@@ -3026,21 +3038,21 @@ html[data-theme=dark] #new-form>div.rounded-3xl ::placeholder{color:#6f81a8}
       if (error) return toast('Erreur : ' + error.message, 'error');
       S.pwDone = S.pwDone || {}; S.pwDone[r.id] = { pwd, email: r.email, phone: r.phone, identifier: r.identifier };
       logAct('pw_reset', r.email || r.identifier);
-      toast('Nouveau mot de passe créé. Envoyez-le sur WhatsApp.'); await loadAll(); return acct();
+      toast('Nouveau mot de passe créé. Envoyez-le sur WhatsApp ou par e-mail.'); await loadAll(); return pwV();
     }
     if ((el = g('data-pwdel'))) {
       if (!need('acct')) return;
       if (!confirm('Ignorer cette demande ?')) return;
       const { error } = await supabaseClient.rpc('sw_admin_dismiss_pw_request', { p_id: el.dataset.pwdel });
       if (error) return toast('Erreur : ' + error.message, 'error');
-      logAct('pw_dismiss', ''); await loadAll(); return acct();
+      logAct('pw_dismiss', ''); await loadAll(); return pwV();
     }
     if ((el = g('data-pwcopy'))) {
       const d = (S.pwDone || {})[el.dataset.pwcopy]; if (!d) return;
       try { await navigator.clipboard.writeText(d.pwd); toast('Mot de passe copié.'); } catch (er) { prompt('Copiez ce mot de passe :', d.pwd); }
       return;
     }
-    if ((el = g('data-pwclose'))) { if (S.pwDone) delete S.pwDone[el.dataset.pwclose]; return acct(); }
+    if ((el = g('data-pwclose'))) { if (S.pwDone) delete S.pwDone[el.dataset.pwclose]; return pwV(); }
     if ((el = g('data-pwsent'))) { const d = (S.pwDone || {})[el.dataset.pwsent]; logAct('pw_reset', 'Envoi WhatsApp · ' + ((d && (d.email || d.identifier)) || '')); return; }
     if ((el = g('data-wach'))) { WA.ch = el.dataset.wach === 'mail' ? 'mail' : 'wa'; return waList(); }
     if ((el = g('data-mailsend'))) {
