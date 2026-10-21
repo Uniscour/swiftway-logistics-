@@ -2298,6 +2298,19 @@ html[data-theme=dark] body{color:#e8edfb}
     if (!S.loadedAt) M.innerHTML = '<p class="x-hint" style="padding:28px 4px">Chargement des données…</p>';
     await loadAll(); draw();
   };
+  // Écriture admin : passe par la fonction SQL sécurisée « sw_admin_write » ; repli sur l'écriture directe si elle n'est pas encore installée
+  async function dbw(table, op, id, data) {
+    try {
+      const r = await supabaseClient.rpc('sw_admin_write', { p_table: table, p_op: op, p_id: id == null ? null : String(id), p_data: data || {} });
+      if (!r.error) return { error: null };
+      if (!/PGRST202|Could not find the function|schema cache/i.test((r.error.code || '') + ' ' + (r.error.message || ''))) return { error: r.error };
+    } catch (e) {}
+    const q = supabaseClient.from(table);
+    const r2 = op === 'insert' ? await q.insert(data) : op === 'update' ? await q.update(data).eq('id', id) : await q.delete().eq('id', id);
+    if (r2.error && /permission denied/i.test(r2.error.message || '')) r2.error = { ...r2.error, message: r2.error.message + ' — exécutez le script « admin-ecriture.sql » dans Supabase (SQL Editor).' };
+    return r2;
+  }
+
   // ---------- TEMPS RÉEL : les nouveautés des clients arrivent toutes seules ----------
   // 1) Abonnement Supabase Realtime (instantané)  2) filet de sécurité : vérification toutes les 15 s
   let rtTimer = null, rtCh = null, rtBusy = false;
@@ -3291,7 +3304,7 @@ html[data-theme=dark] body{color:#e8edfb}
       let val = raw;
       if (kind === 'whatsapp') { val = waNum(raw); if (!val) return toast('Numéro invalide (ex : +237 6XX XX XX XX).', 'error'); val = '+' + val; }
       else if (!MAIL_RE.test(raw)) return toast('Adresse e-mail invalide.', 'error');
-      const { error } = await supabaseClient.from('sw_support_contacts').insert({ kind, value: val, label: label || null });
+      const { error } = await dbw('sw_support_contacts', 'insert', null, { kind, value: val, label: label || null });
       if (error) return toast('Erreur : ' + error.message, 'error');
       logAct('support_add', (kind === 'whatsapp' ? 'WhatsApp ' : 'E-mail ') + val); SUPPORT = null;
       toast('Contact ajouté.'); await loadAll(); return cfg();
@@ -3306,9 +3319,9 @@ html[data-theme=dark] body{color:#e8edfb}
       else if (!MAIL_RE.test(val)) return toast('Adresse e-mail invalide.', 'error');
       if (val === c.value) return;
       // Remplacement : le nouveau contact est créé d'abord, l'ancien n'est retiré qu'ensuite (rien n'est perdu en cas d'erreur)
-      const ins = await supabaseClient.from('sw_support_contacts').insert({ kind: c.kind, value: val, label: c.label || null });
+      const ins = await dbw('sw_support_contacts', 'insert', null, { kind: c.kind, value: val, label: c.label || null });
       if (ins.error) return toast('Erreur : ' + ins.error.message, 'error');
-      const del = await supabaseClient.from('sw_support_contacts').delete().eq('id', c.id);
+      const del = await dbw('sw_support_contacts', 'delete', c.id);
       if (del.error) return toast('Nouveau contact ajouté, mais l\'ancien n\'a pas pu être retiré : ' + del.error.message, 'error');
       logAct('support_add', (c.kind === 'whatsapp' ? 'Modifié WhatsApp ' : 'Modifié E-mail ') + c.value + ' → ' + val); SUPPORT = null;
       toast('Contact modifié.'); await loadAll(); return cfg();
@@ -3317,7 +3330,7 @@ html[data-theme=dark] body{color:#e8edfb}
       if (!needSuper()) return;
       const c = (S.sup || []).find(x => x.id === el.dataset.spdel);
       if (!confirm('Retirer ce contact ?' + (c ? '\n' + c.value : ''))) return;
-      const { error } = await supabaseClient.from('sw_support_contacts').delete().eq('id', el.dataset.spdel);
+      const { error } = await dbw('sw_support_contacts', 'delete', el.dataset.spdel);
       if (error) return toast('Erreur : ' + error.message, 'error');
       logAct('support_del', c ? c.value : ''); SUPPORT = null;
       toast('Contact retiré.'); await loadAll(); return cfg();
@@ -3461,8 +3474,8 @@ html[data-theme=dark] body{color:#e8edfb}
       else upd = { status: 'open', resolved_at: null };
       // Date d'émission de la réponse (colonne replied_at) et remise à « non lu » pour une nouvelle réponse
       if (newReply) { upd.replied_at = new Date().toISOString(); if ('reply_read_at' in mm0) upd.reply_read_at = null; }
-      let { error } = await supabaseClient.from('sw_messages').update(upd).eq('id', id);
-      if (error && newReply && /replied_at/i.test(error.message || '')) { delete upd.replied_at; ({ error } = await supabaseClient.from('sw_messages').update(upd).eq('id', id)); }
+      let { error } = await dbw('sw_messages', 'update', id, upd);
+      if (error && newReply && /replied_at/i.test(error.message || '')) { delete upd.replied_at; ({ error } = await dbw('sw_messages', 'update', id, upd)); }
       if (error) return toast('Erreur : ' + error.message, 'error');
       logAct(el.dataset.mrep ? 'msg_reply' : el.dataset.mres ? 'msg_resolve' : 'msg_reopen', (mm0.subject || '') + ' · ' + ((S.own[mm0.user_id] || {}).email || '-'));
       toast(el.dataset.mrep ? 'Réponse envoyée.' : el.dataset.mres ? 'Message résolu.' : 'Message rouvert.'); await loadAll(); return draw();
@@ -3495,7 +3508,7 @@ html[data-theme=dark] body{color:#e8edfb}
       if (!need('pay')) return;
       const ph = $('pn-phone').value.trim(), nm = $('pn-name').value.trim();
       if (!ph || !nm) return toast('Numéro et nom requis.', 'error');
-      const { error } = await supabaseClient.from('sw_pay_numbers').insert({ operator: $('pn-op').value, phone: ph, holder_name: nm });
+      const { error } = await dbw('sw_pay_numbers', 'insert', null, { operator: $('pn-op').value, phone: ph, holder_name: nm });
       if (error) return toast('Erreur : ' + error.message, 'error');
       logAct('paynum_add', $('pn-op').value.toUpperCase() + ' ' + ph + ' · ' + nm);
       toast('Numéro ajouté.'); await loadAll(); return draw();
@@ -3506,7 +3519,7 @@ html[data-theme=dark] body{color:#e8edfb}
       if (!need('pay')) return;
       const ph = $('pe-phone').value.trim(), nm = $('pe-name').value.trim();
       if (!ph || !nm) return toast('Numéro et nom requis.', 'error');
-      const { error } = await supabaseClient.from('sw_pay_numbers').update({ operator: $('pe-op').value, phone: ph, holder_name: nm }).eq('id', el.dataset.pesave);
+      const { error } = await dbw('sw_pay_numbers', 'update', el.dataset.pesave, { operator: $('pe-op').value, phone: ph, holder_name: nm });
       if (error) return toast('Erreur : ' + error.message, 'error');
       logAct('paynum_edit', $('pe-op').value.toUpperCase() + ' ' + ph + ' · ' + nm);
       S.pe = null; toast('Numéro modifié.'); await loadAll(); return draw();
@@ -3514,7 +3527,7 @@ html[data-theme=dark] body{color:#e8edfb}
     if ((el = g('data-pntog'))) {
       if (!need('pay')) return;
       const pnx = (S.pn || []).find(x => x.id === el.dataset.pntog) || {};
-      const { error } = await supabaseClient.from('sw_pay_numbers').update({ is_active: el.dataset.on === '1' }).eq('id', el.dataset.pntog);
+      const { error } = await dbw('sw_pay_numbers', 'update', el.dataset.pntog, { is_active: el.dataset.on === '1' });
       if (error) return toast('Erreur : ' + error.message, 'error');
       logAct('paynum_toggle', (pnx.phone || '') + ' · ' + (el.dataset.on === '1' ? 'affiché' : 'masqué'));
       await loadAll(); return draw();
@@ -3522,7 +3535,7 @@ html[data-theme=dark] body{color:#e8edfb}
     if ((el = g('data-pndel'))) {
       if (!needSuper()) return;
       if (!confirm('Supprimer ce numéro ?')) return;
-      const { error } = await supabaseClient.from('sw_pay_numbers').delete().eq('id', el.dataset.pndel);
+      const { error } = await dbw('sw_pay_numbers', 'delete', el.dataset.pndel);
       if (error) return toast('Erreur : ' + error.message, 'error');
       await loadAll(); return draw();
     }
