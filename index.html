@@ -184,7 +184,7 @@ body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sa
         <input type="email" id="fg-email" autocapitalize="none" spellcheck="false" autocomplete="email" placeholder="votre@gmail.com" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50"></div>
       <div><label id="fg-l-phone" class="block text-xs font-semibold text-gray-700 mb-1">Numéro de téléphone</label>
         <input type="tel" id="fg-phone" autocomplete="tel" placeholder="6XX XX XX XX" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50"></div>
-      <p id="fg-note" class="text-xs text-gray-400 text-center">Remplissez les deux cases si possible : votre compte sera retrouvé plus sûrement.</p>
+      <p id="fg-note" class="text-xs text-gray-400 text-center">Remplissez les deux cases si possible. Si vous vous trompez dans l'une, l'autre permet quand même de retrouver votre compte.</p>
       <button type="submit" id="fg-btn" class="w-full bg-swiftblue hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition duration-200 shadow-md cursor-pointer">Envoyer la demande</button>
       <div id="fg-support" class="space-y-2"></div>
       <div class="text-center"><button type="button" id="fg-back" class="text-sm font-semibold text-gray-500 hover:text-gray-900 cursor-pointer">← Retour à la connexion</button></div>
@@ -413,7 +413,7 @@ function swForgotLang() {
   $('fg-btn').textContent = en ? 'Send request' : 'Envoyer la demande';
   $('fg-l-email').textContent = en ? 'E-mail address' : 'Adresse e-mail';
   $('fg-l-phone').textContent = en ? 'Phone number' : 'Numéro de téléphone';
-  $('fg-note').textContent = en ? 'Fill in both boxes if you can: your account will be found more reliably.' : 'Remplissez les deux cases si possible : votre compte sera retrouvé plus sûrement.';
+  $('fg-note').textContent = en ? 'Fill in both boxes if you can. If one is wrong, the other still lets us find your account.' : 'Remplissez les deux cases si possible. Si vous vous trompez dans l\'une, l\'autre permet quand même de retrouver votre compte.';
   $('fg-back').textContent = en ? '← Back to login' : '← Retour à la connexion';
 }
 $('forgot-link').addEventListener('click', async () => {
@@ -1894,6 +1894,59 @@ html[data-theme=dark] #new-form>div.rounded-3xl h3.text-base::after{background:#
 html[data-theme=dark] #new-form .bg-gray-50 .text-gray-500{color:#c3cfe8}
 html[data-theme=dark] #new-form .text-gray-400,html[data-theme=dark] #new-form>div.rounded-3xl label.block span,html[data-theme=dark] #new-form>div.rounded-3xl p.block span{color:#9fb0d3}
 html[data-theme=dark] #new-form>div.rounded-3xl ::placeholder{color:#6f81a8}
+
+/* ===== Corrections mode nuit (page de connexion + barres de sous-menus admin) ===== */
+html[data-theme=dark] #auth-view .text-swiftblue{color:#7db4ff}
+html[data-theme=dark] #auth-view .text-green-700,html[data-theme=dark] #auth-view .text-green-800{color:#4ade80}
+html[data-theme=dark] #auth-view .text-red-600,html[data-theme=dark] #auth-view .text-red-700{color:#f87171}
+html[data-theme=dark] #auth-view .bg-red-50{background-color:#33161c}
+html[data-theme=dark] #auth-view .bg-green-50{background-color:#0f2b24}
+html[data-theme=dark] #auth-view .border-red-100{border-color:#5b2530}
+html[data-theme=dark] #auth-view .border-green-100{border-color:#1f5a45}
+html[data-theme=dark] #auth-view .border-gray-200{border-color:#35487a}
+html[data-theme=dark] #auth-view input{background-color:#0d1530;color:#e8edfb;border-color:#35487a}
+#admin-view .x-sg.on,#admin-view .x-sg.on:hover{color:#fff}
+#admin-view .x-sg.on em{color:#fff}
+
+/* Mode nuit : panneau de détail d'un colis (console admin) et fonds clairs écrits en dur */
+html[data-theme=dark] #x-drawer .bg-white{background-color:#131c38}
+html[data-theme=dark] #x-drawer .bg-gray-50{background-color:#0f1730}
+html[data-theme=dark] #x-drawer .bg-gray-100{background-color:#1b2a52}
+html[data-theme=dark] #x-drawer .bg-gray-200{background-color:#27375f}
+html[data-theme=dark] #x-drawer .bg-blue-50,html[data-theme=dark] #x-drawer .bg-indigo-50{background-color:#172a57}
+html[data-theme=dark] #x-drawer .bg-green-50{background-color:#0f2b24}
+html[data-theme=dark] #x-drawer .bg-red-50{background-color:#33161c}
+html[data-theme=dark] #x-drawer .bg-amber-50{background-color:#33260f}
+html[data-theme=dark] #x-drawer .hover\:bg-gray-100:hover{background-color:#1b2a52}
+html[data-theme=dark] #x-drawer .text-gray-900,html[data-theme=dark] #x-drawer .text-gray-800{color:#e8edfb}
+html[data-theme=dark] #x-drawer .text-gray-700,html[data-theme=dark] #x-drawer .text-gray-600{color:#c3cfe8}
+html[data-theme=dark] #x-drawer .text-gray-500{color:#9fb0d3}
+html[data-theme=dark] #x-drawer .text-gray-400{color:#8596bb}
+html[data-theme=dark] #x-drawer .text-swiftblue{color:#7db4ff}
+html[data-theme=dark] #x-drawer .text-green-700,html[data-theme=dark] #x-drawer .text-green-800{color:#4ade80}
+html[data-theme=dark] #x-drawer .text-red-600,html[data-theme=dark] #x-drawer .text-red-700,html[data-theme=dark] #x-drawer .text-red-800{color:#f87171}
+html[data-theme=dark] #x-drawer .text-amber-700{color:#fbbf24}
+html[data-theme=dark] #x-drawer .text-indigo-700{color:#a5b4fc}
+html[data-theme=dark] #x-drawer .border-gray-50,html[data-theme=dark] #x-drawer .border-gray-100,html[data-theme=dark] #x-drawer .border-gray-200,html[data-theme=dark] #x-drawer .border-gray-300{border-color:#27375f}
+html[data-theme=dark] #x-drawer .border-blue-100,html[data-theme=dark] #x-drawer .border-blue-200{border-color:#2a4280}
+html[data-theme=dark] #x-drawer .border-red-100,html[data-theme=dark] #x-drawer .border-red-200{border-color:#5b2530}
+html[data-theme=dark] #x-drawer .border-green-100,html[data-theme=dark] #x-drawer .border-green-200{border-color:#1f5a45}
+html[data-theme=dark] #x-drawer .border-amber-200{border-color:#6b4a14}
+html[data-theme=dark] #x-drawer .bg-white.rounded-3xl,html[data-theme=dark] #x-drawer .bg-white.rounded-2xl{border-color:#27375f;box-shadow:0 1px 2px rgba(0,0,0,.3),0 14px 34px -18px rgba(0,0,0,.7)}
+html[data-theme=dark] #x-drawer .bg-white.rounded-xl{border-color:#27375f}
+html[data-theme=dark] #x-drawer .bg-white.rounded-2xl{border-left-color:#2a7bff}
+html[data-theme=dark] #x-drawer .bg-gray-50.rounded-xl{background:#0f1a3a;border-color:#27375f}
+html[data-theme=dark] #x-drawer .bg-blue-50.rounded-xl{background:linear-gradient(135deg,#14275a,#221c4d);border-color:#2a4280}
+html[data-theme=dark] #x-drawer h2.text-lg{background:linear-gradient(90deg,#e3edff,#7db4ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+html[data-theme=dark] #x-drawer h3.text-base{color:#e8edfb}
+html[data-theme=dark] #x-drawer h3.text-sm{color:#bcd1ff}
+html[data-theme=dark] #x-drawer p.font-bold.text-gray-900.break-all{background:#1b2a52;color:#e8edfb;border-color:#35487a}
+html[data-theme=dark] #x-drawer .bg-white.rounded-3xl::before{opacity:.9}
+html[data-theme=dark] #admin-view [style*="background:#fff"]{background:var(--card2)!important}
+html[data-theme=dark] #admin-view [style*="#c9d1d9"]{border-color:var(--line2)!important}
+html[data-theme=dark] #admin-view [style*="color:#555"],html[data-theme=dark] #admin-view [style*="color:#666"]{color:var(--mut)!important}
+html[data-theme=dark] #admin-view [style*="background:#eaf1ff"]{background:var(--soft)!important}
+html[data-theme=dark] #admin-view [style*="background:#e8eef8"]{background:var(--line)!important}
 </style>
 <script>
 (() => {
@@ -2293,7 +2346,7 @@ html[data-theme=dark] #new-form>div.rounded-3xl ::placeholder{color:#6f81a8}
     const reqCard = (r) => {
       const known = !!r.user_id;
       return `<div class="x-c2 sm"><div class="x-c2h"><div><strong class="x-amt" style="font-size:15px;word-break:break-all">${esc(r.email || r.identifier)}</strong><span class="x-sub">${known ? esc(r.phone || 'sans téléphone') : 'Aucun compte trouvé pour cette saisie'}</span></div><span class="x-tag ${known ? 't-warn' : 't-bad'}">${known ? 'À TRAITER' : 'INCONNU'}</span></div>
-        <div class="x-meta"><span>Saisi : <b>${esc(r.identifier)}</b></span><span>Demandé le <b>${esc(fmtDate(r.created_at))}</b></span></div>
+        <div class="x-meta"><span>Saisi : <b>${esc(r.identifier)}</b></span>${known ? `<span>Trouvé par : <b>${esc(({ both: 'e-mail et numéro', email: 'e-mail (numéro absent ou différent)', phone: 'numéro (e-mail absent ou différent)', approx_email: 'e-mail proche : faute de frappe probable, vérifiez', approx_phone: 'numéro proche : faute de frappe probable, vérifiez' })[r.match_kind] || 'e-mail ou numéro')}</b></span>` : ''}<span>Demandé le <b>${esc(fmtDate(r.created_at))}</b></span></div>
         <div class="x-acts" style="margin-top:10px">${known ? `<button class="x-btn go" data-pwreset="${esc(r.id)}">🔑 RENVOYER UN NOUVEAU MOT DE PASSE</button>` : ''}<button class="x-btn no" data-pwdel="${esc(r.id)}">IGNORER</button></div></div>`;
     };
     return `<div class="x-panel x-hl" style="margin-top:0;margin-bottom:14px"><p class="x-h">🔑 DEMANDES DE RÉINITIALISATION (${pend.length})</p>
