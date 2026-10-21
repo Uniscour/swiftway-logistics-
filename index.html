@@ -1757,7 +1757,7 @@ html[data-theme=dark] #new-form>div.rounded-3xl ::placeholder{color:#6f81a8}
   <nav class="x-rail">
     <button data-v="radar"><b>◉</b>RADAR</button><button data-v="pipe"><b>▦</b>FLUX</button>
     <button data-v="cash"><b>◈</b>CAISSE<span class="n" id="nav-rech-badge"></span></button><button data-v="acct"><b>☷</b>COMPTES</button>
-    <button data-v="wa"><b>✆</b>WHATSAPP</button>
+    <button data-v="wa"><b>✆</b>CONTACT</button>
     <button data-v="cancel"><b>⊘</b>ANNUL.<span class="n" id="nav-cx-badge"></span></button>
     <button data-v="msg"><b>✉</b>MESSAGES<span class="n" id="nav-msg-badge"></span></button><button data-v="cfg"><b>⚙</b>PARAMS</button>
     <button data-v="journal"><b>≣</b>JOURNAL</button>
@@ -1769,7 +1769,7 @@ html[data-theme=dark] #new-form>div.rounded-3xl ::placeholder{color:#6f81a8}
 
   const S = { ship: [], users: [], usr: [], admins: [], rech: [], bal: {}, own: {}, v: 'radar', q: '', rf: 'pending', open: null, ev: [], cx: [], st: null, af: 'users', adv: null, logs: [], sent: [], uf: 'all', us: 'recent', ulim: 60, grants: [], grantsOk: false, fxAdv: false };
   // Filtres & file d'envoi de l'onglet WhatsApp
-  const WA = { q: '', act: 'all', bal: 'all', min: '', max: '', shp: 'all', reg: 'all', msg: '', done: {}, list: [] };
+  const WA = { q: '', act: 'all', bal: 'all', min: '', max: '', shp: 'all', reg: 'all', msg: '', sub: '', ch: 'wa', done: {}, mdone: {}, list: [], mails: [] };
   // Offre promotionnelle (Paramètres) : reçu offert à un groupe filtré
   const PR = { seg: 'never_zero', camp: 'Offre promotionnelle', msg: '', excl: {}, list: [], nb: '1', days: '30', min: '3', top: '0', cool: '30', cnt: {}, cntFor: '', cntErr: '', loading: false };
   // Journal d'activité (onglet JOURNAL)
@@ -1853,7 +1853,7 @@ html[data-theme=dark] #new-form>div.rounded-3xl ::placeholder{color:#6f81a8}
     msg_reply: 'Réponse à un message', msg_resolve: 'Message résolu', msg_reopen: 'Message rouvert', direct_message: 'Message direct envoyé',
     broadcast: 'Annonce globale envoyée', paynum_add: 'Numéro de paiement ajouté', paynum_edit: 'Numéro de paiement modifié', paynum_toggle: 'Numéro de paiement masqué/affiché',
     sw_admin_send_direct: 'Message direct envoyé', sw_admin_broadcast: 'Annonce globale envoyée', sw_admin_set_active: 'Compte utilisateur activé/coupé', sw_admin_review_recharge: 'Traitement de recharge',
-    wa_contact: 'Discussion WhatsApp ouverte', acct_export: 'Export de la liste des comptes', sw_admin_grant_free_receipts: 'Reçu offert (offre promotionnelle)',
+    wa_contact: 'Discussion WhatsApp ouverte', mail_contact: 'E-mail ouvert (contact utilisateurs)', acct_export: 'Export de la liste des comptes', sw_admin_grant_free_receipts: 'Reçu offert (offre promotionnelle)',
     ship_view: 'Colis consulté'
   };
   const actLabel = (a) => /^d:/.test(a) ? 'Détail · ' + a.slice(2).replace('sw_admin_', '') : (ACT_LABEL[a] || String(a).replace('sw_admin_', ''));
@@ -2448,7 +2448,7 @@ html[data-theme=dark] #new-form>div.rounded-3xl ::placeholder{color:#6f81a8}
   function waRead() {
     const v = (id) => { const e = $(id); return e ? e.value : ''; };
     WA.q = v('wa-q'); WA.act = v('wa-act') || 'all'; WA.bal = v('wa-bal') || 'all'; WA.min = v('wa-min').trim(); WA.max = v('wa-max').trim();
-    WA.shp = v('wa-shp') || 'all'; WA.reg = v('wa-reg') || 'all'; WA.msg = v('wa-msg');
+    WA.shp = v('wa-shp') || 'all'; WA.reg = v('wa-reg') || 'all'; WA.msg = v('wa-msg'); WA.sub = v('wa-sub');
     const r = $('wa-range'); if (r) r.style.display = WA.bal === 'range' ? 'grid' : 'none';
   }
   function waOpen(u) {
@@ -2459,12 +2459,46 @@ html[data-theme=dark] #new-form>div.rounded-3xl ::placeholder{color:#6f81a8}
     WA.done[u.id] = 1;
     logAct('wa_contact', (u.email || '-') + ' · +' + n);
   }
+  // ---- E-mail : lots en copie cachée (CCI) ouverts dans l'application de messagerie de l'administrateur ----
+  const MAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  function mailOk(u) { return MAIL_RE.test(String(u.email || '').trim()); }
+  function mailBatch(list) {
+    const out = []; let len = 0;
+    for (const u of list) {
+      const l = String(u.email).trim().length + 1;
+      if (out.length >= 50 || (out.length && len + l > 1500)) break;
+      out.push(u); len += l;
+    }
+    return out;
+  }
+  function mailOpen(users) {
+    if (!users.length) return;
+    const enc = (t) => encodeURIComponent(t).replace(/%40/g, '@').replace(/%2C/g, ',');
+    const url = 'mailto:?bcc=' + enc(users.map(u => String(u.email).trim()).join(',')) + '&subject=' + encodeURIComponent(WA.sub.trim()) + '&body=' + encodeURIComponent(WA.msg.trim());
+    const a = document.createElement('a'); a.href = url; document.body.appendChild(a); a.click(); a.remove();
+    users.forEach(u => { WA.mdone[u.id] = 1; });
+    logAct('mail_contact', users.length + ' destinataire(s)' + (WA.sub.trim() ? ' · ' + WA.sub.trim() : ''));
+  }
   function waList() {
     const box = $('wa-res'); if (!box) return;
     const all = waTargets(), ok = all.filter(u => waNum(u.phone)), bad = all.length - ok.length;
-    WA.list = ok;
-    const done = ok.filter(u => WA.done[u.id]).length;
-    box.innerHTML = `<p class="t-ok x-sm">${all.length} utilisateur(s) correspondant(s) · ${ok.length} avec numéro valide${bad ? ` · <span class="t-warn">${bad} sans numéro exploitable</span>` : ''}</p>
+    const mails = all.filter(mailOk), badM = all.length - mails.length;
+    WA.list = ok; WA.mails = mails;
+    const done = ok.filter(u => WA.done[u.id]).length, mdone = mails.filter(u => WA.mdone[u.id]).length;
+    const tabs = `<div class="x-segs"><button class="x-sg ${WA.ch === 'wa' ? 'on' : ''}" data-wach="wa">💬 WhatsApp<em>${ok.length}</em></button><button class="x-sg ${WA.ch === 'mail' ? 'on' : ''}" data-wach="mail">✉️ E-mail<em>${mails.length}</em></button></div>`;
+    if (WA.ch === 'mail') {
+      box.innerHTML = tabs + `<p class="t-ok x-sm">${all.length} utilisateur(s) correspondant(s) · ${mails.length} avec e-mail valide${badM ? ` · <span class="t-warn">${badM} sans e-mail exploitable</span>` : ''}</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <button class="x-btn go" data-mailnext="1" ${mails.length ? '' : 'disabled'}>✉️ Écrire à ces utilisateurs par e-mail</button>
+        <button class="x-btn" data-mailcopy="1" ${mails.length ? '' : 'disabled'}>COPIER LES E-MAILS</button>
+        <button class="x-btn" data-wareset="1">RÉINITIALISER LA FILE</button></div>
+      <p class="t-dim" style="font-size:11px;margin:0 0 10px">Chaque clic ouvre votre application de messagerie avec le prochain lot (50 destinataires au maximum) en copie cachée : ils ne voient pas les adresses des autres. L'objet et le message ci-dessus sont pré-remplis (${mdone} / ${mails.length} déjà ouverts). Vous pouvez aussi écrire à un utilisateur précis dans la liste.</p>
+      ${mails.length ? mails.map(u => { const d = !!WA.mdone[u.id]; return `<div class="x-row" style="cursor:default;align-items:center;${d ? 'opacity:.55' : ''}">
+        <span style="word-break:break-all;font-size:12px"><span class="t-ink">${esc(u.email)}</span><br><span class="t-mut">${fmtMoney(S.bal[u.id] || 0)} · ${u.is_active === false ? 'coupé' : 'actif'}</span></span>
+        <button class="x-btn ${d ? '' : 'go'}" data-mailsend="${esc(u.id)}">${d ? '✓ OUVERT' : 'E-MAIL'}</button></div>`; }).join('') : '<p class="t-dim">// aucun utilisateur avec e-mail ne correspond aux filtres</p>'}`;
+      return;
+    }
+    box.innerHTML = tabs + `<p class="t-ok x-sm">${all.length} utilisateur(s) correspondant(s) · ${ok.length} avec numéro valide${bad ? ` · <span class="t-warn">${bad} sans numéro exploitable</span>` : ''}</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
         <button class="x-btn go" data-wanext="1" ${ok.length ? '' : 'disabled'}>💬 Écrire à ces utilisateurs sur WhatsApp</button>
         <button class="x-btn" data-wacopy="1" ${ok.length ? '' : 'disabled'}>COPIER LES NUMÉROS</button>
@@ -2477,7 +2511,7 @@ html[data-theme=dark] #new-form>div.rounded-3xl ::placeholder{color:#6f81a8}
   function waV() {
     const sel = (id, cur, opts) => `<select id="${id}" class="x-in">${opts.map(([v, l]) => `<option value="${v}" ${cur === v ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
     const lb = (t) => `<label class="t-dim" style="font-size:11px;letter-spacing:.1em">${t}</label>`;
-    M.innerHTML = `<p class="x-h"><b>●</b> WHATSAPP // filtrer les utilisateurs et leur écrire</p>
+    M.innerHTML = `<p class="x-h"><b>●</b> CONTACT // filtrer les utilisateurs et leur écrire (WhatsApp ou e-mail)</p>
     <div class="x-panel x-hl x-p0" id="wa-box">
       <p class="x-h">FILTRES</p>
       <input id="wa-q" class="x-in" style="margin-bottom:10px" placeholder="> Gmail ou téléphone" value="${esc(WA.q)}">
@@ -2489,7 +2523,9 @@ html[data-theme=dark] #new-form>div.rounded-3xl ::placeholder{color:#6f81a8}
       <div id="wa-range" style="display:${WA.bal === 'range' ? 'grid' : 'none'};grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
         <input id="wa-min" type="number" min="0" step="1" class="x-in" placeholder="solde minimum (FCFA)" value="${esc(WA.min)}">
         <input id="wa-max" type="number" min="0" step="1" class="x-in" placeholder="solde maximum (FCFA)" value="${esc(WA.max)}"></div>
-      ${lb('MESSAGE PRÉ-REMPLI (facultatif)')}
+      ${lb("OBJET DE L'E-MAIL (facultatif)")}
+      <input id="wa-sub" class="x-in" maxlength="150" style="margin:4px 0 10px" placeholder="Objet du message..." value="${esc(WA.sub)}">
+      ${lb('MESSAGE PRÉ-REMPLI (WhatsApp et e-mail, facultatif)')}
       <textarea id="wa-msg" rows="4" maxlength="1000" class="x-in" style="margin-top:4px" placeholder="Bonjour, ici l'équipe SwiftWay Logistics...">${esc(WA.msg)}</textarea></div>
     <div id="wa-res"></div>`;
     waList();
@@ -2798,7 +2834,25 @@ html[data-theme=dark] #new-form>div.rounded-3xl ::placeholder{color:#6f81a8}
       try { await navigator.clipboard.writeText(txt); toast(WA.list.length + ' numéro(s) copié(s).'); } catch (er) { prompt('Copiez ces numéros :', txt); }
       return;
     }
-    if (g('data-wareset')) { WA.done = {}; return waList(); }
+    if (g('data-wareset')) { WA.done = {}; WA.mdone = {}; return waList(); }
+    if ((el = g('data-wach'))) { WA.ch = el.dataset.wach === 'mail' ? 'mail' : 'wa'; return waList(); }
+    if ((el = g('data-mailsend'))) {
+      if (!need('wa')) return;
+      const u = S.own[el.dataset.mailsend]; if (!u || !mailOk(u)) return;
+      waRead(); mailOpen([u]); return waList();
+    }
+    if (g('data-mailnext')) {
+      if (!need('wa')) return;
+      waRead();
+      const nx = mailBatch(WA.mails.filter(u => !WA.mdone[u.id]));
+      if (!nx.length) return toast('Tous les lots de cette liste ont déjà été ouverts.');
+      mailOpen(nx); return waList();
+    }
+    if (g('data-mailcopy')) {
+      const txt = WA.mails.map(u => String(u.email).trim()).join(', ');
+      try { await navigator.clipboard.writeText(txt); toast(WA.mails.length + ' e-mail(s) copié(s).'); } catch (er) { prompt('Copiez ces adresses :', txt); }
+      return;
+    }
     // ---- Comptes : sous-onglets, administrateurs (Super Admin uniquement) ----
     if ((el = g('data-af'))) { if (!needSuper()) return; S.af = el.dataset.af; S.adv = null; return acct(); }
     if ((el = g('data-mkadm'))) { if (!needSuper()) return; S.af = 'admins'; S.adv = null; S.nm = el.dataset.mkadm; return acct(); }
@@ -3006,7 +3060,7 @@ html[data-theme=dark] #new-form>div.rounded-3xl ::placeholder{color:#6f81a8}
     if (live && id) { const n = $(id); if (n) { n.focus(); try { n.setSelectionRange(p, p); } catch (er) {} } }
   };
   // Filtres WhatsApp : recalcul de la liste à chaque modification (sauf le message pré-rempli)
-  const waEv = (e) => { if (!e.target.closest || !e.target.closest('#wa-box')) return; waRead(); if (e.target.id !== 'wa-msg') waList(); };
+  const waEv = (e) => { if (!e.target.closest || !e.target.closest('#wa-box')) return; waRead(); if (e.target.id !== 'wa-msg' && e.target.id !== 'wa-sub') waList(); };
   A.addEventListener('input', (e) => {
     const t = e.target;
     if (t.id === 'dm-q') dmRefresh();
