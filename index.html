@@ -2067,7 +2067,27 @@ select.x-in{cursor:pointer}
   // ---------- SUPERVISION : consultations du lien / QR code et audit des étapes ----------
   const perSel = (id) => `<select id="${id}" class="x-in" style="width:auto"><option value="0">Tout le temps</option><option value="1">Aujourd'hui</option><option value="7">7 jours</option><option value="30">30 jours</option></select>`;
   const perDays = (arr, k, d) => d ? arr.filter(x => Date.now() - new Date(x[k]).getTime() <= d * 864e5) : arr;
-  const auditRows = (a) => a.length ? a.map(x => `<div class="x-row" style="cursor:default;flex-direction:column;gap:2px"><span><b>${esc(x.field)}</b> : ${esc(x.old_value || '—')} → <b>${esc(x.new_value || '—')}</b></span><span style="font-size:11px;color:var(--mut)">${esc(x.code ? x.code + ' · ' : '')}${esc(fmtFull(x.happened_at || x.at))} · par ${esc(x.actor || 'Système')}</span></div>`).join('') : '<p class="x-hint">Aucune modification enregistrée.</p>';
+  const audVal = (v, f) => {
+    if (v === null || v === undefined || v === '') return '—';
+    const s = String(v).trim();
+    if (STATUS[s]) return STATUS[s].label;
+    if (s === 'true' || s === 'false') {
+      const on = s === 'true';
+      return /automatique/i.test(f || '') ? (on ? 'Activé' : 'Désactivé') : (on ? 'Oui' : 'Non');
+    }
+    if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(s)) {
+      const iso = s.replace(' ', 'T').replace(/(\.\d{3})\d+/, '$1').replace(/([+-]\d{2})$/, '$1:00');
+      const d = new Date(iso);
+      if (!isNaN(d.getTime())) return fmtFull(d);
+    }
+    return s;
+  };
+  const audFld = (f) => {
+    let t = String(f || '');
+    Object.keys(STATUS).forEach(k => { t = t.split(k).join('« ' + STATUS[k].label + ' »'); });
+    return t;
+  };
+  const auditRows = (a) => a.length ? a.map(x => `<div class="x-row" style="cursor:default;flex-direction:column;gap:2px"><span><b>${esc(audFld(x.field))}</b> : ${esc(audVal(x.old_value, x.field))} → <b>${esc(audVal(x.new_value, x.field))}</b></span><span style="font-size:11px;color:var(--mut)">${esc(x.code ? x.code + ' · ' : '')}${esc(fmtFull(x.happened_at || x.at))} · par ${esc(x.actor || 'Système')}</span></div>`).join('') : '<p class="x-hint">Aucune modification enregistrée.</p>';
   // Dans la fiche d'un colis (tiroir)
   async function svBox(id) {
     if (!$('sv-box')) return;
