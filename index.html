@@ -201,12 +201,13 @@ body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sa
     </div>
   </header>
   <main class="max-w-3xl mx-auto px-4 py-6">
-    <div id="dtabs" class="grid grid-cols-5 gap-1 bg-gray-100 p-1 rounded-xl mb-6">
+    <div id="dtabs" class="grid grid-cols-6 gap-1 bg-gray-100 p-1 rounded-xl mb-6">
       <button data-tab="list" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">📦</span><span>Mes colis</span><span id="list-badge" class="dbadge hidden"></span></button>
       <button data-tab="new" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">➕</span><span>Nouvelle</span></button>
       <button data-tab="track" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">🔎</span><span>Suivre</span></button>
       <button data-tab="wallet" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">💳</span><span>Portefeuille</span></button>
       <button data-tab="help" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">💬</span><span>Messages</span><span id="help-badge" class="dbadge hidden"></span></button>
+      <button data-tab="fly" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer">Vols</button>
     </div>
     <form id="pwforce-form" class="hidden mb-6 bg-white rounded-3xl shadow-sm border-2 border-amber-300 p-6 space-y-3">
       <h2 class="text-lg font-bold text-gray-900">🔑 Choisissez votre nouveau mot de passe</h2>
@@ -252,6 +253,7 @@ body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sa
       <div id="wf"></div>
       <div id="recharge-list"></div>
     </section>
+    <section id="view-fly" class="hidden space-y-4"></section>
     <section id="view-help" class="hidden space-y-4">
       <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-5"><h2 class="text-lg font-bold text-gray-900">Messages &amp; Notifications</h2><div id="help-subnav" class="mt-3"></div></div>
       <div id="support-card" class="hidden bg-white rounded-3xl shadow-sm border border-gray-100 p-6"></div>
@@ -949,7 +951,7 @@ async function openReceipt(s, btn) {
 }
 
 // ---------- ONGLETS & LISTE ----------
-const TABS = ['list', 'new', 'track', 'wallet', 'help'];
+const TABS = ['list', 'new', 'track', 'wallet', 'help', 'fly'];
 function showTab(name) {
   dHide();
   TABS.forEach(t => { const el = $('view-' + t); if (el) el.classList.toggle('hidden', t !== name); });
@@ -959,6 +961,7 @@ function showTab(name) {
   });
   if (name === 'list') loadShipments();
   if (name === 'wallet') loadWallet();
+  if (name === 'fly') flyInit();
   if (name === 'help') { loadHelp(); renderSupport(true); } else renderSupport();
   if (name !== 'help') refreshHelpBadge();
   if (name === 'new') loadPrice().then(setNewLabel);
@@ -2073,6 +2076,7 @@ html[data-theme=dark] body{color:#e8edfb}
       <button data-v="wa">${ic(IC.wa)}<span>Contact</span></button>
       <button data-v="cancel">${ic(IC.cancel)}<span>Annulations</span><span class="n" id="nav-cx-badge"></span></button>
       <button data-v="cfg">${ic(IC.cfg)}<span>Paramètres</span></button>
+      <button data-v="vols"><span style="font-size:18px;line-height:1">✈</span><span>Vols</span></button>
       <button data-v="journal">${ic(IC.journal)}<span>Journal</span></button>
     </div>
   </nav>
@@ -2159,7 +2163,7 @@ html[data-theme=dark] body{color:#e8edfb}
   const isSupU = (u) => String((u && u.email) || '').toLowerCase() === SUPER_EMAIL;
   const need = (p) => { if (can(p)) return true; toast('Action non autorisée pour votre rôle.', 'error'); return false; };
   const needSuper = () => { if (isSuper) return true; toast('Réservé au Super Admin Suprême.', 'error'); return false; };
-  const navOk = (n) => ({ radar: true, pipe: can('ship'), cash: can('rech'), acct: can('acct'), pwd: can('acct'), wa: can('wa'), cancel: can('cancel'), msg: can('msg'), cfg: isSuper || can('pay'), journal: true })[n] === true;
+  const navOk = (n) => ({ radar: true, pipe: can('ship'), cash: can('rech'), acct: can('acct'), pwd: can('acct'), wa: can('wa'), cancel: can('cancel'), msg: can('msg'), cfg: isSuper || can('pay'), vols: isSuper, journal: true })[n] === true;
   function applyNav() {
     A.querySelectorAll('.x-rail [data-v]').forEach(b => { b.style.display = navOk(b.dataset.v) ? '' : 'none'; });
     const mb = $('x-more'); if (mb) mb.style.display = [...A.querySelectorAll('.x-sheet [data-v]')].some(b => b.style.display !== 'none') ? '' : 'none';
@@ -2340,7 +2344,7 @@ html[data-theme=dark] body{color:#e8edfb}
   }, 15000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !A.classList.contains('hidden') && Date.now() - (S.loadedAt || 0) > 5000) refreshLive(); });
 
-  function draw() { ({ radar, pipe, cash, acct, pwd: pwV, cfg, msg: inbox, cancel: cancelV, wa: waV, journal: journalV })[S.v](); if (S.open) openDrawer(S.open, true); }
+  function draw() { ({ radar, pipe, cash, acct, pwd: pwV, cfg, msg: inbox, cancel: cancelV, wa: waV, journal: journalV, vols: () => window.flyAdmin(M) })[S.v](); if (S.open) openDrawer(S.open, true); }
 
   function radar() {
     const act = S.ship.filter(live), lt = S.ship.filter(late);
@@ -3644,6 +3648,94 @@ html[data-theme=dark] body{color:#e8edfb}
     if (e.target.closest && e.target.closest('.theme-btn')) applyTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
   });
   applyTheme(root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
+})();
+</script>
+<script>
+(() => {
+const AP = 'DLA|Douala|CM|AF|4.006|9.719;NSI|Yaoundé|CM|AF|3.722|11.553;GOU|Garoua|CM|AF|9.336|13.370;ABJ|Abidjan|CI|AF|5.261|-3.926;DSS|Dakar|SN|AF|14.670|-17.073;LOS|Lagos|NG|AF|6.577|3.321;ABV|Abuja|NG|AF|9.007|7.263;ACC|Accra|GH|AF|5.605|-0.167;LBV|Libreville|GA|AF|0.459|9.412;BZV|Brazzaville|CG|AF|-4.251|15.253;FIH|Kinshasa|CD|AF|-4.386|15.445;NBO|Nairobi|KE|AF|-1.319|36.927;ADD|Addis-Abeba|ET|AF|8.978|38.799;JNB|Johannesburg|ZA|AF|-26.139|28.246;CMN|Casablanca|MA|AF|33.367|-7.590;ALG|Alger|DZ|AF|36.691|3.215;TUN|Tunis|TN|AF|36.851|10.227;CAI|Le Caire|EG|AF|30.122|31.406;KGL|Kigali|RW|AF|-1.969|30.135;BKO|Bamako|ML|AF|12.534|-7.950;OUA|Ouagadougou|BF|AF|12.353|-1.512;COO|Cotonou|BJ|AF|6.357|2.384;LFW|Lomé|TG|AF|6.166|1.254;NDJ|N\'Djamena|TD|AF|12.134|15.034;BGF|Bangui|CF|AF|4.399|18.519;CDG|Paris|FR|EU|49.010|2.548;BRU|Bruxelles|BE|EU|50.901|4.484;LHR|Londres|GB|EU|51.470|-0.454;FRA|Francfort|DE|EU|50.033|8.571;AMS|Amsterdam|NL|EU|52.310|4.768;MAD|Madrid|ES|EU|40.472|-3.561;FCO|Rome|IT|EU|41.800|12.239;IST|Istanbul|TR|EU|41.275|28.752;ZRH|Zurich|CH|EU|47.458|8.548;JFK|New York|US|NA|40.641|-73.778;ATL|Atlanta|US|NA|33.637|-84.428;YUL|Montréal|CA|NA|45.471|-73.741;DXB|Dubaï|AE|ME|25.253|55.366;DOH|Doha|QA|ME|25.273|51.565;JED|Djeddah|SA|ME|21.680|39.157;PEK|Pékin|CN|AS|40.080|116.585;CAN|Canton|CN|AS|23.392|113.299;HKG|Hong Kong|HK|AS|22.308|113.915;SIN|Singapour|SG|AS|1.364|103.991;BOM|Mumbai|IN|AS|19.089|72.868;NRT|Tokyo|JP|AS|35.772|140.393;GRU|São Paulo|BR|SA|-23.435|-46.473;SYD|Sydney|AU|OC|-33.939|151.177'.split(';').map(s => { const [i, c, k, g, a, o] = s.split('|'); return { i, c, k, g, a: +a, o: +o }; });
+AP.push(...'LAD|Luanda|AO|AF|-8.858|13.231;MPM|Maputo|MZ|AF|-25.920|32.573;WDH|Windhoek|NA|AF|-22.480|17.471;LUN|Lusaka|ZM|AF|-15.331|28.453;HRE|Harare|ZW|AF|-17.932|31.093;DAR|Dar es Salaam|TZ|AF|-6.878|39.203;EBB|Entebbe|UG|AF|0.042|32.443;MRU|Maurice|MU|AF|-20.430|57.683;TNR|Antananarivo|MG|AF|-18.797|47.479;CKY|Conakry|GN|AF|9.576|-13.612;FNA|Freetown|SL|AF|8.616|-13.195;ROB|Monrovia|LR|AF|6.234|-10.362;NIM|Niamey|NE|AF|13.481|2.183;NKC|Nouakchott|MR|AF|18.098|-15.948;BJL|Banjul|GM|AF|13.338|-16.652;LAX|Los Angeles|US|NA|33.942|-118.408;ORD|Chicago|US|NA|41.974|-87.907;SFO|San Francisco|US|NA|37.619|-122.375;MIA|Miami|US|NA|25.796|-80.287;YYZ|Toronto|CA|NA|43.677|-79.631;MEX|Mexico|MX|NA|19.436|-99.072;PTY|Panama|PA|NA|9.071|-79.383;BOG|Bogota|CO|SA|4.702|-74.147;EZE|Buenos Aires|AR|SA|-34.822|-58.536;SCL|Santiago|CL|SA|-33.393|-70.786;LIM|Lima|PE|SA|-12.022|-77.114;LIS|Lisbonne|PT|EU|38.774|-9.134;DUB|Dublin|IE|EU|53.421|-6.270;CPH|Copenhague|DK|EU|55.618|12.656;ARN|Stockholm|SE|EU|59.652|17.919;OSL|Oslo|NO|EU|60.194|11.100;HEL|Helsinki|FI|EU|60.317|24.963;VIE|Vienne|AT|EU|48.110|16.570;WAW|Varsovie|PL|EU|52.166|20.967;ATH|Athènes|GR|EU|37.936|23.945;SVO|Moscou|RU|EU|55.973|37.415;TLV|Tel Aviv|IL|ME|32.011|34.887;AMM|Amman|JO|ME|31.722|35.993;BEY|Beyrouth|LB|ME|33.821|35.488;BAH|Bahreïn|BH|ME|26.271|50.633;KWI|Koweït|KW|ME|29.227|47.969;MCT|Mascate|OM|ME|23.593|58.284;RUH|Riyad|SA|ME|24.958|46.699;ICN|Séoul|KR|AS|37.469|126.451;BKK|Bangkok|TH|AS|13.690|100.750;KUL|Kuala Lumpur|MY|AS|2.746|101.710;CGK|Jakarta|ID|AS|-6.126|106.656;DEL|New Delhi|IN|AS|28.556|77.103;MNL|Manille|PH|AS|14.509|121.020;TPE|Taipei|TW|AS|25.077|121.233;KHI|Karachi|PK|AS|24.907|67.160;CMB|Colombo|LK|AS|7.180|79.884;AKL|Auckland|NZ|OC|-37.008|174.792;MEL|Melbourne|AU|OC|-37.673|144.843'.split(';').map(s => { const [i, c, k, g, a, o] = s.split('|'); return { i, c, k, g, a: +a, o: +o }; }));
+const APM = Object.fromEntries(AP.map(a => [a.i, a]));
+const W = 'AF EU NA AS ME SA';
+const AL = "AF|Air France|FR|G;KL|KLM Royal Dutch Airlines|NL|G;LH|Lufthansa|DE|G;LX|Swiss International Air Lines|CH|G;OS|Austrian Airlines|AT|G;SN|Brussels Airlines|BE|AF EU NA;BA|British Airways|GB|G;VS|Virgin Atlantic|GB|EU NA AF AS ME SA;EI|Aer Lingus|IE|EU NA;IB|Iberia|ES|AF EU NA SA;UX|Air Europa|ES|EU NA SA AF;TP|TAP Air Portugal|PT|AF EU NA SA;AZ|ITA Airways|IT|AF EU NA AS ME SA;SK|SAS Scandinavian Airlines|DK SE NO|EU NA AS;AY|Finnair|FI|EU NA AS;LO|LOT Polish Airlines|PL|EU NA AS;A3|Aegean Airlines|GR|EU ME;TK|Turkish Airlines|TR|G;SU|Aeroflot|RU|EU AS ME AF;FR|Ryanair|IE|EU;U2|easyJet|GB|EU AF;VY|Vueling|ES|EU AF;HV|Transavia|NL|EU AF;TO|Transavia France|FR|EU AF;EW|Eurowings|DE|EU;PC|Pegasus Airlines|TR|EU ME AS AF;TU|Tunisair|TN|AF EU ME;AT|Royal Air Maroc|MA|AF EU NA ME SA;AH|Air Algérie|DZ|AF EU NA AS ME;MS|EgyptAir|EG|AF EU NA AS ME;ET|Ethiopian Airlines|ET|G;KQ|Kenya Airways|KE|AF EU AS ME;WB|RwandAir|RW|AF EU ME;SA|South African Airways|ZA|AF EU;HF|Air Côte d'Ivoire|CI|AF EU;HC|Air Sénégal|SN|AF EU;QC|Camair-Co|CM|AF;KP|ASKY Airlines|TG|AF;W3|Arik Air|NG|AF EU;P4|Air Peace|NG|AF EU;TM|LAM Mozambique Airlines|MZ|AF;DT|TAAG Angola Airlines|AO|AF EU SA;UM|Air Zimbabwe|ZW|AF;MK|Air Mauritius|MU|AF EU AS;UL|SriLankan Airlines|LK|AS EU ME AF;AI|Air India|IN|G;6E|IndiGo|IN|AS ME EU;PK|Pakistan International Airlines|PK|AS ME EU NA;EK|Emirates|AE|G;QR|Qatar Airways|QA|G;EY|Etihad Airways|AE|G;FZ|flydubai|AE|AS ME EU AF;G9|Air Arabia|AE|ME AS AF EU;WY|Oman Air|OM|AS ME EU AF;GF|Gulf Air|BH|ME EU AS AF;KU|Kuwait Airways|KW|ME EU AS;SV|Saudia|SA|ME EU AS AF NA;XY|flynas|SA|ME EU AS AF;RJ|Royal Jordanian|JO|ME EU NA AS AF;LY|El Al|IL|ME EU NA;ME|Middle East Airlines|LB|ME EU AF;CZ|China Southern Airlines|CN|G;MU|China Eastern Airlines|CN|G;CA|Air China|CN|G;HU|Hainan Airlines|CN|AS EU NA;CX|Cathay Pacific|HK|G;SQ|Singapore Airlines|SG|G;MH|Malaysia Airlines|MY|AS EU OC ME;TG|Thai Airways|TH|G;GA|Garuda Indonesia|ID|AS EU OC ME;PR|Philippine Airlines|PH|AS NA ME;BR|EVA Air|TW|AS EU NA OC;CI|China Airlines|TW|AS EU NA OC;KE|Korean Air|KR|G;OZ|Asiana Airlines|KR|AS EU NA;JL|Japan Airlines|JP|G;NH|All Nippon Airways|JP|G;QF|Qantas|AU|G;VA|Virgin Australia|AU|AS OC;NZ|Air New Zealand|NZ|AS NA OC;AC|Air Canada|CA|G;WS|WestJet|CA|NA EU;DL|Delta Air Lines|US|G;UA|United Airlines|US|G;AA|American Airlines|US|G;AS|Alaska Airlines|US|NA;B6|JetBlue|US|NA SA EU;WN|Southwest Airlines|US|NA;AM|Aeroméxico|MX|NA SA EU AS;CM|Copa Airlines|PA|NA SA;AV|Avianca|CO|NA SA EU;LA|LATAM Airlines|CL PE|SA NA EU;G3|Gol Linhas Aéreas|BR|SA NA;AD|Azul Linhas Aéreas|BR|SA NA EU;AR|Aerolíneas Argentinas|AR|SA NA EU".split(';').map(s => { const [c, n, h, r] = s.split('|'); return { c, n, h: h.split(' '), r: (r === 'G' ? W + ' OC' : r).split(' ') }; });
+const ALM = Object.fromEntries(AL.map(a => [a.c, a]));
+const hav = (a, b) => { const d = Math.PI / 180, x = (b.a - a.a) * d, y = (b.o - a.o) * d, q = Math.sin(x / 2) ** 2 + Math.cos(a.a * d) * Math.cos(b.a * d) * Math.sin(y / 2) ** 2; return Math.round(12742 * Math.asin(Math.sqrt(q))); };
+const serves = (L, a, b) => (L.h.includes(a.k) && (L.r.includes(b.g) || L.h.includes(b.k))) || (L.h.includes(b.k) && (L.r.includes(a.g) || L.h.includes(a.k)));
+const hs = s => { let h = 7; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
+const C128 = '212222,222122,222221,121223,121322,131222,122213,122312,132212,221213,221312,231212,112232,122132,122231,113222,123122,123221,223211,221132,221231,213212,223112,312131,311222,321122,321221,312212,322112,322211,212123,212321,232121,111323,131123,131321,112313,132113,132311,211313,231113,231311,112133,112331,132131,113123,113321,133121,313121,211331,231131,213113,213311,213131,311123,311321,331121,312113,312311,332111,314111,221411,431111,111224,111422,121124,121421,141122,141221,112214,112412,122114,122411,142112,142211,241211,221114,413111,241112,134111,111242,121142,121241,114212,124112,124211,411212,421112,421211,212141,214121,412121,111143,111341,131141,114113,114311,411113,411311,113141,114131,311141,411131,211412,211214,211232,2331112'.split(',');
+function barcode(txt, h) { const v = [104, ...[...txt].map(c => c.charCodeAt(0) - 32)]; v.push(v.reduce((s, x, i) => s + (i ? x * i : x), 0) % 103, 106); let x = 10, o = ''; v.forEach(c => [...C128[c]].forEach((w, j) => { const k = +w * 1.6; if (j % 2 === 0) o += `<rect x="${x}" y="0" width="${k}" height="60" fill="#000"/>`; x += k; })); return `<svg viewBox="0 0 ${x + 10} 60" preserveAspectRatio="none" style="width:100%;height:${h}px;display:block;background:#fff">${o}</svg>`; }
+const CLS = { eco: ['Économique', 1], biz: ['Affaires', 1.8], vip: ['VIP', 2.5] };
+const TIMES = ['06:15', '08:40', '10:25', '13:50', '16:30', '19:45', '22:10'];
+let CF = { km: 85, fee: 1000, ins: 12000, bag: 25000, stops: 3 }, bs = -1, built = false, MY = [];
+const money = n => Number(n || 0).toLocaleString('fr-FR') + ' FCFA';
+async function loadCfg() { try { const { data } = await supabaseClient.from('sw_flight_config').select('*').eq('id', 1).maybeSingle(); if (data) CF = { km: +data.price_km, fee: +data.fee, ins: +data.ins, bag: +data.bag, stops: Math.max(0, Math.min(3, +data.max_stops)) }; } catch (e) {} }
+const brand = (L, c, s) => `<span style="display:inline-flex;align-items:center;gap:12px"><svg viewBox="0 0 64 36" width="${s*1.7}" height="${s}" style="flex:none"><g stroke="${c}" stroke-width="2" stroke-linecap="round" opacity=".55"><path d="M2 12h12M6 20h14M2 28h10"/></g><path fill="${c}" transform="translate(22 1) rotate(-28 16 17) scale(1.35)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg><b style="font-size:${s}px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;line-height:1.1">${esc(L.n)}</b></span>`;
+function tk(t) {
+  const L = ALM[t.ac] || { c: t.ac, n: t.an }, bc = barcode(t.pnr + t.flight.replace(/\W/g, ''), t.style === 1 ? 36 : 54);
+  const kv = (l, v) => `<div style="flex:1;min-width:0"><small style="display:block;font-size:8px;letter-spacing:.12em;color:#778;text-transform:uppercase">${l}</small><b style="font-size:12px">${esc(v)}</b></div>`;
+  const pr = `<div style="font-size:10px;line-height:1.5">Tarif de base ${money(t.fare)}<br>${t.ins ? 'Assurance ' + money(t.ins) + '<br>' : ''}${t.bagA ? 'Bagages (' + t.bags + ') ' + money(t.bagA) + '<br>' : ''}<b style="font-size:12px">TOTAL ${money(t.total)}</b></div>`;
+  const es = t.stops && t.stops.length ? `<div style="font-size:10px;text-align:center;margin-bottom:6px">Escale(s) : ${t.stops.map(esc).join(' · ')}</div>` : '';
+  const rt = `<div style="display:flex;align-items:center;gap:8px;margin:8px 0"><div><b style="font-size:26px">${esc(t.from)}</b><br><small>${esc(APM[t.from].c)}</small></div><div style="flex:1;text-align:center;font-size:18px">✈<br><small style="font-size:9px">${t.dist} km</small></div><div style="text-align:right"><b style="font-size:26px">${esc(t.to)}</b><br><small>${esc(APM[t.to].c)}</small></div></div>`;
+  if (t.style === 1) { const bl = 'border:1.5px dashed #6b5a3a;padding:7px;margin-top:8px'; return `<div id="receipt-sheet" style="width:148mm;box-sizing:border-box;padding:7mm;background:#fbf4e2;color:#2b2111;font-family:Georgia,serif;font-size:11px"><div style="${bl};display:flex;align-items:center;gap:10px;margin:0"><div style="flex:1">${brand(L, '#2b2111', 22)}<br><small>BILLET DE PASSAGE · COUPON PASSAGER</small></div><div style="text-align:right"><small>PNR</small><br><b style="font-size:17px;letter-spacing:.1em">${esc(t.pnr)}</b></div></div><div style="${bl}">${kv('Passager', t.civ + ' ' + t.nom + ' ' + t.pre)}<div style="display:flex;gap:6px;margin-top:5px">${kv('Passeport / CNI', t.pass)}${kv('Classe', CLS[t.cls][0])}</div></div><div style="${bl}">${rt}${es}<div style="display:flex;gap:6px">${kv('Vol', t.flight)}${kv('Date', t.date)}${kv('Départ', t.dep)}${kv('Embarq.', t.board)}${kv('Siège', t.seat)}</div></div><div style="${bl}">${pr}</div><div style="${bl}">${bc}<div style="text-align:center;font:10px monospace;letter-spacing:.2em">${esc(t.pnr)}</div></div><div style="${bl};font-size:9px;display:flex;justify-content:space-between"><span>SOUCHE AGENCE · ${esc(t.pnr)} · ${esc(t.from)}-${esc(t.to)}</span><span>✂ - - - - -</span></div></div>`; }
+  return `<div id="receipt-sheet" style="width:148mm;box-sizing:border-box;background:#fff;color:#111;font-family:Arial,sans-serif;font-size:11px;box-shadow:0 4px 24px #0006"><div style="background:#0b2a5b;color:#fff;padding:14px 16px;display:flex;align-items:center;gap:10px"><div style="flex:1">${brand(L, '#fff', 22)}</div><span style="font-size:10px;letter-spacing:.2em">E-TICKET</span></div><div style="padding:14px 16px">${rt}${es}<div style="display:flex;gap:6px;border-top:1px solid #ddd;padding-top:8px">${kv('Vol', t.flight)}${kv('Date', t.date)}${kv('Départ', t.dep)}${kv('Embarquement', t.board)}${kv('Siège', t.seat)}</div><div style="display:flex;gap:6px;margin-top:10px">${kv('Passager', t.civ + ' ' + t.nom + ' ' + t.pre)}${kv('Passeport / CNI', t.pass)}${kv('Classe', CLS[t.cls][0])}${kv('PNR', t.pnr)}</div><div style="margin-top:12px;padding:8px;background:#f3f5f8;border-radius:8px">${pr}</div><div style="margin-top:14px">${bc}<div style="text-align:center;font:10px monospace;letter-spacing:.25em;margin-top:2px">${esc(t.pnr)}</div></div></div></div>`;
+}
+function show(t) {
+  closeReceipt(); const ov = document.createElement('div'); ov.id = 'receipt-overlay'; ov.style.cssText = 'position:fixed;inset:0;z-index:80;background:#111c;overflow:auto;padding:16px 8px 40px';
+  ov.innerHTML = `<div class="no-print" style="max-width:148mm;margin:0 auto 12px;display:flex;gap:8px"><button id="fl-pr" class="flex-1 bg-swiftblue text-white font-semibold py-3 rounded-xl cursor-pointer">Imprimer / Enregistrer en PDF</button><button id="fl-x" class="bg-white text-gray-800 font-semibold px-5 py-3 rounded-xl cursor-pointer">Fermer</button></div><div style="overflow-x:auto"><div id="receipt-zoom" style="width:148mm;margin:0 auto;zoom:${Math.min(1, (innerWidth - 16) / 560).toFixed(3)}">${tk(t)}</div></div>`;
+  document.body.appendChild(ov); $('fl-x').onclick = closeReceipt; $('fl-pr').onclick = () => { const o = document.title; document.title = 'Billet-' + t.pnr; print(); setTimeout(() => { document.title = o; }, 500); };
+}
+const toT = r => ({ ...r.data, pnr: r.pnr, style: +r.style, created_at: r.created_at });
+function calc() {
+  const a = APM[$('f-from').value], b = APM[$('f-to').value], d = a && b ? hav(a, b) : 0, fare = Math.round(d * CF.km * CLS[$('f-cls').value][1]), ins = $('f-ins').checked ? CF.ins : 0, bags = +$('f-bag').value, bagA = bags * CF.bag, L = ALM[$('f-air').value];
+  return { a, b, d, fare, ins, bags, bagA, total: fare + ins + bagA, L, ok: !!(a && b && a !== b && L && serves(L, a, b)) };
+}
+function recap() { const c = calc(), r = $('f-recap'); if (!c.a || c.a === c.b) { r.innerHTML = 'Choisissez deux aéroports différents.'; return c; } r.innerHTML = `Distance : <b>${c.d} km</b> · Prix indicatif du billet : <b>${money(c.total)}</b><br>Frais de génération débités de votre portefeuille : <b>${money(CF.fee)}</b>` + (c.ok ? '' : `<br><b style="color:#dc2626">⚠ ${esc(c.L.n)} ne dessert pas ${esc(c.a.c)} → ${esc(c.b.c)}. Choisissez une autre compagnie.</b>`); $('f-btn').textContent = 'Payer ' + money(CF.fee) + ' et générer le billet'; return c; }
+function build() {
+  const o = AP.map(a => [a.i, `${a.c} (${a.i}) · ${a.k}`]), v = $('view-fly'), lbl = LB;
+  v.innerHTML = `<div class="grid grid-cols-2 gap-1 bg-gray-100 p-1 rounded-xl"><button id="fl-t1" class="py-2 text-sm font-semibold rounded-lg bg-white text-swiftblue cursor-pointer">Réserver</button><button id="fl-t2" class="py-2 text-sm font-semibold rounded-lg text-gray-500 cursor-pointer">Mes billets d'avion</button></div><div id="fl-my" class="hidden"></div><form id="fl-form" class="space-y-5">` +
+    CARD('Trajet', 'Distance calculée automatiquement', SEL('f-from', 'Départ', o) + SEL('f-to', 'Arrivée', o.slice().reverse()) + F('f-date', 'Date du vol', 'type="date" required') + SEL('f-cls', 'Classe', Object.entries(CLS).map(([k, x]) => [k, x[0] + ' (x' + x[1] + ')'])) + SEL('f-air', 'Compagnie aérienne', AL.map(a => [a.c, a.n])) + SEL('f-stops', 'Nombre d’escales (max ' + CF.stops + ')', Array.from({ length: CF.stops + 1 }, (_, i) => [i, i + ' escale(s)'])) + '<div id="f-stl" class="space-y-3"></div>') +
+    CARD('Passager', 'Les données privées restent confidentielles et ne figurent pas sur le billet', SEL('f-civ', 'Civilité', [['M.', 'M.'], ['Mme', 'Mme'], ['Mlle', 'Mlle']]) + F('f-nom', 'Nom', 'required') + F('f-pre', 'Prénom', 'required') + F('f-dob', 'Date de naissance', 'type="date" required') + SEL('f-nat', 'Nationalité', COUNTRIES.map(c => [c, c])) + F('f-pass', 'N° passeport / CNI', 'required') + F('f-exp', 'Date d’expiration', 'type="date" required') + F('f-ecn', 'Contact d’urgence (nom)', 'required') + F('f-ect', 'Contact d’urgence (téléphone)', 'type="tel" required')) +
+    CARD('Options et design', '', `<label class="flex items-center gap-3 text-sm font-semibold"><input id="f-ins" type="checkbox" class="w-5 h-5"> Assurance voyage</label>` + SEL('f-bag', 'Bagages supplémentaires', [0, 1, 2, 3].map(n => [n, n + ' bagage(s)'])) + `<div><p class="${lbl}">Style du billet</p><label class="block text-sm py-1"><input type="radio" name="f-st" value="1"> Style 1 · Billet physique à souche</label><label class="block text-sm py-1"><input type="radio" name="f-st" value="2" checked> Style 2 · E-ticket numérique</label></div><p id="f-recap" class="text-xs text-gray-700 bg-gray-50 rounded-xl p-3"></p>`) +
+    `<button id="f-btn" type="submit" class="w-full bg-swiftblue text-white font-semibold py-3.5 rounded-xl shadow-md cursor-pointer">Générer le billet</button></form>`;
+  $('f-date').min = new Date().toISOString().slice(0, 10); $('f-nat').value = 'Cameroun'; $('f-to').selectedIndex = 0;
+  v.querySelectorAll('#fl-form select,#fl-form input').forEach(e => e.addEventListener('input', recap));
+  $('f-stops').onchange = () => { $('f-stl').innerHTML = Array.from({ length: +$('f-stops').value }, (_, i) => SEL('f-s' + i, 'Pays de l’escale ' + (i + 1), COUNTRIES.map(c => [c, c]))).join(''); };
+  $('fl-t1').onclick = () => tab(1); $('fl-t2').onclick = () => { tab(2); mine(); };
+  $('fl-form').onsubmit = submit; built = true; recap();
+}
+function tab(n) { $('fl-form').classList.toggle('hidden', n !== 1); $('fl-my').classList.toggle('hidden', n !== 2); $('fl-t1').className = 'py-2 text-sm font-semibold rounded-lg cursor-pointer ' + (n === 1 ? 'bg-white text-swiftblue' : 'text-gray-500'); $('fl-t2').className = 'py-2 text-sm font-semibold rounded-lg cursor-pointer ' + (n === 2 ? 'bg-white text-swiftblue' : 'text-gray-500'); }
+async function mine() {
+  const b = $('fl-my'); b.innerHTML = '<p class="text-center text-gray-500 py-6">Chargement...</p>';
+  const { data, error } = await supabaseClient.from('sw_flight_tickets').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+  if (error) { b.innerHTML = ''; return toast('Erreur : ' + error.message, 'error'); }
+  MY = data; b.innerHTML = data.length ? data.map((r, i) => `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mt-3 flex items-center justify-between gap-2"><div><p class="font-bold">${esc(r.route)} · ${esc(r.data.date)}</p><p class="text-xs text-gray-500">${esc(r.data.an)} · ${esc(r.data.flight)} · PNR ${esc(r.pnr)}</p></div><button data-i="${i}" class="fl-v text-sm font-semibold text-white bg-swiftblue rounded-full px-4 py-2 cursor-pointer">Voir</button></div>`).join('') : '<p class="text-center text-gray-500 py-6">Aucun billet pour le moment.</p>';
+  b.querySelectorAll('.fl-v').forEach(x => x.onclick = () => show(toT(MY[x.dataset.i])));
+}
+async function submit(e) {
+  e.preventDefault(); const c = recap(), g = i => $(i).value.trim(), btn = $('f-btn');
+  if (!c.a || c.a === c.b) return toast('Choisissez deux aéroports différents.', 'error');
+  if (!c.ok) return toast(c.L.n + ' ne dessert pas cet itinéraire. Choisissez une autre compagnie.', 'error');
+  if (g('f-exp') <= g('f-date')) return toast('Le document expire avant la date du vol.', 'error');
+  if (g('f-dob') >= new Date().toISOString().slice(0, 10)) return toast('Date de naissance invalide.', 'error');
+  await loadCfg(); const w = await supabaseClient.from('sw_wallets').select('balance').eq('user_id', currentUser.id).maybeSingle();
+  if (Number(w.data ? w.data.balance : 0) < CF.fee) return toast('Solde insuffisant : ' + money(CF.fee) + ' requis. Rechargez votre portefeuille.', 'error');
+  if (!confirm('Confirmer ? ' + money(CF.fee) + ' seront débités de votre portefeuille.')) return;
+  const h = hs(c.a.i + c.b.i + g('f-date') + c.L.c), cl = $('f-cls').value, row = cl === 'vip' ? [1, 3] : cl === 'biz' ? [4, 9] : [18, 42], dep = TIMES[h % 7], [H, Mi] = dep.split(':').map(Number), bm = ((H * 60 + Mi - 90) + 1440) % 1440;
+  const t = { ac: c.L.c, an: c.L.n, from: c.a.i, to: c.b.i, dist: c.d, date: g('f-date'), dep, board: String(Math.floor(bm / 60)).padStart(2, '0') + ':' + String(bm % 60).padStart(2, '0'), flight: c.L.c + ' ' + (100 + h % 900), seat: (row[0] + h % (row[1] - row[0] + 1)) + 'ACDF'.charAt((h >> 3) % 4), cls: cl, civ: $('f-civ').value, nom: g('f-nom').toUpperCase(), pre: g('f-pre'), pass: g('f-pass').toUpperCase(), dob: g('f-dob'), nat: $('f-nat').value, exp: g('f-exp'), ecn: g('f-ecn'), ect: g('f-ect'), fare: c.fare, ins: c.ins, bags: c.bags, bagA: c.bagA, total: c.total, stops: Array.from({ length: Math.min(CF.stops, +$('f-stops').value) }, (_, i) => $('f-s' + i).value), style: +document.querySelector('input[name=f-st]:checked').value };
+  btn.disabled = true; const { data, error } = await supabaseClient.rpc('sw_book_flight', { p_row: { ...t, route: t.from + '-' + t.to, airline: t.ac } }); btn.disabled = false; recap();
+  if (error || !data) return toast((error && error.message) || 'Paiement refusé', 'error');
+  e.target.reset(); toast('Billet généré · ' + money(CF.fee) + ' débités.'); recap(); show({ ...data.data, pnr: data.pnr, style: +data.style });
+}
+window.flyInit = async () => { await loadCfg(); if (!built || bs !== CF.stops) { build(); bs = CF.stops; } else recap(); };
+window.flyAdmin = async (M) => {
+  await loadCfg(); const { data, error } = await supabaseClient.from('sw_flight_tickets').select('*').order('created_at', { ascending: false }).limit(500);
+  if (error) { M.innerHTML = `<p class="x-h">Billets : ${esc(error.message)} (SQL à exécuter ?)</p>`; return; }
+  const fees = data.reduce((s, r) => s + Number(r.fee), 0), tot = data.reduce((s, r) => s + Number(r.total), 0), q = (M._q || '').toLowerCase();
+  const rows = data.filter(r => !q || (r.pnr + r.route + r.airline + r.data.nom + r.data.pre).toLowerCase().includes(q));
+  M.innerHTML = `<p class="x-h"><b>●</b> VOLS // billets d'avion</p><div class="x-panel" style="margin-top:0"><p class="x-h">TARIFICATION</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label style="font-size:11px">PRIX / KM (fictif, FCFA)<input id="v-km" type="number" min="0" class="x-in" value="${CF.km}"></label><label style="font-size:11px">FRAIS DE GÉNÉRATION (débités)<input id="v-fee" type="number" min="0" class="x-in" value="${CF.fee}"></label><label style="font-size:11px">ASSURANCE (fictif)<input id="v-ins" type="number" min="0" class="x-in" value="${CF.ins}"></label><label style="font-size:11px">BAGAGE SUPPL. (fictif)<input id="v-bag" type="number" min="0" class="x-in" value="${CF.bag}"></label><label style="font-size:11px">ESCALES MAX (0 à 3)<input id="v-st" type="number" min="0" max="3" class="x-in" value="${CF.stops}"></label></div><button id="v-save" class="x-btn go" style="margin-top:8px">ENREGISTRER</button></div><div class="x-panel"><p class="x-h">${data.length} BILLET(S) · COMMISSIONS ${money(fees)} · VALEUR AFFICHÉE ${money(tot)}</p><input id="v-q" class="x-in" placeholder="> PNR, nom, trajet, compagnie" value="${esc(M._q || '')}" style="margin-bottom:8px">${rows.map((r, i) => `<button class="x-row v-r" data-i="${i}"><span>${esc(r.pnr)} · ${esc(r.route)} · ${esc(r.data.nom)} ${esc(r.data.pre)}</span><span style="color:#7d8da0">${esc(r.data.date)}</span></button>`).join('') || '// aucun billet'}</div>`;
+  $('v-save').onclick = async () => { const { error: er } = await supabaseClient.rpc('sw_admin_set_flight', { p_km: +$('v-km').value, p_fee: +$('v-fee').value, p_ins: +$('v-ins').value, p_bag: +$('v-bag').value, p_stops: +$('v-st').value }); toast(er ? 'Erreur : ' + er.message : 'Tarifs enregistrés.', er ? 'error' : ''); if (!er) flyAdmin(M); };
+  $('v-q').oninput = e => { M._q = e.target.value; flyAdmin(M).then(() => { const i = $('v-q'); i.focus(); i.setSelectionRange(99, 99); }); };
+  M.querySelectorAll('.v-r').forEach(b => b.onclick = () => { const r = rows[b.dataset.i], d = $('x-drawer'); d.innerHTML = `<div style="display:flex;justify-content:space-between"><h3 style="font-weight:800">${esc(r.pnr)}</h3><button class="x-btn" data-close="1">FERMER ✕</button></div><button id="v-show" class="x-btn go" style="margin:8px 0">VOIR LE BILLET</button><div style="font-size:12px">${Object.entries(r.data).map(([k, v]) => `<p style="border-bottom:1px dashed #c9d1d9;padding:3px 0"><b>${esc(k)}</b> : ${esc(v)}</p>`).join('')}<p><b>frais</b> : ${esc(r.fee)} · <b>créé</b> : ${esc(fmtDate(r.created_at))}</p></div>`; d.classList.add('open'); $('x-veil').style.display = 'block'; $('v-show').onclick = () => show(toT(r)); });
+};
 })();
 </script>
 </body>
