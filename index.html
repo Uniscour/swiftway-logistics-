@@ -2625,33 +2625,33 @@ html[data-theme=dark] body{color:#e8edfb}
     list.innerHTML = r.length ? r.slice(0, 400).map(x => `<div class="x-c2 sm"><div class="x-c2h"><div><strong class="x-amt" style="font-size:14px">${esc(actLabel(x.action))}</strong><span class="x-sub">${esc(x.email || '—')} · ${esc(fmtFull(x.created_at))}</span></div></div><p class="x-body" style="font-size:12.5px">${esc(x.detail || '')}</p></div>`).join('') : '<div class="x-empty">Aucune action pour ce filtre.</div>';
   }
   // ---------- APERÇU : reçu et billets d'exemple, sans rien créer ni débiter ----------
-  const PV = { k: 'receipt', rt: false, th: null };
+  const PV = { k: 'receipt', th: null };
   function previewV() {
     if (!PV.th) PV.th = DocKit.get();
     const seg = (k, l) => `<button class="x-btn ${PV.k === k ? 'go' : ''}" data-pk="${k}">${l}</button>`;
+    const VAR = [['t2', 0, 'Style 2 (numérique) · Aller simple'], ['t2', 1, 'Style 2 (numérique) · Aller-retour'], ['t1', 0, 'Style 1 (papier) · Aller simple'], ['t1', 1, 'Style 1 (papier) · Aller-retour']];
     M.innerHTML = `<h2 class="x-title">Aperçu des documents</h2><p class="x-lead">Exemples fictifs : rien n’est créé et rien n’est débité.</p>
-      <div class="x-panel" style="display:flex;flex-wrap:wrap;gap:8px">${seg('receipt', '🧾 Reçu colis')}${seg('t2', '✈️ Billet · Style 2 (numérique)')}${seg('t1', '✈️ Billet · Style 1 (papier)')}
-        ${PV.k !== 'receipt' ? `<button class="x-btn ${PV.rt ? 'go' : ''}" data-prt="1">${PV.rt ? '↔ Aller-retour' : '→ Aller simple'}</button>` : ''}
-        <button class="x-btn" data-pbig="1">PLEIN ÉCRAN (partage, PDF, impression)</button></div>
+      <div class="x-panel" style="display:flex;flex-wrap:wrap;gap:8px">${seg('receipt', '🧾 Reçu colis')}${seg('tickets', '✈️ Billets : les 4 modèles')}</div>
       <div class="x-panel"><details><summary style="cursor:pointer;font-weight:700">🎨 Couleurs</summary><div id="pv-pick" style="margin-top:10px"></div></details></div>
-      <div style="overflow-x:auto;padding:8px 0"><div id="pv-zoom" style="width:148mm;margin:0 auto;zoom:${Math.min(1, (innerWidth - 24) / 560).toFixed(3)}"></div></div>`;
-    const sample = () => PV.k === 'receipt' ? { id: 'x', tracking_code: 'SW7K2M9QX4PL8RT3WZ6N', created_at: new Date().toISOString(), agency_name: 'Agence Exemple', service_type: 'express', delivery_window_hours: 24,
-        sender_name: 'Jean Exemple', sender_phone: '+237 600 00 00 00', sender_address: 'Rue 1.234', sender_district: 'Akwa', origin: 'Douala', sender_region: 'Littoral', sender_country: 'Cameroun',
-        receiver_name: 'Marie Modèle', receiver_phone: '+33 6 00 00 00 00', receiver_address: '12 rue des Lilas', receiver_district: 'Centre', destination: 'Bordeaux', receiver_region: 'Nouvelle-Aquitaine', receiver_country: 'France',
-        description: 'Vêtements et documents', package_type: 'Carton', package_count: 2, weight_kg: 12, shipping_fee: 45000, declared_value: 150000, payer: 'sender', currency: 'XAF', is_fragile: true }
-      : { ac: 'AF', an: 'Air France', from: 'BFX', to: 'BOD', dist: 4499, date: new Date(Date.now() + 12 * 864e5).toISOString().slice(0, 10), dep: '16:30', board: '15:00', flight: 'AF 723', rflight: 'AF 410', trip: PV.rt ? 'rt' : 'ow',
-        rdate: new Date(Date.now() + 26 * 864e5).toISOString().slice(0, 10), rdep: '09:15', seat: '41D', term: '1', gate: 'F24', zone: '5', seq: '240', etk: '812 3603764372', cls: 'eco', civ: 'M.', nom: 'EXEMPLE', pre: 'Jean', cur: 'XAF',
-        fare: PV.rt ? 764830 : 382415, ins: 12000, nbag: 1, bags: 0, bagA: 0, total: PV.rt ? 776830 : 394415, stops: [], pnr: '997B46', style: PV.k === 't1' ? 1 : 2 };
+      <div id="pv-list"></div>`;
+    const z = Math.min(1, (innerWidth - 24) / 560).toFixed(3);
+    const sample = (st, rt) => ({ ac: 'AF', an: 'Air France', from: 'BFX', to: 'BOD', dist: 4499, date: new Date(Date.now() + 12 * 864e5).toISOString().slice(0, 10), dep: '16:30', board: '15:00', flight: 'AF 723', rflight: 'AF 410', trip: rt ? 'rt' : 'ow',
+      rdate: new Date(Date.now() + 26 * 864e5).toISOString().slice(0, 10), rdep: '09:15', seat: '41D', term: '1', gate: 'F24', zone: '5', seq: '240', etk: '812 3603764372', cls: 'eco', civ: 'M.', nom: 'EXEMPLE', pre: 'Jean', cur: 'XAF',
+      fare: rt ? 764830 : 382415, ins: 12000, nbag: 1, bags: 0, bagA: 0, total: rt ? 776830 : 394415, stops: [], pnr: '997B46', style: st === 't1' ? 1 : 2 });
+    const rcp = () => ({ id: 'x', tracking_code: 'SW7K2M9QX4PL8RT3WZ6N', created_at: new Date().toISOString(), agency_name: 'Agence Exemple', service_type: 'express', delivery_window_hours: 24,
+      sender_name: 'Jean Exemple', sender_phone: '+237 600 00 00 00', sender_address: 'Rue 1.234', sender_district: 'Akwa', origin: 'Douala', sender_region: 'Littoral', sender_country: 'Cameroun',
+      receiver_name: 'Marie Modèle', receiver_phone: '+33 6 00 00 00 00', receiver_address: '12 rue des Lilas', receiver_district: 'Centre', destination: 'Bordeaux', receiver_region: 'Nouvelle-Aquitaine', receiver_country: 'France',
+      description: 'Vêtements et documents', package_type: 'Carton', package_count: 2, weight_kg: 12, shipping_fee: 45000, declared_value: 150000, payer: 'sender', currency: 'XAF', is_fragile: true });
     const paint = () => {
-      const s = sample(), z = $('pv-zoom'); if (!z) return;
-      z.innerHTML = PV.k === 'receipt' ? receiptHtml({ ...s, _th: PV.th }, receiptScale(s)) : window.flyTk({ ...s, hc: PV.th.hc, bg: PV.th.bg });
-      if (PV.k !== 'receipt') window.flyFit(z);
+      const L = $('pv-list'); if (!L) return;
+      const item = (title, html, id) => `<div class="x-panel"><p class="x-h">${title}</p><div style="overflow-x:auto;padding:8px 0"><div id="pv-${id}" style="width:148mm;margin:0 auto;zoom:${z}">${html}</div></div><button class="x-btn" data-pbig="${id}">PLEIN ÉCRAN (partage, PDF, impression)</button></div>`;
+      if (PV.k === 'receipt') { const s = rcp(); L.innerHTML = item('REÇU COLIS', receiptHtml({ ...s, _th: PV.th }, receiptScale(s)), 'r'); }
+      else { L.innerHTML = VAR.map((v, i) => item('✈️ BILLET · ' + v[2].toUpperCase(), window.flyTk({ ...sample(v[0], v[1]), hc: PV.th.hc, bg: PV.th.bg }), i)).join(''); VAR.forEach((v, i) => window.flyFit($('pv-' + i))); }
+      L.querySelectorAll('[data-pbig]').forEach(b => b.onclick = () => { if (PV.k === 'receipt') showReceipt(rcp()); else { const v = VAR[+b.dataset.pbig]; window.flyShow(sample(v[0], v[1])); } });
     };
     paint();
     DocKit.picker($('pv-pick'), PV.th, th => { PV.th = th; paint(); });
     M.querySelectorAll('[data-pk]').forEach(b => b.onclick = () => { PV.k = b.dataset.pk; previewV(); });
-    const rt = M.querySelector('[data-prt]'); if (rt) rt.onclick = () => { PV.rt = !PV.rt; previewV(); };
-    M.querySelector('[data-pbig]').onclick = () => { const s = sample(); if (PV.k === 'receipt') showReceipt(s); else window.flyShow(s); };
   }
   async function journalV() {
     M.innerHTML = '<p class="x-hint">Chargement du journal...</p>';
@@ -3158,12 +3158,12 @@ html[data-theme=dark] body{color:#e8edfb}
     const lead = { price: "Fixez le montant débité aux clients pour la génération d'un reçu A5 et d'un code de suivi.", pay: 'Gérez les numéros MTN Money (MoMo) et Orange Money (OM) affichés aux clients lors des demandes de recharge.', support: "Définissez l'adresse e-mail et les numéros WhatsApp que les utilisateurs voient dans leur espace (onglet Messages) pour contacter l'assistance. Ajoutez ou retirez un contact à tout moment.", promo: "Offrez des reçus gratuits à un groupe ciblé, récompensez régulièrement vos meilleurs utilisateurs, ou activez l'offre de bienvenue automatique." }[S.cs];
     const grp = isSuper ? segs([['receipt', '🧾 Reçus'], ['flight', "✈️ Billets d'avion"]], FL ? 'flight' : 'receipt', 'data-cg') : '';
     const tabsF = segs([['fprice', '💰 Tarification des billets'], ['fpromo', '🎁 Promotions billets']], S.fcs, 'data-fcs');
-    const leadF = { fprice: "Fixez les prix des billets d'avion : prix au km, frais de génération débités, assurance, bagages et nombre d'escales.", fpromo: "Offrez des billets gratuits à un groupe ciblé ou récompensez vos meilleurs utilisateurs, exactement comme pour les reçus." }[S.fcs];
+    const leadF = { fprice: "Fixez les prix des billets d'avion : prix au km, frais de génération débités, assurance, bagages et nombre d'escales.", fpromo: "Réduisez le prix des billets en pourcentage (à tout le monde, à un groupe ou à une personne), ou offrez des billets gratuits à un groupe ciblé ou récompensez vos meilleurs utilisateurs, exactement comme pour les reçus." }[S.fcs];
     M.innerHTML = `<div class="x-wrap"><h2 class="x-title">Paramètres</h2><p class="x-lead">${isSuper ? 'Tarification et offres.' : 'Numéros de paiement.'}</p>
       ${grp}<p class="x-lead">${FL ? leadF : lead}</p>
       ${FL ? tabsF : sum + tabs}
-      ${FL ? (S.fcs === 'fpromo' ? promoHtml() : '<div id="fl-price-box"></div>') : (S.cs === 'support' ? supportPanel() : S.cs === 'price' ? priceHtml : S.cs === 'promo' ? '<div id="wo-card" class="x-panel x-p0"></div>' + promoHtml() : payHtml)}</div>`;
-    if (FL) { if (S.fcs === 'fpromo') prList(); else window.flyPriceUI($('fl-price-box'), S.users); }
+      ${FL ? (S.fcs === 'fpromo' ? '<div id="fl-disc-box"></div>' + promoHtml() : '<div id="fl-price-box"></div>') : (S.cs === 'support' ? supportPanel() : S.cs === 'price' ? priceHtml : S.cs === 'promo' ? '<div id="wo-card" class="x-panel x-p0"></div>' + promoHtml() : payHtml)}</div>`;
+    if (FL) { if (S.fcs === 'fpromo') { window.flyDiscUI($('fl-disc-box'), S.users); prList(); } else window.flyPriceUI($('fl-price-box'), S.users); }
     else { prList(); if (S.cs === 'promo') welcomeCard(); }
   }
 
@@ -4029,8 +4029,8 @@ window.flyInit = async () => { await loadCfg(); if (!built || bs !== CF.stops) {
 async function discUI(box, users) {
   let rows = []; try { const q = await supabaseClient.from('sw_flight_discounts').select('*').eq('active', true).order('created_at', { ascending: false }); rows = q.data || []; } catch (e) {}
   const us = users || [], nm = id => { const u = us.find(x => x.id === id); return u ? (u.email || u.phone || 'Utilisateur') : 'Utilisateur'; }, sel = new Set();
-  const w = document.createElement('div'); w.className = 'x-panel';
-  w.innerHTML = `<p class="x-h">🏷️ RÉDUCTION EN POURCENTAGE SUR LES BILLETS</p><p class="t-mut x-sm" style="margin-bottom:10px">Vous saisissez le pourcentage. Il s’applique au tarif de base (bagages inclus), hors assurance, pour tout le monde ou pour les utilisateurs choisis.</p>
+  box.innerHTML = ''; const w = document.createElement('div'); w.className = 'x-panel';
+  w.innerHTML = `<p class="x-h">🏷️ PROMOTION BILLETS // réduction en pourcentage</p><p class="t-mut x-sm" style="margin-bottom:10px">Vous saisissez le pourcentage. Il s’applique au tarif de base (bagages inclus), hors assurance, pour tout le monde ou pour les utilisateurs choisis.</p>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px"><label class="x-lb">POURCENTAGE (1 à 90)<input id="d-pct" type="number" min="1" max="90" step="0.5" class="x-in" style="margin-top:4px" placeholder="ex. 15"></label><label class="x-lb">NOM DE L’OFFRE (facultatif)<input id="d-lab" class="x-in" maxlength="60" style="margin-top:4px" placeholder="ex. Offre de fin d’année"></label><label class="x-lb">CIBLE<select id="d-tg" class="x-in" style="margin-top:4px"><option value="all">Tous les utilisateurs</option><option value="sel">Utilisateurs choisis</option></select></label></div>
   <div id="d-sel" style="display:none;margin-top:8px"><input id="d-q" class="x-in" placeholder="> rechercher un utilisateur" style="margin-bottom:6px"><div id="d-ul" style="max-height:220px;overflow:auto"></div></div>
   <button id="d-go" class="x-btn go" style="margin-top:12px">ACTIVER LA RÉDUCTION</button>
@@ -4047,16 +4047,17 @@ async function discUI(box, users) {
     if (!confirm('Activer −' + pct + ' % sur les billets pour ' + (all ? 'tous les utilisateurs' : sel.size + ' utilisateur(s)') + ' ?')) return;
     const { error } = await supabaseClient.rpc('sw_admin_set_flight_discount', { p_pct: pct, p_label: w.querySelector('#d-lab').value.trim(), p_users: all ? null : [...sel] });
     if (error) return toast(missingFn(error) ? 'Exécutez d’abord le script SQL « sw_discounts_migration.sql » dans Supabase.' : 'Erreur : ' + error.message, 'error');
-    toast('Réduction activée.'); window.flyPriceUI(box, users);
+    toast('Réduction activée.'); window.flyDiscUI(box, users);
   };
-  w.querySelectorAll('[data-dr]').forEach(b => b.onclick = async () => { if (!confirm('Retirer cette réduction ?')) return; const { error } = await supabaseClient.rpc('sw_admin_remove_flight_discount', { p_id: b.dataset.dr }); if (error) return toast('Erreur : ' + error.message, 'error'); toast('Réduction retirée.'); window.flyPriceUI(box, users); });
+  w.querySelectorAll('[data-dr]').forEach(b => b.onclick = async () => { if (!confirm('Retirer cette réduction ?')) return; const { error } = await supabaseClient.rpc('sw_admin_remove_flight_discount', { p_id: b.dataset.dr }); if (error) return toast('Erreur : ' + error.message, 'error'); toast('Réduction retirée.'); window.flyDiscUI(box, users); });
 }
+
+window.flyDiscUI = (box, users) => box && discUI(box, users);
 
 /* ---------- ADMIN : tarification (Paramètres › Billets) ---------- */
 window.flyPriceUI = async (box, users) => {
   if (!box) return; await loadCfg(); if (!$('fl-price-box')) return;
   box.innerHTML = `<div class="x-panel" style="margin-top:0"><p class="x-h">✈️ TARIFICATION DES BILLETS D'AVION (FCFA)</p><p class="t-mut x-sm" style="margin-bottom:10px">Montants de base en FCFA. Ils sont convertis automatiquement dans la devise choisie par l'utilisateur à la création du billet.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px"><label class="x-lb">PRIX AU KM (affiché sur le billet)<input id="v-km" type="number" min="0" class="x-in" style="margin-top:4px" value="${CF.km}"></label><label class="x-lb">FRAIS DE GÉNÉRATION (débités du portefeuille)<input id="v-fee" type="number" min="0" class="x-in" style="margin-top:4px" value="${CF.fee}"></label><label class="x-lb">ASSURANCE VOYAGE<input id="v-ins" type="number" min="0" class="x-in" style="margin-top:4px" value="${CF.ins}"></label><label class="x-lb">BAGAGE SUPPLÉMENTAIRE<input id="v-bag" type="number" min="0" class="x-in" style="margin-top:4px" value="${CF.bag}"></label><label class="x-lb">ESCALES MAX (0 à 3)<input id="v-st" type="number" min="0" max="3" class="x-in" style="margin-top:4px" value="${CF.stops}"></label></div><button id="v-save" class="x-btn go" style="margin-top:12px">ENREGISTRER LES TARIFS</button></div>`;
-  discUI(box, users);
   $('v-save').onclick = async () => { const { error: er } = await supabaseClient.rpc('sw_admin_set_flight', { p_km: +$('v-km').value, p_fee: +$('v-fee').value, p_ins: +$('v-ins').value, p_bag: +$('v-bag').value, p_stops: +$('v-st').value }); toast(er ? 'Erreur : ' + er.message : 'Tarifs enregistrés.', er ? 'error' : ''); if (!er) { built = false; window.flyPriceUI(box, users); } };
 };
 
