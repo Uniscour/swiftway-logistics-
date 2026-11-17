@@ -28,6 +28,91 @@
   #receipt-sheet, #receipt-sheet * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 </style>
+<style id="tk-css">
+/* ===== REÇUS DE VOYAGE : 2 modèles, grilles verrouillées, zéro superposition, zéro débordement ===== */
+.tk{--ink:#0f172a;--mut:#5b6b82;--line:#d6dfee;width:760px;position:relative;overflow:hidden;font-family:Arial,Helvetica,sans-serif;color:var(--ink);line-height:1.2;text-align:left}
+.tk,.tk *{box-sizing:border-box}
+.tk *{margin:0;padding:0}
+/* Case de texte : une seule ligne, jamais de débordement (la police est réduite par fitAll(), ellipse en dernier recours) */
+.tk .fit{display:block;min-width:0;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk .lb{height:11px;line-height:11px;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+.tk .vl{height:20px;line-height:20px;font-size:15px;font-weight:700}
+.tk .mono .vl,.tk .mono.vl{font-family:'Courier New',monospace}
+.tk .brand{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px;min-width:0}
+.tk .brand b{font-weight:800;letter-spacing:.04em;text-transform:uppercase;line-height:1.2}
+.tk .qr svg{display:block;width:100%;height:100%}
+.tk .vbar{position:relative;flex:none;overflow:hidden}
+.tk-note{height:26px;line-height:26px;padding:0 20px;font-size:9px;color:var(--mut);text-align:center}
+
+/* ---------- Modèle 1 : NUMÉRIQUE / DASHBOARD ---------- */
+.tk-n{background:#fff;border:1px solid var(--line);border-radius:20px}
+.tk-n .n-head{height:62px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:16px;padding:0 22px;background:linear-gradient(135deg,#0b2a5b,#2563eb);color:#fff}
+.tk-n .n-pill{max-width:210px;height:26px;line-height:24px;padding:0 14px;border-radius:99px;background:#ffffff26;border:1px solid #ffffff66;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.tk-n .n-body{display:grid;grid-template-columns:minmax(0,1fr) 196px;height:336px}
+.tk-n .n-main{min-width:0;padding:18px 20px;display:grid;grid-template-rows:120px 166px;gap:14px;align-content:start}
+.tk-n .n-route{display:grid;grid-template-columns:minmax(0,1fr) 112px minmax(0,1fr);gap:8px;align-items:center;background:#eef3fb;border-radius:14px;padding:0 16px;overflow:hidden}
+.tk-n .n-end{min-width:0;display:grid;grid-template-rows:11px 46px 18px 14px;gap:2px}
+.tk-n .n-end.r{text-align:right}
+.tk-n .n-code{font-size:44px;line-height:46px;height:46px;font-weight:800;letter-spacing:.02em;color:#0b2a5b}
+.tk-n .n-city{font-size:14px;line-height:18px;height:18px;font-weight:700}
+.tk-n .n-ctry{font-size:11px;line-height:14px;height:14px;color:var(--mut)}
+.tk-n .n-mid{min-width:0;display:grid;grid-template-rows:30px 16px 14px;gap:4px;justify-items:center;align-content:center}
+.tk-n .n-mid svg{display:block;width:100%;height:30px}
+.tk-n .n-dist{font-size:12px;line-height:16px;height:16px;font-weight:700;text-align:center}
+.tk-n .n-via{font-size:10px;line-height:14px;height:14px;color:var(--mut);text-align:center}
+.tk-n .n-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(3,50px);gap:8px}
+.tk-n .s2{grid-column:span 2}
+.tk-n .n-t{min-width:0;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 10px;display:grid;grid-template-rows:11px 20px;gap:3px;align-content:center}
+.tk-n .n-t.big{grid-template-rows:11px 24px}
+.tk-n .n-t.big .vl{height:24px;line-height:24px;font-size:22px;font-weight:800}
+.tk-n .n-t.sm{padding:4px 10px}
+.tk-n .n-side{min-width:0;border-left:2px dashed #b9c9dc;padding:18px 16px;display:grid;grid-template-rows:112px 56px 44px minmax(0,1fr);gap:10px}
+.tk-n .qr{border:1px solid var(--line);border-radius:10px;padding:6px;background:#fff;overflow:hidden}
+.tk-n .n-sg{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.tk-n .n-bc{min-height:0;overflow:hidden;border:1px solid var(--line);border-radius:8px;padding:4px;background:#fff}
+.tk-n .n-foot{height:60px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--line);background:#f8fafd}
+.tk-n .n-p{min-width:0;overflow:hidden;padding:0 16px;border-right:1px solid var(--line);display:grid;grid-template-rows:11px 22px;gap:3px;align-content:center}
+.tk-n .n-p:last-child{border-right:0}
+.tk-n .n-p .vl{height:22px;line-height:22px;font-size:15px}
+.tk-n .n-p.tot{background:#0b2a5b;color:#fff}
+.tk-n .n-p.tot .lb{color:#bcd1ff}
+.tk-n .n-p.tot .vl{font-size:17px;font-weight:800}
+
+/* ---------- Modèle 2 : PHYSIQUE / CARNET À SOUCHE EN BANDE ---------- */
+.tk-p{--ink:#1f1b10;--mut:#6b6240;--line:#5a5030;background:#fbf7ea;border:1px solid #c9bfa0;border-radius:6px}
+.tk-p .p-strip{display:grid;grid-template-columns:minmax(0,1fr) 232px;height:312px}
+.tk-p .p-cp{min-width:0;padding:14px 18px 14px 20px;display:grid;grid-template-columns:minmax(0,1fr) 36px;grid-template-rows:42px 216px;column-gap:14px;row-gap:8px;align-content:start}
+.tk-p .p-hd{grid-column:1/3;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,190px);gap:12px;align-items:center;border-bottom:2px solid var(--ink);padding-bottom:6px}
+.tk-p .p-ttl{font-size:12px;font-weight:800;letter-spacing:.08em;text-align:right;color:var(--ink)}
+.tk-p .p-fields{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));grid-template-rows:repeat(4,48px);gap:8px 14px;min-width:0}
+.tk-p .s2{grid-column:span 2}.tk-p .s3{grid-column:span 3}.tk-p .s4{grid-column:span 4}
+.tk-p .p-f{min-width:0;overflow:hidden;display:grid;grid-template-rows:11px 26px;gap:3px;align-content:start}
+.tk-p .p-f .lb{font-size:8.5px;font-style:italic;font-weight:400;letter-spacing:.05em;text-transform:none}
+.tk-p .p-f .vl{height:26px;line-height:24px;font-family:'Courier New',monospace;font-size:15px;border-bottom:1.5px solid var(--ink);padding:0 2px}
+.tk-p .p-stub{min-width:0;border-left:2px dashed var(--line);background:#f4edd2;padding:14px 16px;display:grid;grid-template-rows:20px 44px 46px 44px 44px minmax(0,1fr);gap:8px}
+.tk-p .p-st-t{height:20px;line-height:20px;font-size:10px;font-weight:800;letter-spacing:.14em;border-bottom:1px solid var(--ink)}
+.tk-p .p-rt{min-width:0;display:grid;grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr);align-items:center;text-align:center}
+.tk-p .p-rt span{font-size:18px;line-height:46px}
+.tk-p .p-cd{font-family:'Courier New',monospace;font-size:30px;line-height:46px;height:46px;font-weight:700}
+.tk-p .p-2{min-width:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.tk-p .p-bc{min-height:0;overflow:hidden;background:#fff;border:1px solid #cdc3a2;padding:3px}
+.tk-p .p-foot{height:56px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:2px dashed var(--line);background:#f4edd2}
+.tk-p .p-p{min-width:0;overflow:hidden;padding:0 16px;border-right:1px solid #cdc3a2;display:grid;grid-template-rows:11px 22px;gap:3px;align-content:center}
+.tk-p .p-p:last-child{border-right:0}
+.tk-p .p-p .lb{font-style:italic;font-weight:400;text-transform:none;letter-spacing:.05em;font-size:9px}
+.tk-p .p-p .vl{height:22px;line-height:22px;font-family:'Courier New',monospace;font-size:15px}
+.tk-p .p-p.tot{background:#1f1b10;color:#fbf7ea}
+.tk-p .p-p.tot .lb{color:#d8cfa8}
+.tk-p .p-p.tot .vl{font-size:17px}
+
+/* ---------- Impression : bande A4 paysage, mise à l'échelle sans rognage ---------- */
+@page tk { size: A4 landscape; margin: 10mm; }
+@media print {
+  #receipt-overlay.tk-mode { page: tk; }
+  #receipt-overlay.tk-mode #receipt-zoom { zoom: 1.3 !important; width: 760px !important; margin: 0 auto !important; }
+  .tk, .tk * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
 <style>
 /* ===== THÈME CLIENT : en-tête, navigation, cartes, formulaires, portefeuille, badges (n'affecte pas la console admin) ===== */
 body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased;background:radial-gradient(900px 420px at 100% 0,#d3e3ff 0,transparent 60%),radial-gradient(800px 420px at 0 35%,#e3deff 0,transparent 55%),#eef3ff;background-attachment:fixed}
@@ -207,7 +292,7 @@ body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sa
       <button data-tab="help" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">💬</span><span>Messages</span><span id="help-badge" class="dbadge hidden"></span></button>
       <button data-tab="track" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">🔎</span><span>Suivi</span></button>
       <button data-tab="list" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">📦</span><span>Mes colis</span><span id="list-badge" class="dbadge hidden"></span></button>
-      <button data-tab="tickets" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">✈️</span><span>Mes billets</span></button>
+      <button data-tab="tickets" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">🧾</span><span>Mes reçus</span></button>
     </div>
     <form id="pwforce-form" class="hidden mb-6 bg-white rounded-3xl shadow-sm border-2 border-amber-300 p-6 space-y-3">
       <h2 class="text-lg font-bold text-gray-900">🔑 Choisissez votre nouveau mot de passe</h2>
@@ -3777,7 +3862,6 @@ const aps = k => AP.filter(a => a.k === k).sort((a, b) => a.c.localeCompare(b.c,
 const apOpt = k => aps(k).map(a => [a.i, `${a.c} — ${a.i}`]);
 const ctry = () => [...new Set(AP.map(a => a.k))].map(k => [k, cname(k)]).sort((a, b) => a[1].localeCompare(b[1], 'fr'));
 const today = () => new Date().toISOString().slice(0, 10);
-const brand = (L, c, s) => `<span style="display:inline-flex;align-items:center;gap:12px"><svg viewBox="0 0 64 36" width="${s * 1.7}" height="${s}" style="flex:none"><g stroke="${c}" stroke-width="2" stroke-linecap="round" opacity=".55"><path d="M2 12h12M6 20h14M2 28h10"/></g><path fill="${c}" transform="translate(22 1) rotate(-28 16 17) scale(1.35)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg><b style="font-size:${s}px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;line-height:1.1">${esc(L.n)}</b></span>`;
 const stopTxt = c => APM[c] ? `${APM[c].c} (${c})` : c;
 
 // ---------- ITINÉRAIRE (jamais affiché sur le reçu) ----------
@@ -3802,54 +3886,110 @@ function itin(t) {
 }
 const closeItin = () => { const o = $('itin-overlay'); if (o) o.remove(); };
 
-// ---------- REÇU (sans itinéraire) ----------
-// ---------- 8 STYLES DE BILLETS (format bande, 760 px de large) ----------
-const STY = [1, 2, 3, 4, 5, 6, 7, 8].map(n => [n, 'Style ' + n]);
+// ---------- REÇUS DE VOYAGE : 2 modèles validés (Numérique / Dashboard · Physique / Carnet à souche) ----------
+// Principes : grilles CSS strictes, hauteurs de ligne fixes, aucun positionnement absolu pour le texte,
+// chaque champ vit dans sa case (.fit) et sa police est réduite automatiquement (fitAll) pour ne jamais déborder.
+const STY = [[2, 'Modèle Numérique · Dashboard'], [1, 'Modèle Physique · Carnet à souche en bande']];
+// Anciens reçus (styles 1 à 8) : rattachés automatiquement à l'un des deux modèles.
+const sty = s => ([1, 4, 6, 7].includes(+s) ? 1 : 2);
 const gateOf = t => { const h = hs(t.pnr || 'X'); return 'ABCDEF'[h % 6] + (1 + (h >> 4) % 28); };
 const tnoOf = t => { const h = hs((t.pnr || '') + t.flight); return String(100 + h % 900) + ' ' + String(1000000000 + (h * 7919) % 9000000000); };
 const qrS = s => { try { const q = qrcode(0, 'M'); q.addData(s); q.make(); return q.createSvgTag({ cellSize: 2, margin: 0, scalable: true }); } catch (e) { return ''; } };
+
+// Ajustement automatique : réduit la police de chaque champ .fit jusqu'à ce que le texte tienne dans sa case.
+// Dernier recours (police minimale atteinte) : points de suspension, jamais de débordement.
+function fitAll(root) {
+  (root || document).querySelectorAll('.tk .fit').forEach(el => {
+    const base = parseFloat(el.dataset.fs || (el.dataset.fs = parseFloat(getComputedStyle(el).fontSize) || 12)), min = Math.max(7.5, base * 0.5);
+    let fs = base, n = 0; el.style.fontSize = base + 'px';
+    while (el.scrollWidth > el.clientWidth + 0.5 && fs > min && n++ < 120) { fs -= 0.5; el.style.fontSize = fs + 'px'; }
+  });
+}
+const nextFrame = () => new Promise(r => requestAnimationFrame(() => r()));
+
 function ctx(t) {
   const L = ALM[t.ac] || { c: t.ac, n: t.an }, cu = t.cur || 'XAF', rr = +t.rate || 1, f = x => fmtC(x, cu, rr), A = APM[t.from], B = APM[t.to], ns = (t.stops || []).length, d = new Date(t.date + 'T00:00:00');
   const key = t.pnr + t.flight.replace(/\W/g, '');
-  return { L, f, A, B, ns, key, air: esc(L.n), pax: esc((t.civ + ' ' + t.nom + ' ' + t.pre).trim()), nm: esc(t.nom + ' ' + t.pre), fc: esc(A.c), tc: esc(B.c), fi: esc(t.from), ti: esc(t.to), fk: esc(cname(A.k)), tk: esc(cname(B.k)), fl: esc(t.flight), dt: d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase(), dn: d.toLocaleDateString('fr-FR'), dep: esc(t.dep), bo: esc(t.board), seat: esc(t.seat), gate: gateOf(t), zone: t.cls === 'vip' ? 1 : t.cls === 'biz' ? 2 : 4, cls: esc(CLS[t.cls][0]), cl1: t.cls === 'eco' ? 'Y' : t.cls === 'biz' ? 'J' : 'F', pnr: esc(t.pnr), tn: tnoOf(t), via: ns ? t.stops.map(c => esc(stopTxt(c))).join(' › ') : '', vs: ns ? ns + ' escale' + (ns > 1 ? 's' : '') : 'Vol direct', pass: esc(t.pass), bags: t.bags || 0,
+  return { L, f, A, B, ns, key, air: esc(L.n), pax: esc((t.civ + ' ' + t.nom + ' ' + t.pre).trim()), nm: esc(t.nom + ' ' + t.pre), fc: esc(A.c), tc: esc(B.c), fi: esc(t.from), ti: esc(t.to), fk: esc(cname(A.k)), tk: esc(cname(B.k)), fl: esc(t.flight), dt: d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase(), dn: d.toLocaleDateString('fr-FR'), dep: esc(t.dep), bo: esc(t.board), seat: esc(t.seat), gate: gateOf(t), zone: t.cls === 'vip' ? 1 : t.cls === 'biz' ? 2 : 4, cls: esc(CLS[t.cls][0]), pnr: esc(t.pnr), tn: tnoOf(t), vs: ns ? ns + ' escale' + (ns > 1 ? 's' : '') : 'Vol direct', km: Number(t.dist || 0).toLocaleString('fr-FR') + ' km',
     bc: h => barcode(key, h), qr: qrS(t.pnr + '|' + t.flight + '|' + t.date + '|' + t.from + t.to),
-    pl: `Tarif de base <b>${f(t.fare)}</b>${t.ins ? ' · Assurance <b>' + f(t.ins) + '</b>' : ''}${t.bagA ? ' · Bagages (' + t.bags + ') <b>' + f(t.bagA) + '</b>' : ''} · TOTAL <b>${f(t.total)}</b>` };
+    price: [['Tarif de base', f(t.fare)], ['Assurance', t.ins ? f(t.ins) : '—'], ['Bagages' + (t.bags ? ' (' + t.bags + ')' : ''), t.bagA ? f(t.bagA) : '—'], ['Total', f(t.total)]] };
 }
-const R = (x, st) => `<div id="receipt-sheet" style="width:760px;box-sizing:border-box;overflow:hidden;position:relative;font-family:Arial,Helvetica,sans-serif;color:#111;${st || ''}">${x}</div>`;
-const foot = (c, bg, col, bd) => `<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;padding:8px 18px;font-size:10.5px;background:${bg};color:${col};${bd || ''}"><span>${c.pl}</span><span style="opacity:.7;font-size:8.5px;white-space:nowrap">Document indicatif · non valable pour l’embarquement</span></div>`;
-const vb = (c, len, th) => `<div style="width:${th}px;height:${len}px;position:relative;flex:none"><div style="position:absolute;left:0;top:0;width:${len}px;height:${th}px;transform-origin:0 0;transform:translateX(${th}px) rotate(90deg)">${c.bc(th)}</div></div>`;
-const lab = (l, v, o = {}) => `<div style="${o.s || ''}"><div style="font-size:${o.ls || 9}px;letter-spacing:${o.lt || '.1em'};color:${o.lc || '#6b7a90'};text-transform:uppercase">${l}</div><div style="font-size:${o.vs || 16}px;font-weight:${o.w || 700};color:${o.vc || '#111'};${o.vf || ''}">${v}</div></div>`;
-const MONO = "font-family:'Courier New',monospace;";
-const S = {};
-S[1] = (c, t) => { const u = (l, v, w) => `<div style="width:${w}"><b style="font-size:13px">${l}</b><div style="${MONO}font-size:15px;border:1.5px solid #222;border-top:0;padding:7px 6px 2px;margin-top:4px;height:22px;white-space:nowrap;overflow:hidden">${v}</div></div>`, tl = '#a8d5d9';
-  return R(`<div style="display:flex;background:#fff"><div style="flex:1;border-right:2px dashed #222"><div style="background:${tl};height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 20px">${brand(c.L, '#111', 24)}<b style="font-size:21px">BILLET D’AVION</b></div><div style="display:flex;gap:14px;padding:16px 20px 14px"><div style="flex:1;display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:16px 14px">${u('Nom du passager', c.pax, '100%')}${u('Date', c.dn, '100%')}${u('Vol', c.fl, '100%')}${u('Départ de', c.fc + ' (' + c.fi + ')', '100%')}${u('Embarquement', c.bo, '100%')}${u('Départ', c.dep, '100%')}${u('Destination', c.tc + ' (' + c.ti + ')', '100%')}${u('Porte', c.gate, '100%')}${u('Siège', c.seat, '100%')}</div>${vb(c, 170, 34)}</div></div><div style="width:230px"><div style="background:${tl};height:56px"></div><div style="padding:14px 18px;text-align:center"><div style="width:58px;height:58px;border-radius:50%;background:#111;color:#fff;font-size:32px;line-height:58px;margin:0 auto">✈</div><b style="font-size:24px;display:block;margin:8px 0;letter-spacing:.02em">BON VOL !</b><div style="border-top:1.5px solid #222;padding-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:left;font-size:12px"><div><b>Passager</b><div style="${MONO}font-size:13px">${esc(t.nom.slice(0, 12))}</div></div><div style="text-align:center"><b>Porte</b><div style="${MONO}font-size:14px">${c.gate}</div></div><div><b>Embarq.</b><div style="${MONO}font-size:13px">${c.bo}</div></div><div style="text-align:center"><b>Siège</b><div style="${MONO}font-size:14px;border:1.5px solid #222">${c.seat}</div></div></div></div></div></div>${foot(c, tl, '#10373b')}`, 'background:#fff;border-radius:6px'); };
-S[2] = (c, t) => { const bl = '#2f9be8';
-  return R(`<div style="display:flex;background:#fff;border-radius:22px;overflow:hidden"><div style="flex:1;padding:16px 22px 14px"><div style="display:flex;justify-content:space-between;align-items:center"><span style="color:${bl};font-style:italic;font-weight:700">${brand(c.L, bl, 16)}</span><b style="font-size:17px;color:#0b2a5b">BOARDING PASS</b></div><div style="background:${bl};margin:12px -22px;padding:8px 22px;display:flex;align-items:center;gap:14px;color:#fff"><b style="font-size:54px;letter-spacing:.02em;line-height:1">${c.fi}</b><span style="flex:1;border-top:3px dashed #ffffffaa;position:relative"><i style="position:absolute;right:-4px;top:-17px;font-style:normal;font-size:28px">✈</i></span><b style="font-size:54px;letter-spacing:.02em;line-height:1">${c.ti}</b></div><div style="display:flex;gap:20px"><div style="flex:1;display:grid;gap:6px">${lab('Nom', c.pax, { vs: 15 })}${lab('Date', c.dt, { vs: 15 })}${lab('Embarquement', c.bo, { vs: 15 })}<div style="width:150px;margin-top:2px">${c.bc(34)}</div></div><div style="display:grid;gap:8px;width:190px">${lab('Vol', c.fl, { vs: 26 })}${lab('Porte', c.gate, { vs: 26 })}${lab('Siège', c.seat, { vs: 26 })}</div></div></div><div style="border-left:2px dashed #b9c9dc;width:240px;padding:16px 18px;display:grid;gap:8px;align-content:start"><b style="color:${bl};font-size:15px;letter-spacing:.06em">${c.cls.toUpperCase()}</b><b style="font-size:26px;color:#0b2a5b">${c.fi} – ${c.ti}</b>${lab('Nom', c.pax, { vs: 13 })}<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">${lab('Vol', c.fl, { vs: 14 })}${lab('Porte', c.gate, { vs: 14 })}${lab('Date', c.dt, { vs: 12 })}${lab('Siège', c.seat, { vs: 14 })}</div>${c.bc(30)}</div></div>${foot(c, '#dbeeff', '#0b2a5b')}`, 'background:#dbeeff;border-radius:24px'); };
-S[3] = (c, t) => { const bl = '#3a8fd6';
-  return R(`<div style="background:${bl};padding:8px 8px 0"><div style="display:flex;background:#fff;border-radius:18px;overflow:hidden;position:relative"><div style="display:flex;gap:14px;flex:1;padding:16px 18px"><div style="color:#8bbbe3;font-size:44px;line-height:1">✈</div>${vb(c, 190, 40)}<div style="flex:1"><div style="display:flex;align-items:center;gap:14px"><b style="color:${bl};font-size:15px;letter-spacing:.04em">BOARDING PASS</b><span style="color:${bl};font-size:20px;font-weight:300">${c.air}</span></div><div style="margin-top:10px;display:flex;justify-content:space-between"><div><b style="font-size:30px">${c.nm}</b><div style="font-size:8px;letter-spacing:.2em;color:${bl}">NAME OF PASSENGER</div></div><div style="text-align:center"><b style="font-size:26px">${c.gate}</b><div style="font-size:8px;color:${bl};letter-spacing:.2em">GATE</div></div></div><div style="display:flex;gap:16px;margin-top:12px;align-items:flex-end"><div style="flex:1;font-size:12px;line-height:2"><span style="color:${bl};font-size:9px;letter-spacing:.15em">FROM</span> <b style="font-size:17px">${c.fc} / ${c.fi}</b><br><span style="color:${bl};font-size:9px;letter-spacing:.15em">TO</span> <b style="font-size:17px">${c.tc} / ${c.ti}</b></div><div style="width:84px;height:84px">${c.qr}</div></div><div style="display:flex;gap:18px;margin-top:10px;font-size:14px"><span><small style="color:${bl};font-size:8px;letter-spacing:.15em">FLIGHT</small> <b>${c.fl}</b></span><span><small style="color:${bl};font-size:8px;letter-spacing:.15em">DATE</small> <b>${c.dt}</b></span><span><small style="color:${bl};font-size:8px;letter-spacing:.15em">DEPARTURE</small> <b>${c.dep}</b></span><span><small style="color:${bl};font-size:8px;letter-spacing:.15em">BOARDING</small> <b>${c.bo}</b></span></div></div></div><div style="border-left:3px dotted ${bl};width:210px;padding:16px 18px;display:grid;gap:8px;align-content:start"><div style="text-align:right;color:${bl};font-size:26px">✈</div><b style="font-size:17px">${c.nm}</b><div style="font-size:11px;line-height:1.6">${c.fc} (${c.fi})<br>→ ${c.tc} (${c.ti})</div><div style="display:flex;justify-content:space-between"><span><small style="color:${bl};font-size:8px">SEAT</small><br><b style="font-size:24px">${c.seat}</b></span><span style="text-align:right"><small style="color:${bl};font-size:8px">CLASS</small><br><b style="font-size:24px">${c.cl1}</b></span></div><div style="font-size:11px">${c.dt} · ${c.dep}</div></div></div></div>${foot(c, bl, '#fff')}`, 'background:#3a8fd6;border-radius:22px'); };
-S[4] = (c, t) => { const g = '#2e4a2a', bd = `border:1px solid ${g};`, cell = (l, v, s = 1, b) => `<div style="grid-column:span ${s};${bd}margin:-.5px;padding:3px 5px"><div style="font-size:7px;letter-spacing:.08em;color:#4d6a47">${l}</div><div style="font-size:${b || 11}px;white-space:nowrap;overflow:hidden">${v}</div></div>`, ft = c.f;
-  return R(`<div style="display:flex;background:repeating-linear-gradient(0deg,#0000 0 3px,#2e4a2a0d 3px 4px),#e6f1d6;${MONO}color:${g};padding:8px"><div style="flex:1;display:grid;grid-template-columns:repeat(12,1fr);${bd}align-content:start"><div style="grid-column:span 6;padding:4px 6px;font-size:9px;letter-spacing:.06em"><b>PASSENGER TICKET AND BAGGAGE CHECK</b><br>SUBJECT TO CONDITIONS OF CONTRACT</div><div style="grid-column:span 4;padding:6px;text-align:center;font-size:16px;font-weight:700;letter-spacing:.1em">FLIGHT COUPON</div><div style="grid-column:span 2;padding:6px;text-align:right;font-size:11px">1 OF 1</div>${cell('DATE OF ISSUE', new Date().toLocaleDateString('fr-FR').replace(/\//g, '.'), 3)}${cell('TICKET NUMBER', c.tn, 5)}${cell('IATA · BSP', c.pnr, 4)}${cell('NAME OF PASSENGER', c.pax, 12, 15)}${cell('FROM', c.fc + ' ' + c.fi, 4, 13)}${cell('TO', c.tc + ' ' + c.ti, 4, 13)}${cell('CARRIER', c.air, 4, 12)}${cell('FLIGHT', c.fl, 3)}${cell('CLASS', c.cl1 + ' · ' + c.cls, 3)}${cell('DATE', c.dt, 3)}${cell('TIME', c.dep, 1)}${cell('ST', 'OK', 2)}${cell('FARE CALCULATION', c.fi + ' ' + c.L.c + ' ' + c.ti + ' ' + t.dist + 'K ' + (c.ns ? '/ VIA ' + t.stops.join('-') : 'NONSTOP') + ' END', 12, 10)}${cell('FARE', ft(t.fare), 4, 12)}${cell('TAXES / OPTIONS', ft((t.ins || 0) + (t.bagA || 0)), 4, 12)}${cell('TOTAL', '<b>' + ft(t.total) + '</b>', 4, 14)}</div><div style="width:210px;padding:0 0 0 10px;display:grid;align-content:start;gap:6px;font-size:10px"><b style="font-size:11px">PASSENGER COUPON</b>${c.nm}<br>${c.fi} → ${c.ti}<br>${c.fl} · ${c.dt}<br>SEAT ${c.seat} · GATE ${c.gate}<div style="margin-top:6px">${c.bc(60)}</div><div style="font-size:9px;letter-spacing:.12em;text-align:center">${c.tn}</div></div></div>${foot(c, '#cfe0bd', g)}`); };
-S[5] = (c, t) => { const gr = '#1f8a5b', fm = (l, v, w) => `<div style="${w ? 'width:' + w : ''}"><div style="font-size:8px;${MONO}">${l}</div><div style="${MONO}font-size:14px;font-weight:700">${v}</div></div>`;
-  return R(`<div style="background:#dff3ea;padding:12px"><div style="display:flex;background:#fff;border-radius:16px;overflow:hidden;background-image:radial-gradient(#d5e4dc 1px,#0000 1.4px);background-size:9px 9px"><div style="flex:1;padding:16px 20px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><b style="color:${gr};font-size:26px">${c.air}</b><div style="${MONO}font-size:10px;text-align:right;line-height:1.4">BOARDING PASS<br>ELECTRONIC TICKET<br>${c.tn}<br>${c.pnr}</div></div><div style="display:flex;gap:26px;margin:14px 0 8px">${fm('FLIGHT', c.fl)}${fm('DATE', c.dt)}${fm('CLASS', c.cl1)}${fm('GATE', c.gate)}${fm('DEPARTS', c.dep)}</div><div style="display:flex;gap:40px;margin-bottom:10px">${fm('ORIGIN', c.fc.toUpperCase() + ' (' + c.fi + ')')}${fm('DESTINATION', c.tc.toUpperCase() + ' (' + c.ti + ')')}</div><div style="${MONO}font-size:12px;margin:10px 0 6px">${c.pax.toUpperCase()} · GATE CLOSES 15 MINUTES BEFORE DEPARTURE</div><div style="display:flex;gap:14px;align-items:center"><div style="width:100px;height:100px;flex:none">${c.qr}</div><div style="flex:1">${c.bc(56)}</div></div></div><div style="display:flex;align-items:center;padding:0 6px">${vb(c, 190, 36)}</div><div style="width:200px;padding:16px;border-left:1px dashed #9db8a9;display:grid;gap:8px;align-content:start"><div style="${MONO}font-size:9px">BOARDING PASS<br>${c.tn}</div><div style="border:2px solid #111;text-align:center;padding:4px"><small style="font-size:8px">SEAT</small><br><b style="font-size:34px">${c.seat}</b><div style="font-size:9px;border-top:1px solid #111">ZONE ${c.zone}</div></div>${fm('FLIGHT', c.fl)}${fm('ORIGIN', c.fi)}${fm('DEST.', c.ti)}</div></div></div>${foot(c, '#cdebdc', '#14573a')}`, 'background:#dff3ea;border-radius:18px'); };
-S[6] = (c, t) => { const rd = '#d9242f', nv = '#1c2373', hd = `<div style="background:${nv};color:#fff;height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 16px"><span style="font-size:20px">✈</span><b style="letter-spacing:.06em;font-size:14px">BOARDING PASS</b></div>`, g = (l, v, o) => lab(l, v, { ls: 8.5, vs: 15, vc: '#1c2373', ...o });
-  return R(`<div style="display:flex;background:#fff;border-radius:12px;overflow:hidden"><div style="width:76px;background:${rd};color:#fff;position:relative"><b style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-90deg);font-size:20px;letter-spacing:.08em;white-space:nowrap;text-transform:uppercase">${c.air}</b></div><div style="flex:1">${hd}<div style="padding:16px 20px;display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px 18px">${g('Passager', c.pax, { s: 'grid-column:span 3' })}${g('De', c.fc + ' (' + c.fi + ')')}${g('Vol', c.fl)}${g('Date', c.dt)}${g('Vers', c.tc + ' (' + c.ti + ')')}${g('Heure', c.dep, { vc: rd, vs: 20 })}${g('Porte / Siège', c.gate + ' · ' + c.seat)}<div style="grid-column:span 3">${c.bc(44)}</div></div></div><div style="width:230px;border-left:2px dashed #c9cdd8"><div style="background:${nv};color:#fff;height:38px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;letter-spacing:.06em">BOARDING PASS</div><div style="padding:12px 16px;display:grid;gap:6px;font-size:11px">${g('Passager', c.pax, { vs: 12 })}${g('De', c.fi + ' → ' + c.ti, { vs: 13 })}<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">${g('Vol', c.fl, { vs: 13 })}${g('Date', c.dt, { vs: 11 })}${g('Porte', c.gate, { vs: 13 })}${g('Siège', c.seat, { vs: 13 })}</div></div></div></div>${foot(c, '#f1f2f7', nv)}`, 'background:#fff;border-radius:14px'); };
-S[7] = (c, t) => { const bl = '#1a4f9c', ln = 'border-bottom:1px solid #444;', g = (l, v, w, o = '') => `<div style="${w ? 'width:' + w : ''}"><div style="font-size:7.5px;font-style:italic;color:#555">${l}</div><div style="${MONO}font-size:14px;${ln}padding:2px 0 1px;${o}">${v}</div></div>`;
-  return R(`<div style="display:flex;background:#fbf6d6;border:1px solid #bbb"><div style="flex:1;padding:14px 18px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:8px;font-style:italic">Class | Classe<br><b style="${MONO}font-size:14px;font-style:normal">${c.cls.toUpperCase()}</b></div>${brand(c.L, bl, 20)}</div><div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px 16px">${g('Flight &amp; Date | Vol et date', c.fl + ' · ' + c.dn)}${g('Gate | Porte', c.gate)}${g('Seat | Place', c.seat)}</div><div style="display:flex;gap:12px;margin:10px 0;align-items:center"><span style="color:${bl};font-size:16px">▶</span><div style="font-size:8px;font-style:italic;color:#a33">Boarding time<br>Heure d’embarquement</div><b style="${MONO}font-size:17px">${c.bo}</b></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px">${g('From | De', c.fc)}${g('To | Destination', c.tc)}${g('Name | Nom', c.pax)}${g('Airline use | À usage interne', c.tn.slice(0, 17))}</div><div style="margin-top:12px;color:${bl};font-size:10px"><b>Boarding pass</b> | Carte d’accès à bord</div></div><div style="width:100px;padding:10px 0;display:flex;justify-content:center">${vb(c, 190, 54)}</div><div style="width:200px;padding:14px 14px 14px 8px;display:grid;gap:7px;align-content:start;border-left:1px dashed #999">${g('Name | Nom', c.nm, '', 'font-size:12px')}${g('Seat &amp; class | Place et classe', c.seat + ' ' + c.cl1)}${g('From | De', c.fc, '', 'font-size:12px')}${g('To | Destination', c.tc, '', 'font-size:12px')}<div style="border:1px solid #777;height:42px;font-size:8px;font-style:italic;padding:2px 4px">Remarks | Observations</div></div></div>${foot(c, '#f1e9b8', '#4a3f10')}`, 'background:#fbf6d6'); };
-S[8] = (c, t) => { const nv = '#10236b', bx = (l, v, w, lc) => `<div style="width:${w}"><div style="font-size:8px;letter-spacing:.14em;color:${lc || '#243a8a'}">${l}</div><div style="background:#fff;border:1px solid #c9d2ee;border-radius:5px;padding:6px 8px;font-weight:700;font-size:14px;color:#10236b;white-space:nowrap;overflow:hidden">${v}</div></div>`, sb = (l, v) => `<div><div style="font-size:7.5px;letter-spacing:.14em;color:#cfd8ff">${l}</div><div style="background:#fff;border-radius:4px;padding:3px 7px;font-size:12px;font-weight:700;color:#10236b">${v}</div></div>`;
-  return R(`<div style="display:flex;background:linear-gradient(135deg,#0d1f66,#1d4ed8 55%,#0d1f66);border-radius:18px;overflow:hidden"><div style="flex:1"><div style="display:flex;justify-content:space-between;align-items:center;padding:12px 22px;color:#fff">${brand(c.L, '#fff', 18)}<div style="display:flex;gap:10px;color:#10236b"><div style="width:96px">${bx('CLASS', c.cl1, '100%', '#cfd8ff')}</div><div style="width:96px">${bx('SEAT', c.seat, '100%', '#cfd8ff')}</div><div style="width:96px">${bx('GATE', c.gate, '100%', '#cfd8ff')}</div></div></div><div style="background:repeating-radial-gradient(circle at 20% 120%,#0000 0 14px,#ffffff77 14px 16px),linear-gradient(120deg,#e6ebff,#c8d4ff 60%,#e6ebff);padding:14px 22px 16px;position:relative"><b style="letter-spacing:.2em;font-size:13px;color:${nv}">BOARDING PASS</b><div style="display:flex;gap:12px;margin:10px 0">${bx('DATE', c.dt, '150px')}${bx('BOARDING TIME', c.bo, '150px')}${bx('DEPARTURE', c.dep, '130px')}</div><div style="display:grid;gap:8px">${bx('FROM', c.fc + ' (' + c.fi + ')' + (c.ns ? ' · ' + c.vs : ''), '330px')}${bx('TO', c.tc + ' (' + c.ti + ')', '330px')}${bx('NAME OF PASSENGER', c.pax, '330px')}</div><div style="position:absolute;right:20px;bottom:16px;width:150px;background:#fff;padding:6px;border-radius:6px">${c.bc(52)}</div></div></div><div style="width:210px;border-left:2px dashed #ffffff88;padding:12px 16px;display:grid;gap:7px;align-content:start;color:#fff"><b style="font-size:13px">${c.air}</b>${sb('NAME', c.nm)}${sb('FROM', c.fi)}${sb('TO', c.ti)}${sb('DATE / TIME', c.dt + ' ' + c.dep)}${sb('GATE / SEAT', c.gate + ' / ' + c.seat)}${sb('FLIGHT', c.fl)}</div></div>${foot(c, '#0d1f66', '#fff')}`, 'background:#0d1f66;border-radius:20px'); };
-function tk(t) { const c = ctx(t); return (S[t.style] || S[2])(c, t); }
-async function snap(t) { const h = document.createElement('div'); h.style.cssText = 'position:fixed;left:-9999px;top:0;width:760px'; h.innerHTML = tk(t); document.body.appendChild(h); try { return await html2canvas(h.firstElementChild, { scale: 2, backgroundColor: null, useCORS: true, logging: false }); } finally { h.remove(); } }
+// Logo compagnie : pictogramme + nom (le nom est un champ .fit, donc jamais coupé hors de sa case)
+const brand = (L, c, s) => `<span class="brand" style="color:${c}"><svg viewBox="0 0 64 36" width="${Math.round(s * 1.7)}" height="${s}" style="display:block"><g stroke="${c}" stroke-width="2" stroke-linecap="round" opacity=".55"><path d="M2 12h12M6 20h14M2 28h10"/></g><path fill="${c}" transform="translate(22 1) rotate(-28 16 17) scale(1.35)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg><b class="fit" style="font-size:${s}px">${esc(L.n)}</b></span>`;
+// Champ : libellé + valeur, chacun sur sa ligne, dans une case de grille
+const fld = (l, v, cls) => `<div class="${cls || ''}"><div class="lb fit">${l}</div><div class="vl fit">${v}</div></div>`;
+// Code-barres vertical : boîte de taille fixe (th × len), aucune autre pièce n'y entre
+const vb = (c, len, th) => `<div class="vbar" style="width:${th}px;height:${len}px"><div style="position:absolute;left:0;top:0;width:${len}px;height:${th}px;transform-origin:0 0;transform:translateX(${th}px) rotate(90deg)">${c.bc(th)}</div></div>`;
+const NOTE = c => `<div class="tk-note fit">N° de billet ${c.tn} · ${c.pnr} — Document indicatif, non valable pour l’embarquement</div>`;
+const PLANE = 'M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z';
+
+// ===== MODÈLE 1 — NUMÉRIQUE / DASHBOARD =====
+const tkNum = (c, t, id) => `<div class="tk tk-n"${id}>
+<div class="n-head">${brand(c.L, '#fff', 20)}<span class="n-pill fit">${c.cls}</span></div>
+<div class="n-body">
+ <div class="n-main">
+  <div class="n-route">
+   <div class="n-end"><div class="lb fit">Départ</div><div class="n-code fit">${c.fi}</div><div class="n-city fit">${c.fc}</div><div class="n-ctry fit">${c.fk}</div></div>
+   <div class="n-mid"><svg viewBox="0 0 100 30" preserveAspectRatio="xMidYMid meet"><line x1="4" y1="15" x2="96" y2="15" stroke="#2563eb" stroke-width="2" stroke-dasharray="4 4"/><circle cx="4" cy="15" r="3" fill="#2563eb"/><circle cx="96" cy="15" r="3" fill="#2563eb"/><circle cx="50" cy="15" r="13" fill="#eef3fb"/><path fill="#0b2a5b" transform="translate(38 3) rotate(90 12 12)" d="${PLANE}"/></svg><div class="n-dist fit">${c.km}</div><div class="n-via fit">${c.vs}</div></div>
+   <div class="n-end r"><div class="lb fit">Arrivée</div><div class="n-code fit">${c.ti}</div><div class="n-city fit">${c.tc}</div><div class="n-ctry fit">${c.tk}</div></div>
+  </div>
+  <div class="n-grid">
+   ${fld('Passager', c.pax, 'n-t s2')}${fld('Vol', c.fl, 'n-t')}${fld('Date', c.dt, 'n-t')}
+   ${fld('Compagnie', c.air, 'n-t s2')}${fld('Départ', c.dep, 'n-t')}${fld('Embarquement', c.bo, 'n-t')}
+   ${fld('Classe', c.cls, 'n-t')}${fld('Zone', c.zone, 'n-t')}${fld('N° de billet', c.tn, 'n-t s2 mono')}
+  </div>
+ </div>
+ <div class="n-side">
+  <div class="qr">${c.qr}</div>
+  <div class="n-sg">${fld('Siège', c.seat, 'n-t big')}${fld('Porte', c.gate, 'n-t big')}</div>
+  ${fld('Réservation (PNR)', c.pnr, 'n-t sm mono')}
+  <div class="n-bc">${c.bc(44)}</div>
+ </div>
+</div>
+<div class="n-foot">${c.price.map(([l, v], i) => fld(l, v, 'n-p' + (i === 3 ? ' tot' : ''))).join('')}</div>
+${NOTE(c)}
+</div>`;
+
+// ===== MODÈLE 2 — PHYSIQUE / CARNET À SOUCHE EN BANDE =====
+const tkStub = (c, t, id) => `<div class="tk tk-p"${id}>
+<div class="p-strip">
+ <div class="p-cp">
+  <div class="p-hd">${brand(c.L, '#1a3a6e', 20)}<span class="p-ttl fit">BILLET · PNR ${c.pnr}</span></div>
+  <div class="p-fields">
+   ${fld('Passager | Name', c.pax, 'p-f s4')}${fld('Date', c.dt, 'p-f s2')}
+   ${fld('De | From', c.fc + ' (' + c.fi + ')', 'p-f s3')}${fld('Vers | To', c.tc + ' (' + c.ti + ')', 'p-f s3')}
+   ${fld('Vol | Flight', c.fl, 'p-f s2')}${fld('Départ | Dep.', c.dep, 'p-f s2')}${fld('Embarquement', c.bo, 'p-f s2')}
+   ${fld('Classe | Class', c.cls, 'p-f s2')}${fld('Porte | Gate', c.gate, 'p-f s2')}${fld('Siège | Seat', c.seat, 'p-f s2')}
+  </div>
+  ${vb(c, 216, 36)}
+ </div>
+ <div class="p-stub">
+  <div class="p-st-t fit">SOUCHE · PASSAGER</div>
+  ${fld('Nom | Name', c.nm, 'p-f')}
+  <div class="p-rt"><div class="p-cd fit">${c.fi}</div><span>→</span><div class="p-cd fit">${c.ti}</div></div>
+  <div class="p-2">${fld('Vol', c.fl, 'p-f')}${fld('Date', c.dt, 'p-f')}</div>
+  <div class="p-2">${fld('Siège', c.seat, 'p-f')}${fld('Porte', c.gate, 'p-f')}</div>
+  <div class="p-bc">${c.bc(38)}</div>
+ </div>
+</div>
+<div class="p-foot">${c.price.map(([l, v], i) => fld(l, v, 'p-p' + (i === 3 ? ' tot' : ''))).join('')}</div>
+${NOTE(c)}
+</div>`;
+
+function tk(t, noId) { const c = ctx(t), id = noId ? '' : ' id="receipt-sheet"'; return sty(t.style) === 1 ? tkStub(c, t, id) : tkNum(c, t, id); }
+async function snap(t) { const h = document.createElement('div'); h.style.cssText = 'position:fixed;left:-9999px;top:0;width:760px'; h.innerHTML = tk(t); document.body.appendChild(h); try { fitAll(h); await nextFrame(); return await html2canvas(h.firstElementChild, { scale: 2, backgroundColor: null, useCORS: true, logging: false }); } finally { h.remove(); } }
 async function sendFile(blob, name, type, title) { const file = new File([blob], name, { type }); if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title }); return; } catch (e) { if (e && e.name === 'AbortError') return; } } const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
 async function shareT(t, pdf) {
-  try { toast('Préparation du billet…'); const cv = await snap(t), w = cv.width / 2, h = cv.height / 2;
-    if (pdf) { const d = new window.jspdf.jsPDF({ orientation: 'l', unit: 'px', format: [w, h], hotfixes: ['px_scaling'] }); d.addImage(cv.toDataURL('image/png'), 'PNG', 0, 0, w, h); await sendFile(d.output('blob'), 'Billet-' + t.pnr + '.pdf', 'application/pdf', 'Billet ' + t.pnr); }
-    else { const blob = await new Promise(r => cv.toBlob(r, 'image/png')); await sendFile(blob, 'Billet-' + t.pnr + '.png', 'image/png', 'Billet ' + t.pnr); } }
-  catch (e) { toast('Impossible de préparer le billet : ' + (e.message || e), 'error'); }
+  try { toast('Préparation du reçu…'); const cv = await snap(t), w = cv.width / 2, h = cv.height / 2;
+    if (pdf) { const d = new window.jspdf.jsPDF({ orientation: 'l', unit: 'px', format: [w, h], hotfixes: ['px_scaling'] }); d.addImage(cv.toDataURL('image/png'), 'PNG', 0, 0, w, h); await sendFile(d.output('blob'), 'Recu-' + t.pnr + '.pdf', 'application/pdf', 'Reçu ' + t.pnr); }
+    else { const blob = await new Promise(r => cv.toBlob(r, 'image/png')); await sendFile(blob, 'Recu-' + t.pnr + '.png', 'image/png', 'Reçu ' + t.pnr); } }
+  catch (e) { toast('Impossible de préparer le reçu : ' + (e.message || e), 'error'); }
 }
 function show(t) {
-  closeReceipt(); const ov = document.createElement('div'); ov.id = 'receipt-overlay'; ov.style.cssText = 'position:fixed;inset:0;z-index:80;background:#111c;overflow:auto;padding:16px 8px 40px';
-  ov.innerHTML = `<div class="no-print" style="max-width:760px;margin:0 auto 12px;display:flex;gap:8px;flex-wrap:wrap"><button id="fl-sh" class="flex-1 bg-swiftblue text-white font-semibold py-3 rounded-xl cursor-pointer">Partager</button><button id="fl-pd" class="bg-white text-swiftblue font-semibold px-4 py-3 rounded-xl cursor-pointer">PDF</button><button id="fl-it" class="bg-white text-swiftblue font-semibold px-4 py-3 rounded-xl cursor-pointer">Itinéraire</button><button id="fl-x" class="bg-white text-gray-800 font-semibold px-4 py-3 rounded-xl cursor-pointer">Fermer</button></div><div style="overflow-x:auto"><div id="receipt-zoom" style="width:760px;margin:0 auto;zoom:${Math.min(1, (innerWidth - 16) / 760).toFixed(3)}">${tk(t)}</div></div>`;
-  document.body.appendChild(ov); $('fl-x').onclick = closeReceipt; $('fl-it').onclick = () => itin(t); $('fl-sh').onclick = () => shareT(t, false); $('fl-pd').onclick = () => shareT(t, true);
+  closeReceipt(); const ov = document.createElement('div'); ov.id = 'receipt-overlay'; ov.className = 'tk-mode'; ov.style.cssText = 'position:fixed;inset:0;z-index:80;background:#111c;overflow:auto;padding:16px 8px 40px';
+  ov.innerHTML = `<div class="no-print" style="max-width:760px;margin:0 auto 12px;display:flex;gap:8px;flex-wrap:wrap"><button id="fl-sh" class="flex-1 bg-swiftblue text-white font-semibold py-3 rounded-xl cursor-pointer">Partager</button><button id="fl-pd" class="bg-white text-swiftblue font-semibold px-4 py-3 rounded-xl cursor-pointer">PDF</button><button id="fl-pr" class="bg-white text-swiftblue font-semibold px-4 py-3 rounded-xl cursor-pointer">Imprimer</button><button id="fl-it" class="bg-white text-swiftblue font-semibold px-4 py-3 rounded-xl cursor-pointer">Itinéraire</button><button id="fl-x" class="bg-white text-gray-800 font-semibold px-4 py-3 rounded-xl cursor-pointer">Fermer</button></div><div style="overflow-x:auto"><div id="receipt-zoom" style="width:760px;margin:0 auto;zoom:${Math.min(1, (innerWidth - 16) / 760).toFixed(3)}">${tk(t)}</div></div>`;
+  document.body.appendChild(ov); fitAll(ov); requestAnimationFrame(() => fitAll(ov));
+  $('fl-x').onclick = closeReceipt; $('fl-it').onclick = () => itin(t); $('fl-sh').onclick = () => shareT(t, false); $('fl-pd').onclick = () => shareT(t, true); $('fl-pr').onclick = () => window.print();
 }
 const toT = r => ({ ...r.data, pnr: r.pnr, style: +r.style, created_at: r.created_at, cur: r.currency || r.data.cur || 'XAF', rate: +r.rate || +r.data.rate || 1 });
 
@@ -3860,7 +4000,19 @@ const setP = (p, v) => { const a = p.split('.'); let o = ST; for (let i = 0; i <
 const sel = (k, l, o) => { const cur = k.split('.').reduce((x, y) => x[y], ST); return `<div><label class="${LB}">${l}</label><select data-k="${k}" class="${IC}">${o.map(([v, t]) => `<option value="${esc(v)}"${String(cur) === String(v) ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></div>`; };
 const inp = (k, l, a = '') => `<div><label class="${LB}">${l}</label><input data-k="${k}" value="${esc(ST[k])}" ${a} class="${IC}"></div>`;
 const place = (kk, ka, lab) => sel(kk, 'Pays ' + lab, ctry()) + sel(ka, 'Ville / aéroport (' + lab + ')', apOpt(kk.split('.').reduce((x, y) => x[y], ST)));
+// Filtre de cohérence des transporteurs : seules les compagnies qui desservent réellement le trajet sont proposées
+// (pays d'attache sur le parcours ET toutes les escales dans leur zone de desserte).
+const routePts = () => [ST.fa, ...ST.st.map(x => x.a), ST.ta].map(c => APM[c]).filter(Boolean);
+const airOk = (a, R) => R.length > 0 && R.every(p => a.r.includes(p.g)) && R.some(p => a.h.includes(p.k));
+function airList() {
+  const R = routePts(); let l = AL.filter(a => airOk(a, R));
+  if (!l.length) l = AL.filter(a => R.every(p => a.r.includes(p.g)));
+  if (!l.length) l = AL.slice();
+  return l.sort((a, b) => a.n.localeCompare(b.n, 'fr'));
+}
+function syncAir() { const l = airList(); if (!l.some(a => a.c === ST.air)) ST.air = l[0].c; return l; }
 function calc() {
+  syncAir();
   const P = [ST.fa, ...ST.st.map(x => x.a), ST.ta].map(c => APM[c]).filter(Boolean); let d = 0; for (let i = 1; i < P.length; i++) d += hav(P[i - 1], P[i]);
   const fare = Math.round(d * CF.km * CLS[ST.cls][1]), ins = ST.ins ? CF.ins : 0, bagA = ST.bag * CF.bag;
   return { P, d, fare, ins, bagA, total: fare + ins + bagA, fee: Math.round(CF.fee * (100 - CF.promo) / 100), L: ALM[ST.air] };
@@ -3869,7 +4021,7 @@ function check(s) {
   const g = k => String(ST[k] || '').trim();
   if (s === 0 && (!ST.fa || !ST.ta)) return 'Choisissez les aéroports de départ et d’arrivée.';
   if (s <= 1) { const c = [ST.fa, ...ST.st.map(x => x.a), ST.ta]; for (let i = 1; i < c.length; i++) if (c[i] === c[i - 1]) return 'Deux étapes consécutives ne peuvent pas être le même aéroport.'; }
-  if (s === 2) { if (!ST.date) return 'Choisissez la date du vol.'; if (ST.date < today()) return 'La date du vol est dans le passé.'; }
+  if (s === 2) { if (!airList().some(a => a.c === ST.air)) return 'Cette compagnie ne dessert pas ce trajet.'; if (!ST.date) return 'Choisissez la date du vol.'; if (ST.date < today()) return 'La date du vol est dans le passé.'; }
   if (s === 3) { for (const [k, l] of [['nom', 'le nom'], ['pre', 'le prénom'], ['dob', 'la date de naissance'], ['pass', 'le n° de passeport / CNI'], ['exp', 'la date d’expiration'], ['ecn', 'le contact d’urgence (nom)'], ['ect', 'le contact d’urgence (téléphone)']]) if (!g(k)) return 'Renseignez ' + l + '.'; if (g('dob') >= today()) return 'Date de naissance invalide.'; if (g('exp') <= ST.date) return 'Le document expire avant la date du vol.'; }
   return '';
 }
@@ -3877,14 +4029,15 @@ function body() {
   const s = ST.s;
   if (s === 0) return place('fk', 'fa', 'de départ') + '<div class="h-px bg-gray-100"></div>' + place('tk', 'ta', 'd’arrivée');
   if (s === 1) return sel('n', 'Nombre d’escales (max ' + CF.stops + ')', Array.from({ length: CF.stops + 1 }, (_, i) => [i, i + ' escale(s)'])) + (ST.st.length ? ST.st.map((x, i) => `<div class="space-y-3 rounded-2xl bg-gray-50 p-3"><p class="text-xs font-bold text-swiftblue">Escale ${i + 1}</p>${place('st.' + i + '.k', 'st.' + i + '.a', 'de l’escale')}</div>`).join('') : '<p class="text-sm text-gray-500">Vol direct, sans escale.</p>');
-  if (s === 2) return inp('date', 'Date du vol', `type="date" min="${today()}"`) + sel('cls', 'Classe', Object.entries(CLS).map(([k, x]) => [k, x[0] + ' (×' + x[1] + ')'])) + sel('air', 'Compagnie aérienne', AL.map(a => [a.c, a.n])) + sel('cur', 'Devise affichée sur le reçu', Object.entries(CUR).map(([k, x]) => [k, x[0]])) + '<p class="text-xs text-gray-500">Les tarifs sont fixés en FCFA puis convertis automatiquement dans la devise choisie.</p>';
+  if (s === 2) return inp('date', 'Date du vol', `type="date" min="${today()}"`) + sel('cls', 'Classe', Object.entries(CLS).map(([k, x]) => [k, x[0] + ' (×' + x[1] + ')'])) + sel('air', 'Compagnie aérienne', syncAir().map(a => [a.c, a.n])) + sel('cur', 'Devise affichée sur le reçu', Object.entries(CUR).map(([k, x]) => [k, x[0]])) + '<p class="text-xs text-gray-500">Seules les compagnies qui desservent ce trajet sont proposées. Les tarifs sont fixés en FCFA puis convertis automatiquement dans la devise choisie.</p>';
   if (s === 3) return sel('civ', 'Civilité', [['M.', 'M.'], ['Mme', 'Mme'], ['Mlle', 'Mlle']]) + inp('nom', 'Nom') + inp('pre', 'Prénom') + inp('dob', 'Date de naissance', 'type="date"') + sel('nat', 'Nationalité', COUNTRIES.map(c => [c, c])) + inp('pass', 'N° passeport / CNI') + inp('exp', 'Date d’expiration', 'type="date"') + inp('ecn', 'Contact d’urgence (nom)') + inp('ect', 'Contact d’urgence (téléphone)', 'type="tel"');
   const c = calc(), cu = ST.cur, z = Math.min(1, (innerWidth - 56) / 760);
-  return `<label class="flex items-center gap-3 text-sm font-semibold"><input data-k="ins" type="checkbox" class="w-5 h-5" ${ST.ins ? 'checked' : ''}> Assurance voyage (${fmtC(CF.ins, cu)})</label>` + sel('bag', 'Bagages supplémentaires (' + fmtC(CF.bag, cu) + ' l’unité)', [0, 1, 2, 3].map(n => [n, n + ' bagage(s)'])) + sel('style', 'Style du billet', STY) + `<div class="text-xs text-gray-700 bg-gray-50 rounded-xl p-3 leading-6">Itinéraire : <b>${[ST.fa, ...ST.st.map(x => x.a), ST.ta].join(' → ')}</b><br>Distance : <b>${c.d} km</b> · Prix du billet : <b>${fmtC(c.total, cu)}</b>${cu !== 'XAF' && cu !== 'XOF' ? ' <span class="text-gray-500">(' + money(c.total) + ')</span>' : ''}<br>Frais de génération débités du portefeuille : <b>${money(c.fee)}</b>${CF.promo ? ' <span class="text-green-600">(−' + CF.promo + ' % offre)</span>' : ''}</div>`;
+  return `<label class="flex items-center gap-3 text-sm font-semibold"><input data-k="ins" type="checkbox" class="w-5 h-5" ${ST.ins ? 'checked' : ''}> Assurance voyage (${fmtC(CF.ins, cu)})</label>` + sel('bag', 'Bagages supplémentaires (' + fmtC(CF.bag, cu) + ' l’unité)', [0, 1, 2, 3].map(n => [n, n + ' bagage(s)'])) + sel('style', 'Modèle du reçu', STY) + (() => { try { return `<p class="text-xs font-semibold text-gray-700">Aperçu du modèle choisi</p><div style="overflow-x:auto"><div style="width:760px;zoom:${z.toFixed(3)}">${tk(mkT(c), true)}</div></div>`; } catch (e) { return ''; } })() + `<div class="text-xs text-gray-700 bg-gray-50 rounded-xl p-3 leading-6">Itinéraire : <b>${[ST.fa, ...ST.st.map(x => x.a), ST.ta].join(' → ')}</b><br>Distance : <b>${c.d} km</b> · Prix du billet : <b>${fmtC(c.total, cu)}</b>${cu !== 'XAF' && cu !== 'XOF' ? ' <span class="text-gray-500">(' + money(c.total) + ')</span>' : ''}<br>Frais de génération débités du portefeuille : <b>${money(c.fee)}</b>${CF.promo ? ' <span class="text-green-600">(−' + CF.promo + ' % offre)</span>' : ''}</div>`;
 }
 function draw() {
   const v = $('new-fly'), last = ST.s === STEPS.length - 1;
   v.innerHTML = `<div class="space-y-4"><div><div class="flex justify-between text-xs font-semibold text-gray-500 mb-1"><span>Étape ${ST.s + 1} / ${STEPS.length}</span><span>${STEPS[ST.s][0]}</span></div><div class="h-2 rounded-full bg-gray-200 overflow-hidden"><div class="h-full bg-swiftblue rounded-full" style="width:${(ST.s + 1) / STEPS.length * 100}%"></div></div></div>${CARD(STEPS[ST.s][0], STEPS[ST.s][1], body())}<div class="flex gap-3">${ST.s ? '<button type="button" id="f-prev" class="px-5 py-3.5 rounded-xl border border-gray-300 bg-white font-semibold cursor-pointer">← Retour</button>' : ''}<button type="button" id="${last ? 'f-pay' : 'f-next'}" class="flex-1 bg-swiftblue text-white font-semibold py-3.5 rounded-xl shadow-md cursor-pointer">${last ? 'Payer ' + money(calc().fee) + ' et générer le billet' : 'Suivant →'}</button></div></div>`;
+  fitAll(v); requestAnimationFrame(() => fitAll(v));
   v.querySelectorAll('[data-k]').forEach(e => e.addEventListener(e.tagName === 'SELECT' || e.type === 'checkbox' || e.type === 'radio' ? 'change' : 'input', () => {
     if (e.type === 'radio' && !e.checked) return; const k = e.dataset.k; let val = e.type === 'checkbox' ? e.checked : e.value; if (k === 'bag' || k === 'n' || k === 'style') val = +val; setP(k, val);
     if (k === 'fk') ST.fa = (aps(val)[0] || {}).i || ''; if (k === 'tk') ST.ta = (aps(val)[0] || {}).i || '';
@@ -3919,10 +4072,10 @@ async function pay() {
   finally { busy = false; const b = $('f-pay'); if (b) b.disabled = false; }
 }
 async function mine() {
-  const b = $('view-tickets'), H = '<h2 class="text-lg font-bold text-gray-900 px-1">✈️ Mes billets d\'avion</h2>'; b.innerHTML = H + '<p class="text-center text-gray-500 py-6">Chargement...</p>';
+  const b = $('view-tickets'), H = '<h2 class="text-lg font-bold text-gray-900 px-1">🧾 Mes reçus de voyage</h2>'; b.innerHTML = H + '<p class="text-center text-gray-500 py-6">Chargement...</p>';
   const { data, error } = await supabaseClient.from('sw_flight_tickets').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
   if (error) { b.innerHTML = H; return toast('Erreur : ' + error.message, 'error'); }
-  MY = data; b.innerHTML = H + (data.length ? data.map((r, i) => `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mt-3"><div class="flex items-center justify-between gap-2"><div><p class="font-bold">${esc(r.route)} · ${esc(r.data.date)}</p><p class="text-xs text-gray-500">${esc(r.data.an)} · ${esc(r.data.flight)} · PNR ${esc(r.pnr)}</p></div><b class="text-sm text-swiftblue">${fmtC(r.total, r.currency || 'XAF', +r.rate || 1)}</b></div><div class="flex gap-2 mt-3"><button data-i="${i}" class="fl-v flex-1 text-sm font-semibold text-white bg-swiftblue rounded-full py-2 cursor-pointer">Voir le billet</button><button data-i="${i}" class="fl-i flex-1 text-sm font-semibold text-swiftblue bg-blue-50 rounded-full py-2 cursor-pointer">Itinéraire</button></div></div>`).join('') : '<div class="bg-white rounded-3xl border border-gray-100 p-8 text-center mt-3"><p class="text-gray-500 mb-4">Vous n\'avez pas encore de billet d\'avion.</p><button type="button" id="fl-new" class="bg-swiftblue text-white font-semibold px-5 py-3 rounded-xl cursor-pointer">Créer mon premier billet</button></div>');
+  MY = data; b.innerHTML = H + (data.length ? data.map((r, i) => `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mt-3"><div class="flex items-center justify-between gap-2"><div><p class="font-bold">${esc(r.route)} · ${esc(r.data.date)}</p><p class="text-xs text-gray-500">${esc(r.data.an)} · ${esc(r.data.flight)} · PNR ${esc(r.pnr)}</p></div><b class="text-sm text-swiftblue">${fmtC(r.total, r.currency || 'XAF', +r.rate || 1)}</b></div><div class="flex gap-2 mt-3"><button data-i="${i}" class="fl-v flex-1 text-sm font-semibold text-white bg-swiftblue rounded-full py-2 cursor-pointer">Voir le reçu</button><button data-i="${i}" class="fl-i flex-1 text-sm font-semibold text-swiftblue bg-blue-50 rounded-full py-2 cursor-pointer">Itinéraire</button></div></div>`).join('') : '<div class="bg-white rounded-3xl border border-gray-100 p-8 text-center mt-3"><p class="text-gray-500 mb-4">Vous n\'avez pas encore de reçu de voyage.</p><button type="button" id="fl-new" class="bg-swiftblue text-white font-semibold px-5 py-3 rounded-xl cursor-pointer">Créer mon premier reçu</button></div>');
   const nb = $('fl-new'); if (nb) nb.onclick = () => { showTab('new'); setNewMode('fly'); };
   b.querySelectorAll('.fl-v').forEach(x => x.onclick = () => show(toT(MY[x.dataset.i]))); b.querySelectorAll('.fl-i').forEach(x => x.onclick = () => itin(toT(MY[x.dataset.i])));
 }
@@ -3949,7 +4102,7 @@ window.flyCfg = async (M) => {
   if ($('fly-promo') && window.flyPromoMount) window.flyPromoMount($('fly-promo'));
 };
 window.flyCF = () => CF; window.flyAsk = ask;
-const LBL = { nom: 'Nom', pre: 'Prénom', civ: 'Civilité', dob: 'Naissance', nat: 'Nationalité', pass: 'Passeport / CNI', exp: 'Expiration document', ecn: 'Contact urgence (nom)', ect: 'Contact urgence (tél.)', from: 'Départ', to: 'Arrivée', stops: 'Escales', date: 'Date du vol', dep: 'Heure départ', board: 'Embarquement', flight: 'N° de vol', seat: 'Siège', cls: 'Classe', an: 'Compagnie', ac: 'Code compagnie', dist: 'Distance (km)', fare: 'Tarif de base (FCFA)', ins: 'Assurance (FCFA)', bags: 'Bagages', bagA: 'Bagages (FCFA)', total: 'Total (FCFA)', style: 'Style du billet', cur: 'Devise', rate: 'Taux (FCFA / unité)' };
+const LBL = { nom: 'Nom', pre: 'Prénom', civ: 'Civilité', dob: 'Naissance', nat: 'Nationalité', pass: 'Passeport / CNI', exp: 'Expiration document', ecn: 'Contact urgence (nom)', ect: 'Contact urgence (tél.)', from: 'Départ', to: 'Arrivée', stops: 'Escales', date: 'Date du vol', dep: 'Heure départ', board: 'Embarquement', flight: 'N° de vol', seat: 'Siège', cls: 'Classe', an: 'Compagnie', ac: 'Code compagnie', dist: 'Distance (km)', fare: 'Tarif de base (FCFA)', ins: 'Assurance (FCFA)', bags: 'Bagages', bagA: 'Bagages (FCFA)', total: 'Total (FCFA)', style: 'Modèle du reçu', cur: 'Devise', rate: 'Taux (FCFA / unité)' };
 async function adminOpen(r) {
   const t = toT(r), d = $('x-drawer'), f = x => fmtC(x, t.cur, t.rate), z = Math.min(1, (Math.min(innerWidth, 600) - 40) / 760).toFixed(3);
   let u = {}; try { const { data } = await supabaseClient.from('sw_profiles').select('*').eq('id', r.user_id).maybeSingle(); u = data || {}; } catch (e) {}
@@ -3958,11 +4111,11 @@ async function adminOpen(r) {
   const main = [['Trajet', r.route + (t.stops && t.stops.length ? ' via ' + t.stops.map(stopTxt).join(', ') : '')], ['Compagnie / vol', `${t.an} · ${t.flight}`], ['Date / départ', `${t.date} · ${t.dep}`], ['Classe / siège', `${CLS[t.cls][0]} · ${t.seat}`], ['Total du billet', f(t.total) + (t.cur !== 'XAF' ? ' (' + money(t.total) + ')' : '')], ['Frais débités au client', money(r.fee)], ['Créé le', fmtDate(r.created_at)]];
   d.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><h3 style="font-weight:800">✈ ${esc(r.pnr)}</h3><button class="x-btn" data-close="1">FERMER ✕</button></div>
   <div class="x-panel"><p class="x-h">CLIENT QUI A CRÉÉ LE BILLET</p><div style="font-size:12px">${(uk.length ? uk.map(k => [k === 'email' ? 'E-mail' : k, u[k]]) : [['ID utilisateur', r.user_id]]).map(kv).join('')}</div></div>
-  <p class="x-h" style="margin-top:14px">APERÇU DU REÇU (tel que vu par le client)</p><div style="overflow-x:auto;padding-bottom:6px"><div style="width:760px;zoom:${z}">${tk(t).replace('id="receipt-sheet"', '')}</div></div>
+  <p class="x-h" style="margin-top:14px">APERÇU DU REÇU (tel que vu par le client)</p><div style="overflow-x:auto;padding-bottom:6px"><div style="width:760px;zoom:${z}">${tk(t, true)}</div></div>
   <div style="display:flex;gap:8px;margin:10px 0"><button id="v-show" class="x-btn go">PLEIN ÉCRAN / IMPRIMER</button><button id="v-it" class="x-btn">ITINÉRAIRE</button></div>
   <div class="x-panel"><p class="x-h">RÉSUMÉ</p><div style="font-size:12px">${main.map(kv).join('')}</div></div>
-  <div class="x-panel"><p class="x-h">TOUTES LES INFORMATIONS SAISIES</p><div style="font-size:12px">${Object.entries(t).filter(([k]) => LBL[k]).map(([k, v]) => kv([LBL[k], k === 'cls' ? CLS[v][0] : k === 'stops' ? (v || []).map(stopTxt) : v])).join('')}</div></div>`;
-  d.classList.add('open'); $('x-veil').style.display = 'block'; d.scrollTop = 0; $('v-show').onclick = () => show(t); $('v-it').onclick = () => itin(t);
+  <div class="x-panel"><p class="x-h">TOUTES LES INFORMATIONS SAISIES</p><div style="font-size:12px">${Object.entries(t).filter(([k]) => LBL[k]).map(([k, v]) => kv([LBL[k], k === 'cls' ? CLS[v][0] : k === 'style' ? STY.find(x => x[0] === sty(v))[1] : k === 'stops' ? (v || []).map(stopTxt) : v])).join('')}</div></div>`;
+  d.classList.add('open'); $('x-veil').style.display = 'block'; d.scrollTop = 0; fitAll(d); requestAnimationFrame(() => fitAll(d)); $('v-show').onclick = () => show(t); $('v-it').onclick = () => itin(t);
 }
 const tRow = (r, i, extra) => `<button class="x-row v-r" data-i="${i}"><span>${esc(r.pnr)} · ${esc(r.route)} · ${esc(r.data.nom)} ${esc(r.data.pre)}</span><span style="color:#7d8da0">${extra}</span></button>`;
 window.flyRadar = async (M, quiet) => {
