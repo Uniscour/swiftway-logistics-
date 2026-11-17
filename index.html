@@ -207,7 +207,7 @@ body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sa
       <button data-tab="track" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">🔎</span><span>Suivre</span></button>
       <button data-tab="wallet" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">💳</span><span>Portefeuille</span></button>
       <button data-tab="help" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">💬</span><span>Messages</span><span id="help-badge" class="dbadge hidden"></span></button>
-      <button data-tab="fly" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer">Vols</button>
+      <button data-tab="tickets" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">✈️</span><span>Mes billets</span></button>
     </div>
     <form id="pwforce-form" class="hidden mb-6 bg-white rounded-3xl shadow-sm border-2 border-amber-300 p-6 space-y-3">
       <h2 class="text-lg font-bold text-gray-900">🔑 Choisissez votre nouveau mot de passe</h2>
@@ -220,7 +220,18 @@ body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sa
     </form>
     <div id="d-alert" class="hidden mb-4 p-4 rounded-xl text-sm text-center font-medium"></div>
     <section id="view-list"><div id="list-filters"></div><div id="list-container"></div></section>
-    <section id="view-new" class="hidden"><form id="new-form" class="space-y-5"></form></section>
+    <section id="view-new" class="hidden">
+      <div id="new-choose" class="space-y-4">
+        <h2 class="text-lg font-bold text-gray-900 px-1">Que souhaitez-vous créer ?</h2>
+        <button type="button" id="pick-fly" class="w-full text-left bg-white rounded-3xl shadow-sm border border-gray-100 p-5 flex items-center gap-4 cursor-pointer hover:shadow-md transition">
+          <span class="text-4xl">✈️</span><span><b class="block text-base text-gray-900">Créer un billet d'avion</b><span class="block text-sm text-gray-500 mt-0.5">Réservez un vol et générez votre billet</span></span></button>
+        <button type="button" id="pick-parcel" class="w-full text-left bg-white rounded-3xl shadow-sm border border-gray-100 p-5 flex items-center gap-4 cursor-pointer hover:shadow-md transition">
+          <span class="text-4xl">📦</span><span><b class="block text-base text-gray-900">Créer un colis</b><span class="block text-sm text-gray-500 mt-0.5">Nouvelle expédition avec reçu A5 et suivi</span></span></button>
+      </div>
+      <div id="new-back" class="hidden mb-3"><button type="button" id="new-back-btn" class="text-sm font-semibold text-swiftblue cursor-pointer">← Changer : colis / billet d'avion</button></div>
+      <form id="new-form" class="space-y-5 hidden"></form>
+      <div id="new-fly" class="hidden"></div>
+    </section>
     <section id="view-track" class="hidden space-y-4">
       <form id="track-form" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
         <h2 class="text-lg font-bold text-gray-900">Suivre un colis</h2>
@@ -253,7 +264,7 @@ body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sa
       <div id="wf"></div>
       <div id="recharge-list"></div>
     </section>
-    <section id="view-fly" class="hidden space-y-4"></section>
+    <section id="view-tickets" class="hidden space-y-4"></section>
     <section id="view-help" class="hidden space-y-4">
       <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-5"><h2 class="text-lg font-bold text-gray-900">Messages &amp; Notifications</h2><div id="help-subnav" class="mt-3"></div></div>
       <div id="support-card" class="hidden bg-white rounded-3xl shadow-sm border border-gray-100 p-6"></div>
@@ -951,7 +962,7 @@ async function openReceipt(s, btn) {
 }
 
 // ---------- ONGLETS & LISTE ----------
-const TABS = ['list', 'new', 'track', 'wallet', 'help', 'fly'];
+const TABS = ['list', 'new', 'track', 'wallet', 'help', 'tickets'];
 function showTab(name) {
   dHide();
   TABS.forEach(t => { const el = $('view-' + t); if (el) el.classList.toggle('hidden', t !== name); });
@@ -961,11 +972,26 @@ function showTab(name) {
   });
   if (name === 'list') loadShipments();
   if (name === 'wallet') loadWallet();
-  if (name === 'fly') flyInit();
+  if (name === 'tickets' && window.ticketsInit) window.ticketsInit();
   if (name === 'help') { loadHelp(); renderSupport(true); } else renderSupport();
   if (name !== 'help') refreshHelpBadge();
-  if (name === 'new') loadPrice().then(setNewLabel);
+  if (name === 'new') { setNewMode(NEW_MODE); loadPrice().then(setNewLabel); }
 }
+// Page « Nouvelle » : choix colis / billet d'avion (le dernier choix est gardé, par ex. pendant une recharge du portefeuille)
+let NEW_MODE = null;
+function setNewMode(m) {
+  NEW_MODE = m || null;
+  $('new-choose').classList.toggle('hidden', !!NEW_MODE);
+  $('new-back').classList.toggle('hidden', !NEW_MODE);
+  $('new-form').classList.toggle('hidden', NEW_MODE !== 'parcel');
+  $('new-fly').classList.toggle('hidden', NEW_MODE !== 'fly');
+  if (NEW_MODE === 'fly' && window.flyInit) window.flyInit();
+  window.scrollTo(0, 0);
+}
+window.setNewMode = setNewMode;
+$('pick-parcel').addEventListener('click', () => setNewMode('parcel'));
+$('pick-fly').addEventListener('click', () => setNewMode('fly'));
+$('new-back-btn').addEventListener('click', () => setNewMode(null));
 function setNewLabel() {
   const b = $('new-btn');
   if (b && !b.disabled) b.textContent = 'Payer ' + fmtMoney(RECEIPT_PRICE) + " et créer l'expédition";
@@ -1110,7 +1136,7 @@ async function loadShipments(openId) {
     setInf('list-filters', 0, 0);
     box.innerHTML = `<div class="bg-white rounded-3xl border border-gray-100 p-8 text-center"><p class="text-gray-500 mb-4">Vous n'avez pas encore d'expédition.</p>
       <button type="button" id="go-new" class="bg-swiftblue text-white font-semibold px-5 py-3 rounded-xl cursor-pointer">Créer ma première expédition</button></div>`;
-    $('go-new').addEventListener('click', () => showTab('new')); return;
+    $('go-new').addEventListener('click', () => { showTab('new'); setNewMode('parcel'); }); return;
   }
   await loadReceiptSet();
   await loadCancelSet();
@@ -1220,7 +1246,7 @@ $('new-form').addEventListener('submit', async (e) => {
   }
   btn.disabled = false; setNewLabel();
   receiptSet.add(data.id);
-  e.target.reset(); $('auto-box').classList.remove('hidden'); syncEta(); clearSig('sig-s'); clearSig('sig-a'); showTab('list');
+  e.target.reset(); $('auto-box').classList.remove('hidden'); syncEta(); clearSig('sig-s'); clearSig('sig-a'); NEW_MODE = null; showTab('list');
   dShow("Paiement confirmé ! Expédition créée · Code de suivi : " + fmtCode(data.tracking_code), 'success');
   showReceipt(data);
 });
@@ -3690,8 +3716,8 @@ function calc() {
 }
 function recap() { const c = calc(), r = $('f-recap'); if (!c.a || c.a === c.b) { r.innerHTML = 'Choisissez deux aéroports différents.'; return c; } r.innerHTML = `Distance : <b>${c.d} km</b> · Prix indicatif du billet : <b>${money(c.total)}</b><br>Frais de génération débités de votre portefeuille : <b>${money(CF.fee)}</b>` + (c.ok ? '' : `<br><b style="color:#dc2626">⚠ ${esc(c.L.n)} ne dessert pas ${esc(c.a.c)} → ${esc(c.b.c)}. Choisissez une autre compagnie.</b>`); $('f-btn').textContent = 'Payer ' + money(CF.fee) + ' et générer le billet'; return c; }
 function build() {
-  const o = AP.map(a => [a.i, `${a.c} (${a.i}) · ${a.k}`]), v = $('view-fly'), lbl = LB;
-  v.innerHTML = `<div class="grid grid-cols-2 gap-1 bg-gray-100 p-1 rounded-xl"><button id="fl-t1" class="py-2 text-sm font-semibold rounded-lg bg-white text-swiftblue cursor-pointer">Réserver</button><button id="fl-t2" class="py-2 text-sm font-semibold rounded-lg text-gray-500 cursor-pointer">Mes billets d'avion</button></div><div id="fl-my" class="hidden"></div><form id="fl-form" class="space-y-5">` +
+  const o = AP.map(a => [a.i, `${a.c} (${a.i}) · ${a.k}`]), v = $('new-fly'), lbl = LB;
+  v.innerHTML = `<form id="fl-form" class="space-y-5">` +
     CARD('Trajet', 'Distance calculée automatiquement', SEL('f-from', 'Départ', o) + SEL('f-to', 'Arrivée', o.slice().reverse()) + F('f-date', 'Date du vol', 'type="date" required') + SEL('f-cls', 'Classe', Object.entries(CLS).map(([k, x]) => [k, x[0] + ' (x' + x[1] + ')'])) + SEL('f-air', 'Compagnie aérienne', AL.map(a => [a.c, a.n])) + SEL('f-stops', 'Nombre d’escales (max ' + CF.stops + ')', Array.from({ length: CF.stops + 1 }, (_, i) => [i, i + ' escale(s)'])) + '<div id="f-stl" class="space-y-3"></div>') +
     CARD('Passager', 'Les données privées restent confidentielles et ne figurent pas sur le billet', SEL('f-civ', 'Civilité', [['M.', 'M.'], ['Mme', 'Mme'], ['Mlle', 'Mlle']]) + F('f-nom', 'Nom', 'required') + F('f-pre', 'Prénom', 'required') + F('f-dob', 'Date de naissance', 'type="date" required') + SEL('f-nat', 'Nationalité', COUNTRIES.map(c => [c, c])) + F('f-pass', 'N° passeport / CNI', 'required') + F('f-exp', 'Date d’expiration', 'type="date" required') + F('f-ecn', 'Contact d’urgence (nom)', 'required') + F('f-ect', 'Contact d’urgence (téléphone)', 'type="tel" required')) +
     CARD('Options et design', '', `<label class="flex items-center gap-3 text-sm font-semibold"><input id="f-ins" type="checkbox" class="w-5 h-5"> Assurance voyage</label>` + SEL('f-bag', 'Bagages supplémentaires', [0, 1, 2, 3].map(n => [n, n + ' bagage(s)'])) + `<div><p class="${lbl}">Style du billet</p><label class="block text-sm py-1"><input type="radio" name="f-st" value="1"> Style 1 · Billet physique à souche</label><label class="block text-sm py-1"><input type="radio" name="f-st" value="2" checked> Style 2 · E-ticket numérique</label></div><p id="f-recap" class="text-xs text-gray-700 bg-gray-50 rounded-xl p-3"></p>`) +
@@ -3699,15 +3725,14 @@ function build() {
   $('f-date').min = new Date().toISOString().slice(0, 10); $('f-nat').value = 'Cameroun'; $('f-to').selectedIndex = 0;
   v.querySelectorAll('#fl-form select,#fl-form input').forEach(e => e.addEventListener('input', recap));
   $('f-stops').onchange = () => { $('f-stl').innerHTML = Array.from({ length: +$('f-stops').value }, (_, i) => SEL('f-s' + i, 'Pays de l’escale ' + (i + 1), COUNTRIES.map(c => [c, c]))).join(''); };
-  $('fl-t1').onclick = () => tab(1); $('fl-t2').onclick = () => { tab(2); mine(); };
   $('fl-form').onsubmit = submit; built = true; recap();
 }
-function tab(n) { $('fl-form').classList.toggle('hidden', n !== 1); $('fl-my').classList.toggle('hidden', n !== 2); $('fl-t1').className = 'py-2 text-sm font-semibold rounded-lg cursor-pointer ' + (n === 1 ? 'bg-white text-swiftblue' : 'text-gray-500'); $('fl-t2').className = 'py-2 text-sm font-semibold rounded-lg cursor-pointer ' + (n === 2 ? 'bg-white text-swiftblue' : 'text-gray-500'); }
 async function mine() {
-  const b = $('fl-my'); b.innerHTML = '<p class="text-center text-gray-500 py-6">Chargement...</p>';
+  const b = $('view-tickets'), H = '<h2 class="text-lg font-bold text-gray-900 px-1">✈️ Mes billets d\'avion</h2>'; b.innerHTML = H + '<p class="text-center text-gray-500 py-6">Chargement...</p>';
   const { data, error } = await supabaseClient.from('sw_flight_tickets').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
   if (error) { b.innerHTML = ''; return toast('Erreur : ' + error.message, 'error'); }
-  MY = data; b.innerHTML = data.length ? data.map((r, i) => `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mt-3 flex items-center justify-between gap-2"><div><p class="font-bold">${esc(r.route)} · ${esc(r.data.date)}</p><p class="text-xs text-gray-500">${esc(r.data.an)} · ${esc(r.data.flight)} · PNR ${esc(r.pnr)}</p></div><button data-i="${i}" class="fl-v text-sm font-semibold text-white bg-swiftblue rounded-full px-4 py-2 cursor-pointer">Voir</button></div>`).join('') : '<p class="text-center text-gray-500 py-6">Aucun billet pour le moment.</p>';
+  MY = data; b.innerHTML = H + (data.length ? data.map((r, i) => `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mt-3 flex items-center justify-between gap-2"><div><p class="font-bold">${esc(r.route)} · ${esc(r.data.date)}</p><p class="text-xs text-gray-500">${esc(r.data.an)} · ${esc(r.data.flight)} · PNR ${esc(r.pnr)}</p></div><button data-i="${i}" class="fl-v text-sm font-semibold text-white bg-swiftblue rounded-full px-4 py-2 cursor-pointer">Voir</button></div>`).join('') : '<div class="bg-white rounded-3xl border border-gray-100 p-8 text-center mt-3"><p class="text-gray-500 mb-4">Vous n\'avez pas encore de billet d\'avion.</p><button type="button" id="fl-new" class="bg-swiftblue text-white font-semibold px-5 py-3 rounded-xl cursor-pointer">Créer mon premier billet</button></div>');
+  const nb = $('fl-new'); if (nb) nb.onclick = () => { showTab('new'); setNewMode('fly'); };
   b.querySelectorAll('.fl-v').forEach(x => x.onclick = () => show(toT(MY[x.dataset.i])));
 }
 async function submit(e) {
@@ -3717,14 +3742,15 @@ async function submit(e) {
   if (g('f-exp') <= g('f-date')) return toast('Le document expire avant la date du vol.', 'error');
   if (g('f-dob') >= new Date().toISOString().slice(0, 10)) return toast('Date de naissance invalide.', 'error');
   await loadCfg(); const w = await supabaseClient.from('sw_wallets').select('balance').eq('user_id', currentUser.id).maybeSingle();
-  if (Number(w.data ? w.data.balance : 0) < CF.fee) return toast('Solde insuffisant : ' + money(CF.fee) + ' requis. Rechargez votre portefeuille.', 'error');
+  { const bal = Number(w.data ? w.data.balance : 0); if (bal < CF.fee) return goRecharge(CF.fee - bal); }
   if (!confirm('Confirmer ? ' + money(CF.fee) + ' seront débités de votre portefeuille.')) return;
   const h = hs(c.a.i + c.b.i + g('f-date') + c.L.c), cl = $('f-cls').value, row = cl === 'vip' ? [1, 3] : cl === 'biz' ? [4, 9] : [18, 42], dep = TIMES[h % 7], [H, Mi] = dep.split(':').map(Number), bm = ((H * 60 + Mi - 90) + 1440) % 1440;
   const t = { ac: c.L.c, an: c.L.n, from: c.a.i, to: c.b.i, dist: c.d, date: g('f-date'), dep, board: String(Math.floor(bm / 60)).padStart(2, '0') + ':' + String(bm % 60).padStart(2, '0'), flight: c.L.c + ' ' + (100 + h % 900), seat: (row[0] + h % (row[1] - row[0] + 1)) + 'ACDF'.charAt((h >> 3) % 4), cls: cl, civ: $('f-civ').value, nom: g('f-nom').toUpperCase(), pre: g('f-pre'), pass: g('f-pass').toUpperCase(), dob: g('f-dob'), nat: $('f-nat').value, exp: g('f-exp'), ecn: g('f-ecn'), ect: g('f-ect'), fare: c.fare, ins: c.ins, bags: c.bags, bagA: c.bagA, total: c.total, stops: Array.from({ length: Math.min(CF.stops, +$('f-stops').value) }, (_, i) => $('f-s' + i).value), style: +document.querySelector('input[name=f-st]:checked').value };
   btn.disabled = true; const { data, error } = await supabaseClient.rpc('sw_book_flight', { p_row: { ...t, route: t.from + '-' + t.to, airline: t.ac } }); btn.disabled = false; recap();
   if (error || !data) return toast((error && error.message) || 'Paiement refusé', 'error');
-  e.target.reset(); toast('Billet généré · ' + money(CF.fee) + ' débités.'); recap(); show({ ...data.data, pnr: data.pnr, style: +data.style });
+  e.target.reset(); setNewMode(null); toast('Billet généré · ' + money(CF.fee) + ' débités.'); recap(); show({ ...data.data, pnr: data.pnr, style: +data.style });
 }
+window.ticketsInit = () => mine();
 window.flyInit = async () => { await loadCfg(); if (!built || bs !== CF.stops) { build(); bs = CF.stops; } else recap(); };
 window.flyAdmin = async (M) => {
   await loadCfg(); const { data, error } = await supabaseClient.from('sw_flight_tickets').select('*').order('created_at', { ascending: false }).limit(500);
