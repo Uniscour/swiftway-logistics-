@@ -28,91 +28,6 @@
   #receipt-sheet, #receipt-sheet * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 </style>
-<style id="tk-css">
-/* ===== REÇUS DE VOYAGE : 2 modèles, grilles verrouillées, zéro superposition, zéro débordement ===== */
-.tk{--ink:#0f172a;--mut:#5b6b82;--line:#d6dfee;width:760px;position:relative;overflow:hidden;font-family:Arial,Helvetica,sans-serif;color:var(--ink);line-height:1.2;text-align:left}
-.tk,.tk *{box-sizing:border-box}
-.tk *{margin:0;padding:0}
-/* Case de texte : une seule ligne, jamais de débordement (la police est réduite par fitAll(), ellipse en dernier recours) */
-.tk .fit{display:block;min-width:0;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tk .lb{height:11px;line-height:11px;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
-.tk .vl{height:20px;line-height:20px;font-size:15px;font-weight:700}
-.tk .mono .vl,.tk .mono.vl{font-family:'Courier New',monospace}
-.tk .brand{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px;min-width:0}
-.tk .brand b{font-weight:800;letter-spacing:.04em;text-transform:uppercase;line-height:1.2}
-.tk .qr svg{display:block;width:100%;height:100%}
-.tk .vbar{position:relative;flex:none;overflow:hidden}
-.tk-note{height:26px;line-height:26px;padding:0 20px;font-size:9px;color:var(--mut);text-align:center}
-
-/* ---------- Modèle 1 : NUMÉRIQUE / DASHBOARD ---------- */
-.tk-n{background:#fff;border:1px solid var(--line);border-radius:20px}
-.tk-n .n-head{height:62px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:16px;padding:0 22px;background:linear-gradient(135deg,#0b2a5b,#2563eb);color:#fff}
-.tk-n .n-pill{max-width:210px;height:26px;line-height:24px;padding:0 14px;border-radius:99px;background:#ffffff26;border:1px solid #ffffff66;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
-.tk-n .n-body{display:grid;grid-template-columns:minmax(0,1fr) 196px;height:336px}
-.tk-n .n-main{min-width:0;padding:18px 20px;display:grid;grid-template-rows:120px 166px;gap:14px;align-content:start}
-.tk-n .n-route{display:grid;grid-template-columns:minmax(0,1fr) 112px minmax(0,1fr);gap:8px;align-items:center;background:#eef3fb;border-radius:14px;padding:0 16px;overflow:hidden}
-.tk-n .n-end{min-width:0;display:grid;grid-template-rows:11px 46px 18px 14px;gap:2px}
-.tk-n .n-end.r{text-align:right}
-.tk-n .n-code{font-size:44px;line-height:46px;height:46px;font-weight:800;letter-spacing:.02em;color:#0b2a5b}
-.tk-n .n-city{font-size:14px;line-height:18px;height:18px;font-weight:700}
-.tk-n .n-ctry{font-size:11px;line-height:14px;height:14px;color:var(--mut)}
-.tk-n .n-mid{min-width:0;display:grid;grid-template-rows:30px 16px 14px;gap:4px;justify-items:center;align-content:center}
-.tk-n .n-mid svg{display:block;width:100%;height:30px}
-.tk-n .n-dist{font-size:12px;line-height:16px;height:16px;font-weight:700;text-align:center}
-.tk-n .n-via{font-size:10px;line-height:14px;height:14px;color:var(--mut);text-align:center}
-.tk-n .n-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(3,50px);gap:8px}
-.tk-n .s2{grid-column:span 2}
-.tk-n .n-t{min-width:0;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 10px;display:grid;grid-template-rows:11px 20px;gap:3px;align-content:center}
-.tk-n .n-t.big{grid-template-rows:11px 24px}
-.tk-n .n-t.big .vl{height:24px;line-height:24px;font-size:22px;font-weight:800}
-.tk-n .n-t.sm{padding:4px 10px}
-.tk-n .n-side{min-width:0;border-left:2px dashed #b9c9dc;padding:18px 16px;display:grid;grid-template-rows:112px 56px 44px minmax(0,1fr);gap:10px}
-.tk-n .qr{border:1px solid var(--line);border-radius:10px;padding:6px;background:#fff;overflow:hidden}
-.tk-n .n-sg{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
-.tk-n .n-bc{min-height:0;overflow:hidden;border:1px solid var(--line);border-radius:8px;padding:4px;background:#fff}
-.tk-n .n-foot{height:60px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--line);background:#f8fafd}
-.tk-n .n-p{min-width:0;overflow:hidden;padding:0 16px;border-right:1px solid var(--line);display:grid;grid-template-rows:11px 22px;gap:3px;align-content:center}
-.tk-n .n-p:last-child{border-right:0}
-.tk-n .n-p .vl{height:22px;line-height:22px;font-size:15px}
-.tk-n .n-p.tot{background:#0b2a5b;color:#fff}
-.tk-n .n-p.tot .lb{color:#bcd1ff}
-.tk-n .n-p.tot .vl{font-size:17px;font-weight:800}
-
-/* ---------- Modèle 2 : PHYSIQUE / CARNET À SOUCHE EN BANDE ---------- */
-.tk-p{--ink:#1f1b10;--mut:#6b6240;--line:#5a5030;background:#fbf7ea;border:1px solid #c9bfa0;border-radius:6px}
-.tk-p .p-strip{display:grid;grid-template-columns:minmax(0,1fr) 232px;height:312px}
-.tk-p .p-cp{min-width:0;padding:14px 18px 14px 20px;display:grid;grid-template-columns:minmax(0,1fr) 36px;grid-template-rows:42px 216px;column-gap:14px;row-gap:8px;align-content:start}
-.tk-p .p-hd{grid-column:1/3;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,190px);gap:12px;align-items:center;border-bottom:2px solid var(--ink);padding-bottom:6px}
-.tk-p .p-ttl{font-size:12px;font-weight:800;letter-spacing:.08em;text-align:right;color:var(--ink)}
-.tk-p .p-fields{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));grid-template-rows:repeat(4,48px);gap:8px 14px;min-width:0}
-.tk-p .s2{grid-column:span 2}.tk-p .s3{grid-column:span 3}.tk-p .s4{grid-column:span 4}
-.tk-p .p-f{min-width:0;overflow:hidden;display:grid;grid-template-rows:11px 26px;gap:3px;align-content:start}
-.tk-p .p-f .lb{font-size:8.5px;font-style:italic;font-weight:400;letter-spacing:.05em;text-transform:none}
-.tk-p .p-f .vl{height:26px;line-height:24px;font-family:'Courier New',monospace;font-size:15px;border-bottom:1.5px solid var(--ink);padding:0 2px}
-.tk-p .p-stub{min-width:0;border-left:2px dashed var(--line);background:#f4edd2;padding:14px 16px;display:grid;grid-template-rows:20px 44px 46px 44px 44px minmax(0,1fr);gap:8px}
-.tk-p .p-st-t{height:20px;line-height:20px;font-size:10px;font-weight:800;letter-spacing:.14em;border-bottom:1px solid var(--ink)}
-.tk-p .p-rt{min-width:0;display:grid;grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr);align-items:center;text-align:center}
-.tk-p .p-rt span{font-size:18px;line-height:46px}
-.tk-p .p-cd{font-family:'Courier New',monospace;font-size:30px;line-height:46px;height:46px;font-weight:700}
-.tk-p .p-2{min-width:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
-.tk-p .p-bc{min-height:0;overflow:hidden;background:#fff;border:1px solid #cdc3a2;padding:3px}
-.tk-p .p-foot{height:56px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:2px dashed var(--line);background:#f4edd2}
-.tk-p .p-p{min-width:0;overflow:hidden;padding:0 16px;border-right:1px solid #cdc3a2;display:grid;grid-template-rows:11px 22px;gap:3px;align-content:center}
-.tk-p .p-p:last-child{border-right:0}
-.tk-p .p-p .lb{font-style:italic;font-weight:400;text-transform:none;letter-spacing:.05em;font-size:9px}
-.tk-p .p-p .vl{height:22px;line-height:22px;font-family:'Courier New',monospace;font-size:15px}
-.tk-p .p-p.tot{background:#1f1b10;color:#fbf7ea}
-.tk-p .p-p.tot .lb{color:#d8cfa8}
-.tk-p .p-p.tot .vl{font-size:17px}
-
-/* ---------- Impression : bande A4 paysage, mise à l'échelle sans rognage ---------- */
-@page tk { size: A4 landscape; margin: 10mm; }
-@media print {
-  #receipt-overlay.tk-mode { page: tk; }
-  #receipt-overlay.tk-mode #receipt-zoom { zoom: 1.3 !important; width: 760px !important; margin: 0 auto !important; }
-  .tk, .tk * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-}
-</style>
 <style>
 /* ===== THÈME CLIENT : en-tête, navigation, cartes, formulaires, portefeuille, badges (n'affecte pas la console admin) ===== */
 body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased;background:radial-gradient(900px 420px at 100% 0,#d3e3ff 0,transparent 60%),radial-gradient(800px 420px at 0 35%,#e3deff 0,transparent 55%),#eef3ff;background-attachment:fixed}
@@ -287,12 +202,12 @@ body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sa
   </header>
   <main class="max-w-3xl mx-auto px-4 py-6">
     <div id="dtabs" class="grid grid-cols-6 gap-1 bg-gray-100 p-1 rounded-xl mb-6">
+      <button data-tab="list" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">📦</span><span>Mes colis</span><span id="list-badge" class="dbadge hidden"></span></button>
       <button data-tab="new" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">➕</span><span>Nouvelle</span></button>
+      <button data-tab="track" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">🔎</span><span>Suivre</span></button>
       <button data-tab="wallet" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">💳</span><span>Portefeuille</span></button>
       <button data-tab="help" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">💬</span><span>Messages</span><span id="help-badge" class="dbadge hidden"></span></button>
-      <button data-tab="track" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">🔎</span><span>Suivi</span></button>
-      <button data-tab="list" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">📦</span><span>Mes colis</span><span id="list-badge" class="dbadge hidden"></span></button>
-      <button data-tab="tickets" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">🧾</span><span>Mes reçus</span></button>
+      <button data-tab="tickets" class="dtab px-0.5 py-2.5 text-[11px] sm:text-sm font-semibold rounded-lg cursor-pointer"><span class="ic">✈️</span><span>Mes billets</span></button>
     </div>
     <form id="pwforce-form" class="hidden mb-6 bg-white rounded-3xl shadow-sm border-2 border-amber-300 p-6 space-y-3">
       <h2 class="text-lg font-bold text-gray-900">🔑 Choisissez votre nouveau mot de passe</h2>
@@ -2187,6 +2102,7 @@ html[data-theme=dark] body{color:#e8edfb}
       <button data-v="wa">${ic(IC.wa)}<span>Contact</span></button>
       <button data-v="cancel">${ic(IC.cancel)}<span>Annulations</span><span class="n" id="nav-cx-badge"></span></button>
       <button data-v="cfg">${ic(IC.cfg)}<span>Paramètres</span></button>
+      <button data-v="vols"><span style="font-size:18px;line-height:1">✈</span><span>Vols</span></button>
       <button data-v="journal">${ic(IC.journal)}<span>Journal</span></button>
     </div>
   </nav>
@@ -2456,80 +2372,7 @@ html[data-theme=dark] body{color:#e8edfb}
 
   function draw() { ({ radar, pipe, cash, acct, pwd: pwV, cfg, msg: inbox, cancel: cancelV, wa: waV, journal: journalV, vols: () => window.flyAdmin(M) })[S.v](); if (S.open) openDrawer(S.open, true); }
 
-  // ---------- OFFRES BILLETS D'AVION : même fonctionnement que les offres des reçus (billets gratuits à un groupe + bienvenue) ----------
-  const FP = { seg: 'never_zero', camp: 'Offre billets d’avion', msg: '', excl: {}, list: [], nb: '1', days: '30', min: '2', top: '0', cool: '30', tix: [], grants: [], gok: false, err: '', ready: false };
-  const fpFee = () => (window.flyCF ? window.flyCF().fee : 0);
-  function fpTargets() {
-    const now = Date.now(), got = new Set(FP.grants.map(g => g.user_id)), camp = FP.camp.trim(), cool = +FP.cool || 0, min = Math.max(1, parseInt(FP.min, 10) || 1), since = now - (+FP.days || 30) * 864e5, all = {}, per = {}, last = {};
-    FP.tix.forEach(x => { const t = new Date(x.created_at).getTime(); all[x.user_id] = (all[x.user_id] || 0) + 1; if (t >= since) per[x.user_id] = (per[x.user_id] || 0) + 1; if (!last[x.user_id] || t > last[x.user_id]) last[x.user_id] = t; });
-    FP.cnt = per; FP.all = all;
-    const out = S.usr.filter(u => {
-      if (u.is_active === false) return false;
-      if (FP.seg === 'loyal') { if ((per[u.id] || 0) < min) return false; return !FP.grants.some(g => g.user_id === u.id && (g.campaign || '') === camp && (!cool || now - new Date(g.created_at).getTime() < cool * 864e5)); }
-      if (got.has(u.id)) return false;
-      const bal = Number(S.bal[u.id] || 0), made = !!all[u.id];
-      if (FP.seg === 'never_zero') return !made && bal <= 0; if (FP.seg === 'never') return !made; if (FP.seg === 'zero') return bal <= 0;
-      if (FP.seg === 'new7') return now - new Date(u.created_at).getTime() <= 7 * 864e5;
-      if (FP.seg === 'dormant') return now - new Date(u.created_at).getTime() > 30 * 864e5 && (!last[u.id] || now - last[u.id] > 30 * 864e5);
-      return true;
-    });
-    if (FP.seg === 'loyal') { out.sort((a, b) => (per[b.id] || 0) - (per[a.id] || 0)); const t = parseInt(FP.top, 10) || 0; return t > 0 ? out.slice(0, t) : out; }
-    return out.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  }
-  function fpRead() { const v = (id, d) => { const e = $(id); return e ? e.value : d; }; FP.seg = v('fp-seg', FP.seg); FP.camp = v('fp-camp', FP.camp); FP.msg = v('fp-msg', FP.msg); FP.days = v('fp-days', FP.days); FP.min = v('fp-min', FP.min); FP.top = v('fp-top', FP.top); FP.cool = v('fp-cool', FP.cool); FP.nb = v('fp-nb', FP.nb); }
-  function fpList() {
-    const box = $('fp-res'); if (!box) return; if (!FP.ready) { box.innerHTML = '<p class="x-hint">Chargement…</p>'; return; }
-    const all = fpTargets(), shown = all.slice(0, 150), nb = Math.min(5, Math.max(1, parseInt(FP.nb, 10) || 1)), loyal = FP.seg === 'loyal'; FP.list = all.filter(u => !FP.excl[u.id]);
-    const rows = shown.map(u => `<label class="x-row" style="cursor:pointer;align-items:center"><span style="display:flex;gap:10px;align-items:center;min-width:0"><input type="checkbox" data-fx="${esc(u.id)}" ${FP.excl[u.id] ? '' : 'checked'}><span style="word-break:break-all;font-size:12.5px"><b>${esc(u.email || '-')}</b><br><span style="color:var(--mut)">${esc(u.phone || 'sans téléphone')} · ${fmtMoney(S.bal[u.id] || 0)}</span></span></span><span class="t-mut x-sm">${loyal ? (FP.cnt[u.id] || 0) + ' billet(s) sur ' + FP.days + ' j' : (FP.all[u.id] || 0) + ' billet(s)'}</span></label>`).join('');
-    box.innerHTML = `${FP.err ? '<p class="x-hint t-warn">' + esc(FP.err) + '</p>' : ''}<div class="x-bar" style="justify-content:space-between;margin:14px 0 8px"><span class="x-lead" style="margin:0"><b>${FP.list.length}</b> / ${all.length} sélectionné(s) · valeur offerte <b>${fmtMoney(FP.list.length * nb * fpFee())}</b></span><span class="x-acts"><button class="x-btn" id="fp-all">TOUT COCHER</button><button class="x-btn" id="fp-none">TOUT DÉCOCHER</button></span></div>${all.length ? `<div style="max-height:300px;overflow-y:auto;border:1px solid var(--line);border-radius:12px;padding:0 10px;background:#fff">${rows}</div>${all.length > shown.length ? `<p class="x-hint">Affichage limité aux ${shown.length} premiers : les autres restent inclus.</p>` : ''}` : '<div class="x-empty">Aucun utilisateur ne correspond à ce segment (ou tous ont déjà reçu l\'offre).</div>'}<button class="x-btn go" style="width:100%;margin-top:12px" id="fp-send" ${FP.list.length ? '' : 'disabled'}>🎁 OFFRIR ${nb} BILLET${nb > 1 ? 'S' : ''} GRATUIT${nb > 1 ? 'S' : ''} À ${FP.list.length} UTILISATEUR(S)</button>`;
-    box.querySelectorAll('[data-fx]').forEach(c => c.onchange = () => { if (c.checked) delete FP.excl[c.dataset.fx]; else FP.excl[c.dataset.fx] = 1; fpList(); });
-    $('fp-all').onclick = () => { FP.excl = {}; fpList(); }; $('fp-none').onclick = () => { fpTargets().forEach(u => { FP.excl[u.id] = 1; }); fpList(); };
-    $('fp-send').onclick = fpSend;
-  }
-  async function fpSend() {
-    if (!needSuper()) return; fpRead(); const ids = FP.list.map(u => u.id), nb = Math.min(5, Math.max(1, parseInt(FP.nb, 10) || 1)), fee = fpFee();
-    if (!ids.length) return toast('Aucun destinataire sélectionné.', 'error');
-    if (!await window.flyAsk('Offrir ' + nb + ' billet(s) gratuit(s) (' + fmtMoney(fee * nb) + ' par personne) à ' + ids.length + ' utilisateur(s) ? Leur portefeuille sera crédité de ce montant.')) return;
-    const btn = $('fp-send'); if (btn) btn.disabled = true; const once = FP.seg !== 'loyal' && nb === 1; let n = 0, err = null;
-    for (let i = 0; i < nb; i++) { const r = await arpc('sw_admin_grant_free_flights', { p_user_ids: ids, p_campaign: FP.camp.trim() || null, p_once: once }); if (r.error) { err = r.error; break; } if (i === 0) n = r.data; }
-    if (err) { if (btn) btn.disabled = false; return toast('Erreur : ' + err.message + ' (exécutez flights-migration.sql)', 'error'); }
-    const msg = FP.msg.trim(); if (msg) for (let i = 0; i < ids.length; i += 10) await Promise.all(ids.slice(i, i + 10).map(id => supabaseClient.rpc('sw_admin_send_direct', { p_user: id, p_subject: FP.camp.trim() || 'Offre billets d’avion', p_body: msg })));
-    toast(nb + ' billet(s) offert(s) à ' + n + ' utilisateur(s).'); FP.excl = {}; FP.msg = ''; await loadAll(); window.flyPromoMount($('fly-promo'));
-  }
-  async function fpWelcome() {
-    const c = $('fw-card'); if (!c) return; const { data, error } = await supabaseClient.rpc('sw_flight_welcome_get'); if (!$('fw-card')) return; const on = !!data;
-    c.innerHTML = `<p class="x-h">🎁 OFFRE DE BIENVENUE AUTOMATIQUE · BILLETS</p><p class="x-lead" style="margin-bottom:12px">Activée : chaque nouvel inscrit reçoit le prix d'un premier billet d'avion (<b>${fmtMoney(fpFee())}</b>). Désactivée : inscription classique.</p>${!error ? `<div class="x-acts"><span class="x-tag ${on ? 't-ok' : 't-bad'}">${on ? 'ACTIVÉE' : 'DÉSACTIVÉE'}</span><button class="x-btn ${on ? 'no' : 'go'}" id="fw-btn">${on ? 'DÉSACTIVER' : 'ACTIVER'}</button></div>` : '<p class="x-hint t-warn">Migration SQL non exécutée (flights-migration.sql).</p>'}`;
-    const b = $('fw-btn'); if (b) b.onclick = async () => { const r = await supabaseClient.rpc('sw_flight_set_welcome', { p_on: !on }); if (r.error) return toast('Erreur : ' + r.error.message, 'error'); toast(!on ? 'Offre de bienvenue activée.' : 'Offre de bienvenue désactivée.'); fpWelcome(); };
-  }
-  window.flyPromoMount = async (host) => {
-    if (!host) return; if (!isSuper) { host.innerHTML = '<div class="x-empty">Réservé au Super Admin Suprême.</div>'; return; }
-    const sel = (id, cur, o) => `<select id="${id}" class="x-in" style="margin-top:4px">${o.map(([v, l]) => `<option value="${v}" ${String(cur) === String(v) ? 'selected' : ''}>${l}</option>`).join('')}</select>`, loyal = FP.seg === 'loyal';
-    host.innerHTML = `<div id="fw-card" class="x-panel" style="margin-top:0;margin-bottom:12px"></div><div class="x-panel" style="margin-top:0"><p class="x-h">🎁 OFFRE PROMOTIONNELLE // billets offerts à un groupe</p><p class="x-lead" style="margin-bottom:14px">Crédite le prix d'un billet (<b>${fmtMoney(fpFee())}</b>) sur le portefeuille des utilisateurs sélectionnés : ils génèrent leurs billets sans payer. Seuls les comptes actifs sont ciblés. Les segments classiques ne reçoivent l'offre qu'une seule fois ; la <b>récompense fidélité</b> est renouvelable.</p><div style="display:grid;gap:12px">
-      <div><label class="x-lb">SEGMENT CIBLÉ</label>${sel('fp-seg', FP.seg, [['never_zero', "Jamais généré de billet ET solde à 0 FCFA (prioritaire)"], ['never', "Jamais généré de billet"], ['zero', 'Solde à 0 FCFA'], ['new7', 'Nouveaux inscrits (7 jours)'], ['dormant', 'Inactifs depuis plus de 30 jours'], ['loyal', '⭐ Meilleurs utilisateurs : récompense fidélité']])}</div>
-      <div id="fp-loyal" style="display:${loyal ? 'grid' : 'none'};gap:12px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))"><div><label class="x-lb">PÉRIODE D'ACTIVITÉ</label>${sel('fp-days', FP.days, [['30', '30 derniers jours'], ['60', '60 derniers jours'], ['90', '90 derniers jours'], ['180', '6 derniers mois']])}</div><div><label class="x-lb">BILLETS MINIMUM SUR LA PÉRIODE</label><input id="fp-min" type="number" min="1" class="x-in" style="margin-top:4px" value="${esc(FP.min)}"></div><div><label class="x-lb">LIMITER AUX N MEILLEURS</label>${sel('fp-top', FP.top, [['0', 'Tous les éligibles'], ['5', 'Les 5 meilleurs'], ['10', 'Les 10 meilleurs'], ['20', 'Les 20 meilleurs'], ['50', 'Les 50 meilleurs']])}</div><div><label class="x-lb">RÉCOMPENSE RÉGULIÈRE</label>${sel('fp-cool', FP.cool, [['0', 'Une seule fois par utilisateur'], ['7', 'Renouvelable chaque semaine (7 j)'], ['30', 'Renouvelable chaque mois (30 j)'], ['90', 'Renouvelable tous les 90 jours']])}</div></div>
-      <div><label class="x-lb">NOMBRE DE BILLETS OFFERTS PAR UTILISATEUR</label>${sel('fp-nb', FP.nb, [['1', '1 billet'], ['2', '2 billets'], ['3', '3 billets'], ['4', '4 billets'], ['5', '5 billets']])}</div>
-      <div><label class="x-lb">NOM DE L'OFFRE</label><input id="fp-camp" class="x-in" maxlength="80" style="margin-top:4px" value="${esc(FP.camp)}"></div>
-      <div><label class="x-lb">MESSAGE D'ANNONCE AUX BÉNÉFICIAIRES (facultatif)</label><textarea id="fp-msg" rows="3" maxlength="1000" class="x-in" style="margin-top:4px" placeholder="Ex : Merci pour votre fidélité ! Un billet d'avion vous est offert.">${esc(FP.msg)}</textarea></div></div><div id="fp-res"></div></div>`;
-    host.querySelectorAll('select,input[type=number],input.x-in,textarea').forEach(e => e.onchange = () => { fpRead(); const l = $('fp-loyal'); if (l) l.style.display = FP.seg === 'loyal' ? 'grid' : 'none'; fpList(); });
-    fpWelcome(); fpList();
-    if (window.flyLoad) await window.flyLoad();
-    const [g, t] = await Promise.all([supabaseClient.from('sw_flight_grants').select('user_id,created_at,campaign').order('created_at', { ascending: false }).limit(5000), (async () => { let out = [], err = null; for (let f = 0; f < 20000; f += 1000) { const r = await supabaseClient.from('sw_flight_tickets').select('user_id,created_at').order('created_at', { ascending: false }).range(f, f + 999); if (r.error) { err = r.error; break; } out = out.concat(r.data || []); if (!r.data || r.data.length < 1000) break; } return { data: out, error: err }; })()]);
-    FP.grants = g.error ? [] : (g.data || []); FP.gok = !g.error; FP.tix = t.data || []; FP.err = g.error ? 'Table des offres absente : exécutez flights-migration.sql.' : (t.error ? t.error.message : ''); FP.ready = true; fpList();
-  };
-  window.swGo = (v, mode) => { const k = { pipe: 'xp', cfg: 'xc', radar: 'xr' }[v]; if (k && mode) S[k] = mode; return window.showSub(v); };
-  window.swInfo = () => ({ rech: S.rech.filter(r => r.status === 'pending'), funds: S.usr.reduce((a, u) => a + Number(S.bal[u.id] || 0), 0), users: S.usr.length });
-  // ---------- Bascule COLIS / BILLETS D'AVION (Radar, Flux, Paramètres) ----------
-  function swView(key, parcelFn, flyFn) {
-    if (!S[key]) S[key] = 'parcel';
-    const bar = `<div style="display:flex;gap:8px;margin:0 0 14px">${[['parcel', '📦 COLIS'], ['fly', "✈ BILLETS D'AVION"]].map(([k, l]) => `<button type="button" class="x-btn ${S[key] === k ? 'go' : ''}" data-xg="${k}">${l}</button>`).join('')}</div>`;
-    const bind = () => M.querySelectorAll('[data-xg]').forEach(b => b.onclick = (e) => { e.stopPropagation(); S[key] = b.dataset.xg; draw(); });
-    if (S[key] === 'fly' && window[flyFn]) { M.innerHTML = bar + '<div id="fly-host"></div>'; bind(); window[flyFn]($('fly-host')); }
-    else { S[key] = 'parcel'; parcelFn(); M.insertAdjacentHTML('afterbegin', bar); bind(); }
-  }
-  const radar = () => swView('xr', radarParcel, 'flyRadar');
-  const pipe = () => swView('xp', pipeParcel, 'flyFlux');
-  const cfg = () => isSuper ? swView('xc', cfgParcel, 'flyCfg') : cfgParcel();
-  function radarParcel() {
+  function radar() {
     const act = S.ship.filter(live), lt = S.ship.filter(late);
     const pr = S.rech.filter(r => r.status === 'pending');
     const tot = S.usr.reduce((a, u) => a + Number(S.bal[u.id] || 0), 0);
@@ -2559,7 +2402,7 @@ html[data-theme=dark] body{color:#e8edfb}
   }
 
   // ---------- FLUX (kanban) : filtres période / client / statut / pays / service / agence + nettoyage des colis anciens ----------
-  function pipeParcel() {
+  function pipe() {
     const f = FL.fx, now = Date.now(), qn = nz(f.q);
     const old = (s) => now - new Date(s.created_at).getTime() > 30 * 864e5;
     const stOk = (s, k) => k === 'live' ? live(s) : k === 'done' ? !live(s) : k === 'late' ? late(s) : k === 'old' ? old(s) : true;
@@ -3284,7 +3127,7 @@ html[data-theme=dark] body{color:#e8edfb}
   }
 
   // ---------- PARAMÈTRES : sous-onglets (Tarification / Numéros de dépôt / Offres promotionnelles) ----------
-  function cfgParcel() {
+  function cfg() {
     if (!isSuper) S.cs = 'pay'; else if (!S.cs) S.cs = 'price';
     const priceHtml = isSuper ? `<div class="x-panel" style="margin-top:0"><p class="x-h">PRIX DU REÇU A5 / CODE DE SUIVI (FCFA)</p>
       <p class="t-mut x-sm">Montant débité du portefeuille du client à la première génération du reçu d'une expédition. Prix actuel : <span class="t-ok">${fmtMoney(RECEIPT_PRICE)}</span></p>
@@ -3837,318 +3680,88 @@ html[data-theme=dark] body{color:#e8edfb}
 (() => {
 const AP = 'DLA|Douala|CM|AF|4.006|9.719;NSI|Yaoundé|CM|AF|3.722|11.553;GOU|Garoua|CM|AF|9.336|13.370;ABJ|Abidjan|CI|AF|5.261|-3.926;DSS|Dakar|SN|AF|14.670|-17.073;LOS|Lagos|NG|AF|6.577|3.321;ABV|Abuja|NG|AF|9.007|7.263;ACC|Accra|GH|AF|5.605|-0.167;LBV|Libreville|GA|AF|0.459|9.412;BZV|Brazzaville|CG|AF|-4.251|15.253;FIH|Kinshasa|CD|AF|-4.386|15.445;NBO|Nairobi|KE|AF|-1.319|36.927;ADD|Addis-Abeba|ET|AF|8.978|38.799;JNB|Johannesburg|ZA|AF|-26.139|28.246;CMN|Casablanca|MA|AF|33.367|-7.590;ALG|Alger|DZ|AF|36.691|3.215;TUN|Tunis|TN|AF|36.851|10.227;CAI|Le Caire|EG|AF|30.122|31.406;KGL|Kigali|RW|AF|-1.969|30.135;BKO|Bamako|ML|AF|12.534|-7.950;OUA|Ouagadougou|BF|AF|12.353|-1.512;COO|Cotonou|BJ|AF|6.357|2.384;LFW|Lomé|TG|AF|6.166|1.254;NDJ|N\'Djamena|TD|AF|12.134|15.034;BGF|Bangui|CF|AF|4.399|18.519;CDG|Paris|FR|EU|49.010|2.548;BRU|Bruxelles|BE|EU|50.901|4.484;LHR|Londres|GB|EU|51.470|-0.454;FRA|Francfort|DE|EU|50.033|8.571;AMS|Amsterdam|NL|EU|52.310|4.768;MAD|Madrid|ES|EU|40.472|-3.561;FCO|Rome|IT|EU|41.800|12.239;IST|Istanbul|TR|EU|41.275|28.752;ZRH|Zurich|CH|EU|47.458|8.548;JFK|New York|US|NA|40.641|-73.778;ATL|Atlanta|US|NA|33.637|-84.428;YUL|Montréal|CA|NA|45.471|-73.741;DXB|Dubaï|AE|ME|25.253|55.366;DOH|Doha|QA|ME|25.273|51.565;JED|Djeddah|SA|ME|21.680|39.157;PEK|Pékin|CN|AS|40.080|116.585;CAN|Canton|CN|AS|23.392|113.299;HKG|Hong Kong|HK|AS|22.308|113.915;SIN|Singapour|SG|AS|1.364|103.991;BOM|Mumbai|IN|AS|19.089|72.868;NRT|Tokyo|JP|AS|35.772|140.393;GRU|São Paulo|BR|SA|-23.435|-46.473;SYD|Sydney|AU|OC|-33.939|151.177'.split(';').map(s => { const [i, c, k, g, a, o] = s.split('|'); return { i, c, k, g, a: +a, o: +o }; });
 AP.push(...'LAD|Luanda|AO|AF|-8.858|13.231;MPM|Maputo|MZ|AF|-25.920|32.573;WDH|Windhoek|NA|AF|-22.480|17.471;LUN|Lusaka|ZM|AF|-15.331|28.453;HRE|Harare|ZW|AF|-17.932|31.093;DAR|Dar es Salaam|TZ|AF|-6.878|39.203;EBB|Entebbe|UG|AF|0.042|32.443;MRU|Maurice|MU|AF|-20.430|57.683;TNR|Antananarivo|MG|AF|-18.797|47.479;CKY|Conakry|GN|AF|9.576|-13.612;FNA|Freetown|SL|AF|8.616|-13.195;ROB|Monrovia|LR|AF|6.234|-10.362;NIM|Niamey|NE|AF|13.481|2.183;NKC|Nouakchott|MR|AF|18.098|-15.948;BJL|Banjul|GM|AF|13.338|-16.652;LAX|Los Angeles|US|NA|33.942|-118.408;ORD|Chicago|US|NA|41.974|-87.907;SFO|San Francisco|US|NA|37.619|-122.375;MIA|Miami|US|NA|25.796|-80.287;YYZ|Toronto|CA|NA|43.677|-79.631;MEX|Mexico|MX|NA|19.436|-99.072;PTY|Panama|PA|NA|9.071|-79.383;BOG|Bogota|CO|SA|4.702|-74.147;EZE|Buenos Aires|AR|SA|-34.822|-58.536;SCL|Santiago|CL|SA|-33.393|-70.786;LIM|Lima|PE|SA|-12.022|-77.114;LIS|Lisbonne|PT|EU|38.774|-9.134;DUB|Dublin|IE|EU|53.421|-6.270;CPH|Copenhague|DK|EU|55.618|12.656;ARN|Stockholm|SE|EU|59.652|17.919;OSL|Oslo|NO|EU|60.194|11.100;HEL|Helsinki|FI|EU|60.317|24.963;VIE|Vienne|AT|EU|48.110|16.570;WAW|Varsovie|PL|EU|52.166|20.967;ATH|Athènes|GR|EU|37.936|23.945;SVO|Moscou|RU|EU|55.973|37.415;TLV|Tel Aviv|IL|ME|32.011|34.887;AMM|Amman|JO|ME|31.722|35.993;BEY|Beyrouth|LB|ME|33.821|35.488;BAH|Bahreïn|BH|ME|26.271|50.633;KWI|Koweït|KW|ME|29.227|47.969;MCT|Mascate|OM|ME|23.593|58.284;RUH|Riyad|SA|ME|24.958|46.699;ICN|Séoul|KR|AS|37.469|126.451;BKK|Bangkok|TH|AS|13.690|100.750;KUL|Kuala Lumpur|MY|AS|2.746|101.710;CGK|Jakarta|ID|AS|-6.126|106.656;DEL|New Delhi|IN|AS|28.556|77.103;MNL|Manille|PH|AS|14.509|121.020;TPE|Taipei|TW|AS|25.077|121.233;KHI|Karachi|PK|AS|24.907|67.160;CMB|Colombo|LK|AS|7.180|79.884;AKL|Auckland|NZ|OC|-37.008|174.792;MEL|Melbourne|AU|OC|-37.673|144.843'.split(';').map(s => { const [i, c, k, g, a, o] = s.split('|'); return { i, c, k, g, a: +a, o: +o }; }));
-AP.push(...'MVR|Maroua|CM|AF|10.452|14.257;NGE|Ngaoundéré|CM|AF|7.357|13.559;BPC|Bamenda|CM|AF|6.039|10.122;PNR|Pointe-Noire|CG|AF|-4.816|11.887;POG|Port-Gentil|GA|AF|-0.712|8.754;SSG|Malabo|GQ|AF|3.755|8.708;TMS|São Tomé|ST|AF|0.378|6.712;RAI|Praia|CV|AF|14.945|-23.485;OXB|Bissau|GW|AF|11.895|-15.654;GBE|Gaborone|BW|AF|-24.555|25.918;BJM|Bujumbura|BI|AF|-3.324|29.319;JUB|Juba|SS|AF|4.872|31.601;KRT|Khartoum|SD|AF|15.590|32.553;MGQ|Mogadiscio|SO|AF|2.014|45.305;JIB|Djibouti|DJ|AF|11.547|43.159;ASM|Asmara|ER|AF|15.292|38.911;TIP|Tripoli|LY|AF|32.664|13.159;LLW|Lilongwe|MW|AF|-13.789|33.781;HAH|Moroni|KM|AF|-11.534|43.272;SEZ|Mahé|SC|AF|-4.674|55.522;MTS|Manzini|SZ|AF|-26.529|31.307;MSU|Maseru|LS|AF|-29.462|27.553;CPT|Le Cap|ZA|AF|-33.965|18.602;PHC|Port Harcourt|NG|AF|5.015|6.950;ASK|Yamoussoukro|CI|AF|6.903|-5.366;RAK|Marrakech|MA|AF|31.607|-8.036;ORN|Oran|DZ|AF|35.624|-0.621;MBA|Mombasa|KE|AF|-4.035|39.594;ZNZ|Zanzibar|TZ|AF|-6.222|39.225;MXP|Milan|IT|EU|45.630|8.723;BCN|Barcelone|ES|EU|41.297|2.078;MRS|Marseille|FR|EU|43.436|5.215;LYS|Lyon|FR|EU|45.726|5.091;NCE|Nice|FR|EU|43.665|7.215;MUC|Munich|DE|EU|48.354|11.786;PRG|Prague|CZ|EU|50.101|14.260;BUD|Budapest|HU|EU|47.437|19.262;OTP|Bucarest|RO|EU|44.572|26.102;SOF|Sofia|BG|EU|42.695|23.406;BEG|Belgrade|RS|EU|44.818|20.309;ZAG|Zagreb|HR|EU|45.743|16.069;LUX|Luxembourg|LU|EU|49.626|6.211;KEF|Reykjavik|IS|EU|63.985|-22.605;MAN|Manchester|GB|EU|53.354|-2.275;GVA|Genève|CH|EU|46.238|6.109;TIA|Tirana|AL|EU|41.415|19.721;KBP|Kiev|UA|EU|50.345|30.895;MLA|La Valette|MT|EU|35.857|14.477;LCA|Larnaca|CY|EU|34.875|33.625;TBS|Tbilissi|GE|EU|41.669|44.955;EVN|Erevan|AM|EU|40.147|44.396;GYD|Bakou|AZ|EU|40.468|50.047;MSQ|Minsk|BY|EU|53.882|28.031;DFW|Dallas|US|NA|32.899|-97.040;IAD|Washington|US|NA|38.944|-77.456;BOS|Boston|US|NA|42.364|-71.005;YVR|Vancouver|CA|NA|49.195|-123.184;HAV|La Havane|CU|NA|22.989|-82.409;SDQ|Saint-Domingue|DO|NA|18.430|-69.668;PAP|Port-au-Prince|HT|NA|18.580|-72.293;KIN|Kingston|JM|NA|17.936|-76.787;GUA|Guatemala|GT|NA|14.583|-90.527;SJO|San José|CR|NA|9.994|-84.209;POS|Port of Spain|TT|NA|10.595|-61.337;NAS|Nassau|BS|NA|25.039|-77.466;GIG|Rio de Janeiro|BR|SA|-22.810|-43.251;BSB|Brasilia|BR|SA|-15.871|-47.918;CCS|Caracas|VE|SA|10.603|-66.991;UIO|Quito|EC|SA|-0.141|-78.488;MVD|Montevideo|UY|SA|-34.838|-56.031;ASU|Asunción|PY|SA|-25.240|-57.519;LPB|La Paz|BO|SA|-16.513|-68.192;GEO|Georgetown|GY|SA|6.499|-58.254;PBM|Paramaribo|SR|SA|5.453|-55.188;PVG|Shanghai|CN|AS|31.144|121.808;SGN|Hô Chi Minh-Ville|VN|AS|10.819|106.652;HAN|Hanoï|VN|AS|21.221|105.807;DAC|Dacca|BD|AS|23.843|90.398;KTM|Katmandou|NP|AS|27.697|85.359;TAS|Tachkent|UZ|AS|41.258|69.282;ALA|Almaty|KZ|AS|43.352|77.040;ULN|Oulan-Bator|MN|AS|47.843|106.766;KIX|Osaka|JP|AS|34.427|135.244;BGW|Bagdad|IQ|ME|33.263|44.234;IKA|Téhéran|IR|ME|35.416|51.152;KBL|Kaboul|AF|AS|34.566|69.212;PER|Perth|AU|OC|-31.940|115.967;BNE|Brisbane|AU|OC|-27.384|153.117;NAN|Nadi|FJ|OC|-17.755|177.443'.split(';').map(s => { const [i, c, k, g, a, o] = s.split('|'); return { i, c, k, g, a: +a, o: +o }; }));
 const APM = Object.fromEntries(AP.map(a => [a.i, a]));
 const W = 'AF EU NA AS ME SA';
 const AL = "AF|Air France|FR|G;KL|KLM Royal Dutch Airlines|NL|G;LH|Lufthansa|DE|G;LX|Swiss International Air Lines|CH|G;OS|Austrian Airlines|AT|G;SN|Brussels Airlines|BE|AF EU NA;BA|British Airways|GB|G;VS|Virgin Atlantic|GB|EU NA AF AS ME SA;EI|Aer Lingus|IE|EU NA;IB|Iberia|ES|AF EU NA SA;UX|Air Europa|ES|EU NA SA AF;TP|TAP Air Portugal|PT|AF EU NA SA;AZ|ITA Airways|IT|AF EU NA AS ME SA;SK|SAS Scandinavian Airlines|DK SE NO|EU NA AS;AY|Finnair|FI|EU NA AS;LO|LOT Polish Airlines|PL|EU NA AS;A3|Aegean Airlines|GR|EU ME;TK|Turkish Airlines|TR|G;SU|Aeroflot|RU|EU AS ME AF;FR|Ryanair|IE|EU;U2|easyJet|GB|EU AF;VY|Vueling|ES|EU AF;HV|Transavia|NL|EU AF;TO|Transavia France|FR|EU AF;EW|Eurowings|DE|EU;PC|Pegasus Airlines|TR|EU ME AS AF;TU|Tunisair|TN|AF EU ME;AT|Royal Air Maroc|MA|AF EU NA ME SA;AH|Air Algérie|DZ|AF EU NA AS ME;MS|EgyptAir|EG|AF EU NA AS ME;ET|Ethiopian Airlines|ET|G;KQ|Kenya Airways|KE|AF EU AS ME;WB|RwandAir|RW|AF EU ME;SA|South African Airways|ZA|AF EU;HF|Air Côte d'Ivoire|CI|AF EU;HC|Air Sénégal|SN|AF EU;QC|Camair-Co|CM|AF;KP|ASKY Airlines|TG|AF;W3|Arik Air|NG|AF EU;P4|Air Peace|NG|AF EU;TM|LAM Mozambique Airlines|MZ|AF;DT|TAAG Angola Airlines|AO|AF EU SA;UM|Air Zimbabwe|ZW|AF;MK|Air Mauritius|MU|AF EU AS;UL|SriLankan Airlines|LK|AS EU ME AF;AI|Air India|IN|G;6E|IndiGo|IN|AS ME EU;PK|Pakistan International Airlines|PK|AS ME EU NA;EK|Emirates|AE|G;QR|Qatar Airways|QA|G;EY|Etihad Airways|AE|G;FZ|flydubai|AE|AS ME EU AF;G9|Air Arabia|AE|ME AS AF EU;WY|Oman Air|OM|AS ME EU AF;GF|Gulf Air|BH|ME EU AS AF;KU|Kuwait Airways|KW|ME EU AS;SV|Saudia|SA|ME EU AS AF NA;XY|flynas|SA|ME EU AS AF;RJ|Royal Jordanian|JO|ME EU NA AS AF;LY|El Al|IL|ME EU NA;ME|Middle East Airlines|LB|ME EU AF;CZ|China Southern Airlines|CN|G;MU|China Eastern Airlines|CN|G;CA|Air China|CN|G;HU|Hainan Airlines|CN|AS EU NA;CX|Cathay Pacific|HK|G;SQ|Singapore Airlines|SG|G;MH|Malaysia Airlines|MY|AS EU OC ME;TG|Thai Airways|TH|G;GA|Garuda Indonesia|ID|AS EU OC ME;PR|Philippine Airlines|PH|AS NA ME;BR|EVA Air|TW|AS EU NA OC;CI|China Airlines|TW|AS EU NA OC;KE|Korean Air|KR|G;OZ|Asiana Airlines|KR|AS EU NA;JL|Japan Airlines|JP|G;NH|All Nippon Airways|JP|G;QF|Qantas|AU|G;VA|Virgin Australia|AU|AS OC;NZ|Air New Zealand|NZ|AS NA OC;AC|Air Canada|CA|G;WS|WestJet|CA|NA EU;DL|Delta Air Lines|US|G;UA|United Airlines|US|G;AA|American Airlines|US|G;AS|Alaska Airlines|US|NA;B6|JetBlue|US|NA SA EU;WN|Southwest Airlines|US|NA;AM|Aeroméxico|MX|NA SA EU AS;CM|Copa Airlines|PA|NA SA;AV|Avianca|CO|NA SA EU;LA|LATAM Airlines|CL PE|SA NA EU;G3|Gol Linhas Aéreas|BR|SA NA;AD|Azul Linhas Aéreas|BR|SA NA EU;AR|Aerolíneas Argentinas|AR|SA NA EU".split(';').map(s => { const [c, n, h, r] = s.split('|'); return { c, n, h: h.split(' '), r: (r === 'G' ? W + ' OC' : r).split(' ') }; });
 const ALM = Object.fromEntries(AL.map(a => [a.c, a]));
 const hav = (a, b) => { const d = Math.PI / 180, x = (b.a - a.a) * d, y = (b.o - a.o) * d, q = Math.sin(x / 2) ** 2 + Math.cos(a.a * d) * Math.cos(b.a * d) * Math.sin(y / 2) ** 2; return Math.round(12742 * Math.asin(Math.sqrt(q))); };
+const serves = (L, a, b) => (L.h.includes(a.k) && (L.r.includes(b.g) || L.h.includes(b.k))) || (L.h.includes(b.k) && (L.r.includes(a.g) || L.h.includes(a.k)));
 const hs = s => { let h = 7; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
 const C128 = '212222,222122,222221,121223,121322,131222,122213,122312,132212,221213,221312,231212,112232,122132,122231,113222,123122,123221,223211,221132,221231,213212,223112,312131,311222,321122,321221,312212,322112,322211,212123,212321,232121,111323,131123,131321,112313,132113,132311,211313,231113,231311,112133,112331,132131,113123,113321,133121,313121,211331,231131,213113,213311,213131,311123,311321,331121,312113,312311,332111,314111,221411,431111,111224,111422,121124,121421,141122,141221,112214,112412,122114,122411,142112,142211,241211,221114,413111,241112,134111,111242,121142,121241,114212,124112,124211,411212,421112,421211,212141,214121,412121,111143,111341,131141,114113,114311,411113,411311,113141,114131,311141,411131,211412,211214,211232,2331112'.split(',');
 function barcode(txt, h) { const v = [104, ...[...txt].map(c => c.charCodeAt(0) - 32)]; v.push(v.reduce((s, x, i) => s + (i ? x * i : x), 0) % 103, 106); let x = 10, o = ''; v.forEach(c => [...C128[c]].forEach((w, j) => { const k = +w * 1.6; if (j % 2 === 0) o += `<rect x="${x}" y="0" width="${k}" height="60" fill="#000"/>`; x += k; })); return `<svg viewBox="0 0 ${x + 10} 60" preserveAspectRatio="none" style="width:100%;height:${h}px;display:block;background:#fff">${o}</svg>`; }
 const CLS = { eco: ['Économique', 1], biz: ['Affaires', 1.8], vip: ['VIP', 2.5] };
 const TIMES = ['06:15', '08:40', '10:25', '13:50', '16:30', '19:45', '22:10'];
-// Devises : [libellé, valeur de 1 unité en FCFA (taux indicatif de secours), décimales]. Les taux en direct remplacent ces valeurs quand le réseau répond.
-const CUR = { XAF: ['Franc CFA CEMAC (FCFA)', 1, 0], XOF: ['Franc CFA UEMOA (FCFA)', 1, 0], EUR: ['Euro (EUR)', 655.957, 2], USD: ['Dollar américain (USD)', 560, 2], GBP: ['Livre sterling (GBP)', 745, 2], CAD: ['Dollar canadien (CAD)', 410, 2], CHF: ['Franc suisse (CHF)', 700, 2], MAD: ['Dirham marocain (MAD)', 60, 2], DZD: ['Dinar algérien (DZD)', 4.2, 2], TND: ['Dinar tunisien (TND)', 180, 2], EGP: ['Livre égyptienne (EGP)', 11.5, 2], NGN: ['Naira nigérian (NGN)', 0.37, 0], GHS: ['Cedi ghanéen (GHS)', 45, 2], KES: ['Shilling kényan (KES)', 4.3, 2], RWF: ['Franc rwandais (RWF)', 0.4, 0], ZAR: ['Rand sud-africain (ZAR)', 31, 2], AED: ['Dirham des EAU (AED)', 152, 2], TRY: ['Livre turque (TRY)', 13, 2], CNY: ['Yuan chinois (CNY)', 78, 2], JPY: ['Yen japonais (JPY)', 3.7, 0], INR: ['Roupie indienne (INR)', 6.6, 2], BRL: ['Réal brésilien (BRL)', 100, 2] };
-let RATES = {}, CF = { km: 85, fee: 1000, ins: 12000, bag: 25000, stops: 3, promo: 0, eco: 1, biz: 1.8, vip: 2.5 }, ST = null, MY = [], busy = false;
+let CF = { km: 85, fee: 1000, ins: 12000, bag: 25000, stops: 3 }, bs = -1, built = false, MY = [];
 const money = n => Number(n || 0).toLocaleString('fr-FR') + ' FCFA';
-const rate = c => RATES[c] || (CUR[c] ? CUR[c][1] : 1);
-const fmtC = (x, c, r) => { c = CUR[c] ? c : 'XAF'; const d = CUR[c][2]; return Number(x / (r || rate(c))).toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d }) + ' ' + (c === 'XAF' || c === 'XOF' ? 'FCFA' : c); };
-async function liveRates() { try { const r = await fetch('https://open.er-api.com/v6/latest/XAF'); const j = await r.json(); if (j && j.rates) Object.keys(CUR).forEach(c => { if (c !== 'XAF' && c !== 'XOF' && j.rates[c] > 0) RATES[c] = 1 / j.rates[c]; }); } catch (e) {} }
-async function loadCfg() { try { const { data } = await supabaseClient.from('sw_flight_config').select('*').eq('id', 1).maybeSingle(); if (data) { CF = { km: +data.price_km, fee: +data.fee, ins: +data.ins, bag: +data.bag, stops: Math.max(0, Math.min(3, +data.max_stops)), promo: +data.promo_pct || 0, eco: +data.m_eco || 1, biz: +data.m_biz || 1.8, vip: +data.m_vip || 2.5 }; CLS.eco[1] = CF.eco; CLS.biz[1] = CF.biz; CLS.vip[1] = CF.vip; } } catch (e) {} }
-const CN = new Intl.DisplayNames(['fr'], { type: 'region' });
-const cname = k => { try { return CN.of(k); } catch (e) { return k; } };
-const aps = k => AP.filter(a => a.k === k).sort((a, b) => a.c.localeCompare(b.c, 'fr'));
-const apOpt = k => aps(k).map(a => [a.i, `${a.c} — ${a.i}`]);
-const ctry = () => [...new Set(AP.map(a => a.k))].map(k => [k, cname(k)]).sort((a, b) => a[1].localeCompare(b[1], 'fr'));
-const today = () => new Date().toISOString().slice(0, 10);
-const stopTxt = c => APM[c] ? `${APM[c].c} (${c})` : c;
-
-// ---------- ITINÉRAIRE (jamais affiché sur le reçu) ----------
-const tzo = a => Math.round(a.o / 15);
-const hm = m => Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0');
-const lt = (u, a) => { const d = new Date(u + tzo(a) * 36e5); return String(d.getUTCHours()).padStart(2, '0') + ':' + String(d.getUTCMinutes()).padStart(2, '0'); };
-const ld = (u, a) => new Date(u + tzo(a) * 36e5).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
-function plan(t) {
-  const P = [t.from, ...(t.stops || []).filter(c => APM[c]), t.to].map(c => APM[c]).filter(Boolean), [H, Mi] = t.dep.split(':').map(Number), [y, m, d] = t.date.split('-').map(Number), legs = [];
-  let u = Date.UTC(y, m - 1, d, H, Mi) - tzo(P[0]) * 36e5;
-  for (let i = 1; i < P.length; i++) { const a = P[i - 1], b = P[i], dist = hav(a, b), dur = Math.round(dist / 820 * 60 + 30), lay = i < P.length - 1 ? 75 + hs(b.i + t.pnr) % 90 : 0; legs.push({ a, b, dist, dur, dep: u, arr: u + dur * 6e4, lay }); u += (dur + lay) * 6e4; }
-  return legs;
-}
-function itin(t) {
-  closeItin(); const L = plan(t); if (!L.length) return toast('Itinéraire indisponible pour ce billet.', 'error');
-  const dist = L.reduce((s, x) => s + x.dist, 0), fly = L.reduce((s, x) => s + x.dur, 0), lay = L.reduce((s, x) => s + x.lay, 0), last = L[L.length - 1], air = ALM[t.ac] || { n: t.an };
-  const row = (l, i) => `<div style="display:flex;gap:12px"><div style="width:54px;text-align:right;flex:none"><b style="font-size:17px">${lt(l.dep, l.a)}</b><br><small style="color:#6b7a90">${ld(l.dep, l.a)}</small></div><div style="display:flex;flex-direction:column;align-items:center;flex:none"><i style="width:13px;height:13px;border-radius:50%;background:#0b2a5b;border:3px solid #cfe0ff"></i><i style="flex:1;width:2px;background:repeating-linear-gradient(#2563eb 0 6px,transparent 6px 10px);min-height:70px"></i></div><div style="padding-bottom:14px"><b>${esc(l.a.c)} <span style="color:#2563eb">${l.a.i}</span></b><br><small style="color:#6b7a90">${esc(cname(l.a.k))}</small><div style="margin-top:8px;font-size:12px;background:#f1f5fb;border-radius:10px;padding:6px 10px;display:inline-block">✈ Vol ${i + 1} · ${hm(l.dur)} · ${l.dist} km</div></div></div>` +
-    `<div style="display:flex;gap:12px"><div style="width:54px;text-align:right;flex:none"><b style="font-size:17px">${lt(l.arr, l.b)}</b><br><small style="color:#6b7a90">${ld(l.arr, l.b)}</small></div><div style="display:flex;flex-direction:column;align-items:center;flex:none"><i style="width:13px;height:13px;border-radius:50%;background:${l.lay ? '#f59e0b' : '#16a34a'};border:3px solid ${l.lay ? '#fde7b0' : '#c6f0d3'}"></i>${l.lay ? '<i style="flex:1;width:2px;background:#f59e0b;min-height:44px"></i>' : ''}</div><div style="padding-bottom:${l.lay ? 6 : 0}px"><b>${esc(l.b.c)} <span style="color:#2563eb">${l.b.i}</span></b><br><small style="color:#6b7a90">${esc(cname(l.b.k))}</small>${l.lay ? `<div style="margin-top:8px;font-size:12px;background:#fff6e0;color:#8a5a00;border-radius:10px;padding:6px 10px;display:inline-block">⏱ Escale · ${hm(l.lay)}</div>` : ''}</div></div>`;
-  const o = document.createElement('div'); o.id = 'itin-overlay'; o.style.cssText = 'position:fixed;inset:0;z-index:85;background:#0b1220cc;overflow:auto;padding:14px 10px 40px';
-  o.innerHTML = `<div style="max-width:480px;margin:0 auto;background:#fff;color:#111;border-radius:24px;overflow:hidden;box-shadow:0 20px 60px #0008"><div style="background:linear-gradient(135deg,#0b2a5b,#2563eb);color:#fff;padding:20px"><div style="display:flex;justify-content:space-between;align-items:center"><small style="letter-spacing:.18em;opacity:.8">ITINÉRAIRE DU VOL</small><button id="it-x" style="background:#fff3;color:#fff;border-radius:99px;padding:4px 12px;font-weight:700">Fermer ✕</button></div><div style="display:flex;align-items:center;gap:10px;margin-top:12px"><b style="font-size:34px">${esc(t.from)}</b><span style="flex:1;text-align:center;opacity:.9">✈ - - - ✈</span><b style="font-size:34px">${esc(t.to)}</b></div><div style="display:flex;justify-content:space-between;font-size:12px;opacity:.9"><span>${esc(APM[t.from].c)}</span><span>${esc(APM[t.to].c)}</span></div><div style="margin-top:10px;font-size:12px;opacity:.85">${esc(air.n)} · ${esc(t.flight)} · PNR ${esc(t.pnr)}</div></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#e5ebf5;border-bottom:1px solid #e5ebf5">${[['Distance', dist + ' km'], ['Durée totale', hm(fly + lay)], ['Escales', L.length - 1]].map(([k, v]) => `<div style="background:#fff;padding:12px;text-align:center"><small style="color:#6b7a90;font-size:10px;letter-spacing:.1em">${k.toUpperCase()}</small><br><b>${v}</b></div>`).join('')}</div><div style="padding:20px 16px 8px">${L.map(row).join('')}</div><p style="padding:0 18px 18px;font-size:11px;color:#6b7a90">Heures locales approximatives, calculées à partir des distances. Arrivée prévue à ${lt(last.arr, last.b)} (${esc(last.b.c)}).</p></div>`;
-  document.body.appendChild(o); $('it-x').onclick = closeItin;
-}
-const closeItin = () => { const o = $('itin-overlay'); if (o) o.remove(); };
-
-// ---------- REÇUS DE VOYAGE : 2 modèles validés (Numérique / Dashboard · Physique / Carnet à souche) ----------
-// Principes : grilles CSS strictes, hauteurs de ligne fixes, aucun positionnement absolu pour le texte,
-// chaque champ vit dans sa case (.fit) et sa police est réduite automatiquement (fitAll) pour ne jamais déborder.
-const STY = [[2, 'Modèle Numérique · Dashboard'], [1, 'Modèle Physique · Carnet à souche en bande']];
-// Anciens reçus (styles 1 à 8) : rattachés automatiquement à l'un des deux modèles.
-const sty = s => ([1, 4, 6, 7].includes(+s) ? 1 : 2);
-const gateOf = t => { const h = hs(t.pnr || 'X'); return 'ABCDEF'[h % 6] + (1 + (h >> 4) % 28); };
-const tnoOf = t => { const h = hs((t.pnr || '') + t.flight); return String(100 + h % 900) + ' ' + String(1000000000 + (h * 7919) % 9000000000); };
-const qrS = s => { try { const q = qrcode(0, 'M'); q.addData(s); q.make(); return q.createSvgTag({ cellSize: 2, margin: 0, scalable: true }); } catch (e) { return ''; } };
-
-// Ajustement automatique : réduit la police de chaque champ .fit jusqu'à ce que le texte tienne dans sa case.
-// Dernier recours (police minimale atteinte) : points de suspension, jamais de débordement.
-function fitAll(root) {
-  (root || document).querySelectorAll('.tk .fit').forEach(el => {
-    const base = parseFloat(el.dataset.fs || (el.dataset.fs = parseFloat(getComputedStyle(el).fontSize) || 12)), min = Math.max(7.5, base * 0.5);
-    let fs = base, n = 0; el.style.fontSize = base + 'px';
-    while (el.scrollWidth > el.clientWidth + 0.5 && fs > min && n++ < 120) { fs -= 0.5; el.style.fontSize = fs + 'px'; }
-  });
-}
-const nextFrame = () => new Promise(r => requestAnimationFrame(() => r()));
-
-function ctx(t) {
-  const L = ALM[t.ac] || { c: t.ac, n: t.an }, cu = t.cur || 'XAF', rr = +t.rate || 1, f = x => fmtC(x, cu, rr), A = APM[t.from], B = APM[t.to], ns = (t.stops || []).length, d = new Date(t.date + 'T00:00:00');
-  const key = t.pnr + t.flight.replace(/\W/g, '');
-  return { L, f, A, B, ns, key, air: esc(L.n), pax: esc((t.civ + ' ' + t.nom + ' ' + t.pre).trim()), nm: esc(t.nom + ' ' + t.pre), fc: esc(A.c), tc: esc(B.c), fi: esc(t.from), ti: esc(t.to), fk: esc(cname(A.k)), tk: esc(cname(B.k)), fl: esc(t.flight), dt: d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase(), dn: d.toLocaleDateString('fr-FR'), dep: esc(t.dep), bo: esc(t.board), seat: esc(t.seat), gate: gateOf(t), zone: t.cls === 'vip' ? 1 : t.cls === 'biz' ? 2 : 4, cls: esc(CLS[t.cls][0]), pnr: esc(t.pnr), tn: tnoOf(t), vs: ns ? ns + ' escale' + (ns > 1 ? 's' : '') : 'Vol direct', km: Number(t.dist || 0).toLocaleString('fr-FR') + ' km',
-    bc: h => barcode(key, h), qr: qrS(t.pnr + '|' + t.flight + '|' + t.date + '|' + t.from + t.to),
-    price: [['Tarif de base', f(t.fare)], ['Assurance', t.ins ? f(t.ins) : '—'], ['Bagages' + (t.bags ? ' (' + t.bags + ')' : ''), t.bagA ? f(t.bagA) : '—'], ['Total', f(t.total)]] };
-}
-// Logo compagnie : pictogramme + nom (le nom est un champ .fit, donc jamais coupé hors de sa case)
-const brand = (L, c, s) => `<span class="brand" style="color:${c}"><svg viewBox="0 0 64 36" width="${Math.round(s * 1.7)}" height="${s}" style="display:block"><g stroke="${c}" stroke-width="2" stroke-linecap="round" opacity=".55"><path d="M2 12h12M6 20h14M2 28h10"/></g><path fill="${c}" transform="translate(22 1) rotate(-28 16 17) scale(1.35)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg><b class="fit" style="font-size:${s}px">${esc(L.n)}</b></span>`;
-// Champ : libellé + valeur, chacun sur sa ligne, dans une case de grille
-const fld = (l, v, cls) => `<div class="${cls || ''}"><div class="lb fit">${l}</div><div class="vl fit">${v}</div></div>`;
-// Code-barres vertical : boîte de taille fixe (th × len), aucune autre pièce n'y entre
-const vb = (c, len, th) => `<div class="vbar" style="width:${th}px;height:${len}px"><div style="position:absolute;left:0;top:0;width:${len}px;height:${th}px;transform-origin:0 0;transform:translateX(${th}px) rotate(90deg)">${c.bc(th)}</div></div>`;
-const NOTE = c => `<div class="tk-note fit">N° de billet ${c.tn} · ${c.pnr} — Document indicatif, non valable pour l’embarquement</div>`;
-const PLANE = 'M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z';
-
-// ===== MODÈLE 1 — NUMÉRIQUE / DASHBOARD =====
-const tkNum = (c, t, id) => `<div class="tk tk-n"${id}>
-<div class="n-head">${brand(c.L, '#fff', 20)}<span class="n-pill fit">${c.cls}</span></div>
-<div class="n-body">
- <div class="n-main">
-  <div class="n-route">
-   <div class="n-end"><div class="lb fit">Départ</div><div class="n-code fit">${c.fi}</div><div class="n-city fit">${c.fc}</div><div class="n-ctry fit">${c.fk}</div></div>
-   <div class="n-mid"><svg viewBox="0 0 100 30" preserveAspectRatio="xMidYMid meet"><line x1="4" y1="15" x2="96" y2="15" stroke="#2563eb" stroke-width="2" stroke-dasharray="4 4"/><circle cx="4" cy="15" r="3" fill="#2563eb"/><circle cx="96" cy="15" r="3" fill="#2563eb"/><circle cx="50" cy="15" r="13" fill="#eef3fb"/><path fill="#0b2a5b" transform="translate(38 3) rotate(90 12 12)" d="${PLANE}"/></svg><div class="n-dist fit">${c.km}</div><div class="n-via fit">${c.vs}</div></div>
-   <div class="n-end r"><div class="lb fit">Arrivée</div><div class="n-code fit">${c.ti}</div><div class="n-city fit">${c.tc}</div><div class="n-ctry fit">${c.tk}</div></div>
-  </div>
-  <div class="n-grid">
-   ${fld('Passager', c.pax, 'n-t s2')}${fld('Vol', c.fl, 'n-t')}${fld('Date', c.dt, 'n-t')}
-   ${fld('Compagnie', c.air, 'n-t s2')}${fld('Départ', c.dep, 'n-t')}${fld('Embarquement', c.bo, 'n-t')}
-   ${fld('Classe', c.cls, 'n-t')}${fld('Zone', c.zone, 'n-t')}${fld('N° de billet', c.tn, 'n-t s2 mono')}
-  </div>
- </div>
- <div class="n-side">
-  <div class="qr">${c.qr}</div>
-  <div class="n-sg">${fld('Siège', c.seat, 'n-t big')}${fld('Porte', c.gate, 'n-t big')}</div>
-  ${fld('Réservation (PNR)', c.pnr, 'n-t sm mono')}
-  <div class="n-bc">${c.bc(44)}</div>
- </div>
-</div>
-<div class="n-foot">${c.price.map(([l, v], i) => fld(l, v, 'n-p' + (i === 3 ? ' tot' : ''))).join('')}</div>
-${NOTE(c)}
-</div>`;
-
-// ===== MODÈLE 2 — PHYSIQUE / CARNET À SOUCHE EN BANDE =====
-const tkStub = (c, t, id) => `<div class="tk tk-p"${id}>
-<div class="p-strip">
- <div class="p-cp">
-  <div class="p-hd">${brand(c.L, '#1a3a6e', 20)}<span class="p-ttl fit">BILLET · PNR ${c.pnr}</span></div>
-  <div class="p-fields">
-   ${fld('Passager | Name', c.pax, 'p-f s4')}${fld('Date', c.dt, 'p-f s2')}
-   ${fld('De | From', c.fc + ' (' + c.fi + ')', 'p-f s3')}${fld('Vers | To', c.tc + ' (' + c.ti + ')', 'p-f s3')}
-   ${fld('Vol | Flight', c.fl, 'p-f s2')}${fld('Départ | Dep.', c.dep, 'p-f s2')}${fld('Embarquement', c.bo, 'p-f s2')}
-   ${fld('Classe | Class', c.cls, 'p-f s2')}${fld('Porte | Gate', c.gate, 'p-f s2')}${fld('Siège | Seat', c.seat, 'p-f s2')}
-  </div>
-  ${vb(c, 216, 36)}
- </div>
- <div class="p-stub">
-  <div class="p-st-t fit">SOUCHE · PASSAGER</div>
-  ${fld('Nom | Name', c.nm, 'p-f')}
-  <div class="p-rt"><div class="p-cd fit">${c.fi}</div><span>→</span><div class="p-cd fit">${c.ti}</div></div>
-  <div class="p-2">${fld('Vol', c.fl, 'p-f')}${fld('Date', c.dt, 'p-f')}</div>
-  <div class="p-2">${fld('Siège', c.seat, 'p-f')}${fld('Porte', c.gate, 'p-f')}</div>
-  <div class="p-bc">${c.bc(38)}</div>
- </div>
-</div>
-<div class="p-foot">${c.price.map(([l, v], i) => fld(l, v, 'p-p' + (i === 3 ? ' tot' : ''))).join('')}</div>
-${NOTE(c)}
-</div>`;
-
-function tk(t, noId) { const c = ctx(t), id = noId ? '' : ' id="receipt-sheet"'; return sty(t.style) === 1 ? tkStub(c, t, id) : tkNum(c, t, id); }
-async function snap(t) { const h = document.createElement('div'); h.style.cssText = 'position:fixed;left:-9999px;top:0;width:760px'; h.innerHTML = tk(t); document.body.appendChild(h); try { fitAll(h); await nextFrame(); return await html2canvas(h.firstElementChild, { scale: 2, backgroundColor: null, useCORS: true, logging: false }); } finally { h.remove(); } }
-async function sendFile(blob, name, type, title) { const file = new File([blob], name, { type }); if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title }); return; } catch (e) { if (e && e.name === 'AbortError') return; } } const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
-async function shareT(t, pdf) {
-  try { toast('Préparation du reçu…'); const cv = await snap(t), w = cv.width / 2, h = cv.height / 2;
-    if (pdf) { const d = new window.jspdf.jsPDF({ orientation: 'l', unit: 'px', format: [w, h], hotfixes: ['px_scaling'] }); d.addImage(cv.toDataURL('image/png'), 'PNG', 0, 0, w, h); await sendFile(d.output('blob'), 'Recu-' + t.pnr + '.pdf', 'application/pdf', 'Reçu ' + t.pnr); }
-    else { const blob = await new Promise(r => cv.toBlob(r, 'image/png')); await sendFile(blob, 'Recu-' + t.pnr + '.png', 'image/png', 'Reçu ' + t.pnr); } }
-  catch (e) { toast('Impossible de préparer le reçu : ' + (e.message || e), 'error'); }
+async function loadCfg() { try { const { data } = await supabaseClient.from('sw_flight_config').select('*').eq('id', 1).maybeSingle(); if (data) CF = { km: +data.price_km, fee: +data.fee, ins: +data.ins, bag: +data.bag, stops: Math.max(0, Math.min(3, +data.max_stops)) }; } catch (e) {} }
+const brand = (L, c, s) => `<span style="display:inline-flex;align-items:center;gap:12px"><svg viewBox="0 0 64 36" width="${s*1.7}" height="${s}" style="flex:none"><g stroke="${c}" stroke-width="2" stroke-linecap="round" opacity=".55"><path d="M2 12h12M6 20h14M2 28h10"/></g><path fill="${c}" transform="translate(22 1) rotate(-28 16 17) scale(1.35)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg><b style="font-size:${s}px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;line-height:1.1">${esc(L.n)}</b></span>`;
+function tk(t) {
+  const L = ALM[t.ac] || { c: t.ac, n: t.an }, bc = barcode(t.pnr + t.flight.replace(/\W/g, ''), t.style === 1 ? 36 : 54);
+  const kv = (l, v) => `<div style="flex:1;min-width:0"><small style="display:block;font-size:8px;letter-spacing:.12em;color:#778;text-transform:uppercase">${l}</small><b style="font-size:12px">${esc(v)}</b></div>`;
+  const pr = `<div style="font-size:10px;line-height:1.5">Tarif de base ${money(t.fare)}<br>${t.ins ? 'Assurance ' + money(t.ins) + '<br>' : ''}${t.bagA ? 'Bagages (' + t.bags + ') ' + money(t.bagA) + '<br>' : ''}<b style="font-size:12px">TOTAL ${money(t.total)}</b></div>`;
+  const es = t.stops && t.stops.length ? `<div style="font-size:10px;text-align:center;margin-bottom:6px">Escale(s) : ${t.stops.map(esc).join(' · ')}</div>` : '';
+  const rt = `<div style="display:flex;align-items:center;gap:8px;margin:8px 0"><div><b style="font-size:26px">${esc(t.from)}</b><br><small>${esc(APM[t.from].c)}</small></div><div style="flex:1;text-align:center;font-size:18px">✈<br><small style="font-size:9px">${t.dist} km</small></div><div style="text-align:right"><b style="font-size:26px">${esc(t.to)}</b><br><small>${esc(APM[t.to].c)}</small></div></div>`;
+  if (t.style === 1) { const bl = 'border:1.5px dashed #6b5a3a;padding:7px;margin-top:8px'; return `<div id="receipt-sheet" style="width:148mm;box-sizing:border-box;padding:7mm;background:#fbf4e2;color:#2b2111;font-family:Georgia,serif;font-size:11px"><div style="${bl};display:flex;align-items:center;gap:10px;margin:0"><div style="flex:1">${brand(L, '#2b2111', 22)}<br><small>BILLET DE PASSAGE · COUPON PASSAGER</small></div><div style="text-align:right"><small>PNR</small><br><b style="font-size:17px;letter-spacing:.1em">${esc(t.pnr)}</b></div></div><div style="${bl}">${kv('Passager', t.civ + ' ' + t.nom + ' ' + t.pre)}<div style="display:flex;gap:6px;margin-top:5px">${kv('Passeport / CNI', t.pass)}${kv('Classe', CLS[t.cls][0])}</div></div><div style="${bl}">${rt}${es}<div style="display:flex;gap:6px">${kv('Vol', t.flight)}${kv('Date', t.date)}${kv('Départ', t.dep)}${kv('Embarq.', t.board)}${kv('Siège', t.seat)}</div></div><div style="${bl}">${pr}</div><div style="${bl}">${bc}<div style="text-align:center;font:10px monospace;letter-spacing:.2em">${esc(t.pnr)}</div></div><div style="${bl};font-size:9px;display:flex;justify-content:space-between"><span>SOUCHE AGENCE · ${esc(t.pnr)} · ${esc(t.from)}-${esc(t.to)}</span><span>✂ - - - - -</span></div></div>`; }
+  return `<div id="receipt-sheet" style="width:148mm;box-sizing:border-box;background:#fff;color:#111;font-family:Arial,sans-serif;font-size:11px;box-shadow:0 4px 24px #0006"><div style="background:#0b2a5b;color:#fff;padding:14px 16px;display:flex;align-items:center;gap:10px"><div style="flex:1">${brand(L, '#fff', 22)}</div><span style="font-size:10px;letter-spacing:.2em">E-TICKET</span></div><div style="padding:14px 16px">${rt}${es}<div style="display:flex;gap:6px;border-top:1px solid #ddd;padding-top:8px">${kv('Vol', t.flight)}${kv('Date', t.date)}${kv('Départ', t.dep)}${kv('Embarquement', t.board)}${kv('Siège', t.seat)}</div><div style="display:flex;gap:6px;margin-top:10px">${kv('Passager', t.civ + ' ' + t.nom + ' ' + t.pre)}${kv('Passeport / CNI', t.pass)}${kv('Classe', CLS[t.cls][0])}${kv('PNR', t.pnr)}</div><div style="margin-top:12px;padding:8px;background:#f3f5f8;border-radius:8px">${pr}</div><div style="margin-top:14px">${bc}<div style="text-align:center;font:10px monospace;letter-spacing:.25em;margin-top:2px">${esc(t.pnr)}</div></div></div></div>`;
 }
 function show(t) {
-  closeReceipt(); const ov = document.createElement('div'); ov.id = 'receipt-overlay'; ov.className = 'tk-mode'; ov.style.cssText = 'position:fixed;inset:0;z-index:80;background:#111c;overflow:auto;padding:16px 8px 40px';
-  ov.innerHTML = `<div class="no-print" style="max-width:760px;margin:0 auto 12px;display:flex;gap:8px;flex-wrap:wrap"><button id="fl-sh" class="flex-1 bg-swiftblue text-white font-semibold py-3 rounded-xl cursor-pointer">Partager</button><button id="fl-pd" class="bg-white text-swiftblue font-semibold px-4 py-3 rounded-xl cursor-pointer">PDF</button><button id="fl-pr" class="bg-white text-swiftblue font-semibold px-4 py-3 rounded-xl cursor-pointer">Imprimer</button><button id="fl-it" class="bg-white text-swiftblue font-semibold px-4 py-3 rounded-xl cursor-pointer">Itinéraire</button><button id="fl-x" class="bg-white text-gray-800 font-semibold px-4 py-3 rounded-xl cursor-pointer">Fermer</button></div><div style="overflow-x:auto"><div id="receipt-zoom" style="width:760px;margin:0 auto;zoom:${Math.min(1, (innerWidth - 16) / 760).toFixed(3)}">${tk(t)}</div></div>`;
-  document.body.appendChild(ov); fitAll(ov); requestAnimationFrame(() => fitAll(ov));
-  $('fl-x').onclick = closeReceipt; $('fl-it').onclick = () => itin(t); $('fl-sh').onclick = () => shareT(t, false); $('fl-pd').onclick = () => shareT(t, true); $('fl-pr').onclick = () => window.print();
+  closeReceipt(); const ov = document.createElement('div'); ov.id = 'receipt-overlay'; ov.style.cssText = 'position:fixed;inset:0;z-index:80;background:#111c;overflow:auto;padding:16px 8px 40px';
+  ov.innerHTML = `<div class="no-print" style="max-width:148mm;margin:0 auto 12px;display:flex;gap:8px"><button id="fl-pr" class="flex-1 bg-swiftblue text-white font-semibold py-3 rounded-xl cursor-pointer">Imprimer / Enregistrer en PDF</button><button id="fl-x" class="bg-white text-gray-800 font-semibold px-5 py-3 rounded-xl cursor-pointer">Fermer</button></div><div style="overflow-x:auto"><div id="receipt-zoom" style="width:148mm;margin:0 auto;zoom:${Math.min(1, (innerWidth - 16) / 560).toFixed(3)}">${tk(t)}</div></div>`;
+  document.body.appendChild(ov); $('fl-x').onclick = closeReceipt; $('fl-pr').onclick = () => { const o = document.title; document.title = 'Billet-' + t.pnr; print(); setTimeout(() => { document.title = o; }, 500); };
 }
-const toT = r => ({ ...r.data, pnr: r.pnr, style: +r.style, created_at: r.created_at, cur: r.currency || r.data.cur || 'XAF', rate: +r.rate || +r.data.rate || 1 });
-
-// ---------- CRÉATION : assistant par étapes ----------
-const STEPS = [['Trajet', 'Pays et aéroport de départ et d’arrivée'], ['Escales', 'Pays et aéroport de chaque escale'], ['Vol', 'Date, classe, compagnie et devise du reçu'], ['Passager', 'Les données privées ne figurent pas sur le billet'], ['Options et paiement', 'Assurance, bagages, style et récapitulatif']];
-const fresh = () => ({ s: 0, fk: 'CM', fa: 'DLA', tk: 'FR', ta: 'CDG', n: 0, st: [], date: '', cls: 'eco', air: 'AF', cur: 'XAF', civ: 'M.', nom: '', pre: '', dob: '', nat: 'Cameroun', pass: '', exp: '', ecn: '', ect: '', ins: false, bag: 0, style: 2 });
-const setP = (p, v) => { const a = p.split('.'); let o = ST; for (let i = 0; i < a.length - 1; i++) o = o[a[i]]; o[a[a.length - 1]] = v; };
-const sel = (k, l, o) => { const cur = k.split('.').reduce((x, y) => x[y], ST); return `<div><label class="${LB}">${l}</label><select data-k="${k}" class="${IC}">${o.map(([v, t]) => `<option value="${esc(v)}"${String(cur) === String(v) ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></div>`; };
-const inp = (k, l, a = '') => `<div><label class="${LB}">${l}</label><input data-k="${k}" value="${esc(ST[k])}" ${a} class="${IC}"></div>`;
-const place = (kk, ka, lab) => sel(kk, 'Pays ' + lab, ctry()) + sel(ka, 'Ville / aéroport (' + lab + ')', apOpt(kk.split('.').reduce((x, y) => x[y], ST)));
-// Filtre de cohérence des transporteurs : seules les compagnies qui desservent réellement le trajet sont proposées
-// (pays d'attache sur le parcours ET toutes les escales dans leur zone de desserte).
-const routePts = () => [ST.fa, ...ST.st.map(x => x.a), ST.ta].map(c => APM[c]).filter(Boolean);
-const airOk = (a, R) => R.length > 0 && R.every(p => a.r.includes(p.g)) && R.some(p => a.h.includes(p.k));
-function airList() {
-  const R = routePts(); let l = AL.filter(a => airOk(a, R));
-  if (!l.length) l = AL.filter(a => R.every(p => a.r.includes(p.g)));
-  if (!l.length) l = AL.slice();
-  return l.sort((a, b) => a.n.localeCompare(b.n, 'fr'));
-}
-function syncAir() { const l = airList(); if (!l.some(a => a.c === ST.air)) ST.air = l[0].c; return l; }
+const toT = r => ({ ...r.data, pnr: r.pnr, style: +r.style, created_at: r.created_at });
 function calc() {
-  syncAir();
-  const P = [ST.fa, ...ST.st.map(x => x.a), ST.ta].map(c => APM[c]).filter(Boolean); let d = 0; for (let i = 1; i < P.length; i++) d += hav(P[i - 1], P[i]);
-  const fare = Math.round(d * CF.km * CLS[ST.cls][1]), ins = ST.ins ? CF.ins : 0, bagA = ST.bag * CF.bag;
-  return { P, d, fare, ins, bagA, total: fare + ins + bagA, fee: Math.round(CF.fee * (100 - CF.promo) / 100), L: ALM[ST.air] };
+  const a = APM[$('f-from').value], b = APM[$('f-to').value], d = a && b ? hav(a, b) : 0, fare = Math.round(d * CF.km * CLS[$('f-cls').value][1]), ins = $('f-ins').checked ? CF.ins : 0, bags = +$('f-bag').value, bagA = bags * CF.bag, L = ALM[$('f-air').value];
+  return { a, b, d, fare, ins, bags, bagA, total: fare + ins + bagA, L, ok: !!(a && b && a !== b && L && serves(L, a, b)) };
 }
-function check(s) {
-  const g = k => String(ST[k] || '').trim();
-  if (s === 0 && (!ST.fa || !ST.ta)) return 'Choisissez les aéroports de départ et d’arrivée.';
-  if (s <= 1) { const c = [ST.fa, ...ST.st.map(x => x.a), ST.ta]; for (let i = 1; i < c.length; i++) if (c[i] === c[i - 1]) return 'Deux étapes consécutives ne peuvent pas être le même aéroport.'; }
-  if (s === 2) { if (!airList().some(a => a.c === ST.air)) return 'Cette compagnie ne dessert pas ce trajet.'; if (!ST.date) return 'Choisissez la date du vol.'; if (ST.date < today()) return 'La date du vol est dans le passé.'; }
-  if (s === 3) { for (const [k, l] of [['nom', 'le nom'], ['pre', 'le prénom'], ['dob', 'la date de naissance'], ['pass', 'le n° de passeport / CNI'], ['exp', 'la date d’expiration'], ['ecn', 'le contact d’urgence (nom)'], ['ect', 'le contact d’urgence (téléphone)']]) if (!g(k)) return 'Renseignez ' + l + '.'; if (g('dob') >= today()) return 'Date de naissance invalide.'; if (g('exp') <= ST.date) return 'Le document expire avant la date du vol.'; }
-  return '';
-}
-function body() {
-  const s = ST.s;
-  if (s === 0) return place('fk', 'fa', 'de départ') + '<div class="h-px bg-gray-100"></div>' + place('tk', 'ta', 'd’arrivée');
-  if (s === 1) return sel('n', 'Nombre d’escales (max ' + CF.stops + ')', Array.from({ length: CF.stops + 1 }, (_, i) => [i, i + ' escale(s)'])) + (ST.st.length ? ST.st.map((x, i) => `<div class="space-y-3 rounded-2xl bg-gray-50 p-3"><p class="text-xs font-bold text-swiftblue">Escale ${i + 1}</p>${place('st.' + i + '.k', 'st.' + i + '.a', 'de l’escale')}</div>`).join('') : '<p class="text-sm text-gray-500">Vol direct, sans escale.</p>');
-  if (s === 2) return inp('date', 'Date du vol', `type="date" min="${today()}"`) + sel('cls', 'Classe', Object.entries(CLS).map(([k, x]) => [k, x[0] + ' (×' + x[1] + ')'])) + sel('air', 'Compagnie aérienne', syncAir().map(a => [a.c, a.n])) + sel('cur', 'Devise affichée sur le reçu', Object.entries(CUR).map(([k, x]) => [k, x[0]])) + '<p class="text-xs text-gray-500">Seules les compagnies qui desservent ce trajet sont proposées. Les tarifs sont fixés en FCFA puis convertis automatiquement dans la devise choisie.</p>';
-  if (s === 3) return sel('civ', 'Civilité', [['M.', 'M.'], ['Mme', 'Mme'], ['Mlle', 'Mlle']]) + inp('nom', 'Nom') + inp('pre', 'Prénom') + inp('dob', 'Date de naissance', 'type="date"') + sel('nat', 'Nationalité', COUNTRIES.map(c => [c, c])) + inp('pass', 'N° passeport / CNI') + inp('exp', 'Date d’expiration', 'type="date"') + inp('ecn', 'Contact d’urgence (nom)') + inp('ect', 'Contact d’urgence (téléphone)', 'type="tel"');
-  const c = calc(), cu = ST.cur, z = Math.min(1, (innerWidth - 56) / 760);
-  return `<label class="flex items-center gap-3 text-sm font-semibold"><input data-k="ins" type="checkbox" class="w-5 h-5" ${ST.ins ? 'checked' : ''}> Assurance voyage (${fmtC(CF.ins, cu)})</label>` + sel('bag', 'Bagages supplémentaires (' + fmtC(CF.bag, cu) + ' l’unité)', [0, 1, 2, 3].map(n => [n, n + ' bagage(s)'])) + sel('style', 'Modèle du reçu', STY) + (() => { try { return `<p class="text-xs font-semibold text-gray-700">Aperçu du modèle choisi</p><div style="overflow-x:auto"><div style="width:760px;zoom:${z.toFixed(3)}">${tk(mkT(c), true)}</div></div>`; } catch (e) { return ''; } })() + `<div class="text-xs text-gray-700 bg-gray-50 rounded-xl p-3 leading-6">Itinéraire : <b>${[ST.fa, ...ST.st.map(x => x.a), ST.ta].join(' → ')}</b><br>Distance : <b>${c.d} km</b> · Prix du billet : <b>${fmtC(c.total, cu)}</b>${cu !== 'XAF' && cu !== 'XOF' ? ' <span class="text-gray-500">(' + money(c.total) + ')</span>' : ''}<br>Frais de génération débités du portefeuille : <b>${money(c.fee)}</b>${CF.promo ? ' <span class="text-green-600">(−' + CF.promo + ' % offre)</span>' : ''}</div>`;
-}
-function draw() {
-  const v = $('new-fly'), last = ST.s === STEPS.length - 1;
-  v.innerHTML = `<div class="space-y-4"><div><div class="flex justify-between text-xs font-semibold text-gray-500 mb-1"><span>Étape ${ST.s + 1} / ${STEPS.length}</span><span>${STEPS[ST.s][0]}</span></div><div class="h-2 rounded-full bg-gray-200 overflow-hidden"><div class="h-full bg-swiftblue rounded-full" style="width:${(ST.s + 1) / STEPS.length * 100}%"></div></div></div>${CARD(STEPS[ST.s][0], STEPS[ST.s][1], body())}<div class="flex gap-3">${ST.s ? '<button type="button" id="f-prev" class="px-5 py-3.5 rounded-xl border border-gray-300 bg-white font-semibold cursor-pointer">← Retour</button>' : ''}<button type="button" id="${last ? 'f-pay' : 'f-next'}" class="flex-1 bg-swiftblue text-white font-semibold py-3.5 rounded-xl shadow-md cursor-pointer">${last ? 'Payer ' + money(calc().fee) + ' et générer le billet' : 'Suivant →'}</button></div></div>`;
-  fitAll(v); requestAnimationFrame(() => fitAll(v));
-  v.querySelectorAll('[data-k]').forEach(e => e.addEventListener(e.tagName === 'SELECT' || e.type === 'checkbox' || e.type === 'radio' ? 'change' : 'input', () => {
-    if (e.type === 'radio' && !e.checked) return; const k = e.dataset.k; let val = e.type === 'checkbox' ? e.checked : e.value; if (k === 'bag' || k === 'n' || k === 'style') val = +val; setP(k, val);
-    if (k === 'fk') ST.fa = (aps(val)[0] || {}).i || ''; if (k === 'tk') ST.ta = (aps(val)[0] || {}).i || '';
-    if (/^st\.\d+\.k$/.test(k)) setP(k.replace(/k$/, 'a'), (aps(val)[0] || {}).i || '');
-    if (k === 'n') { while (ST.st.length < val) ST.st.push({ k: 'FR', a: 'CDG' }); ST.st.length = val; }
-    if (/^(fk|tk|n|st\.\d+\.k|cur|ins|bag|style)$/.test(k)) draw();
-  }));
-  const nx = $('f-next'), pv = $('f-prev'), py = $('f-pay');
-  if (nx) nx.onclick = () => { const e = check(ST.s); if (e) return toast(e, 'error'); ST.s++; draw(); window.scrollTo(0, 0); };
-  if (pv) pv.onclick = () => { ST.s--; draw(); window.scrollTo(0, 0); };
-  if (py) py.onclick = pay;
-}
-const ask = msg => new Promise(res => { const o = document.createElement('div'); o.style.cssText = 'position:fixed;inset:0;z-index:95;background:#0009;display:flex;align-items:center;justify-content:center;padding:20px'; o.innerHTML = `<div style="background:#fff;color:#111;border-radius:20px;padding:22px;max-width:360px;width:100%"><p style="font-weight:800;margin-bottom:6px">Confirmer le paiement</p><p style="font-size:14px;color:#444;margin-bottom:16px">${msg}</p><div style="display:flex;gap:8px"><button id="ak-n" class="flex-1 py-3 rounded-xl border border-gray-300 font-semibold">Annuler</button><button id="ak-y" class="flex-1 py-3 rounded-xl bg-swiftblue text-white font-semibold">Confirmer</button></div></div>`; document.body.appendChild(o); const end = v => { o.remove(); res(v); }; $('ak-y').onclick = () => end(true); $('ak-n').onclick = () => end(false); });
-function mkT(c) {
-    const h = hs(ST.fa + ST.ta + ST.date + ST.air), cl = ST.cls, row = cl === 'vip' ? [1, 3] : cl === 'biz' ? [4, 9] : [18, 42], dep = TIMES[h % 7], [H, Mi] = dep.split(':').map(Number), bm = ((H * 60 + Mi - 90) + 1440) % 1440, g = k => String(ST[k]).trim();
-    const t = { pnr: 'PREVIEW', ac: c.L.c, an: c.L.n, from: ST.fa, to: ST.ta, dist: c.d, date: ST.date, dep, board: String(Math.floor(bm / 60)).padStart(2, '0') + ':' + String(bm % 60).padStart(2, '0'), flight: c.L.c + ' ' + (100 + h % 900), seat: (row[0] + h % (row[1] - row[0] + 1)) + 'ACDF'.charAt((h >> 3) % 4), cls: cl, civ: ST.civ, nom: g('nom').toUpperCase(), pre: g('pre'), pass: g('pass').toUpperCase(), dob: ST.dob, nat: ST.nat, exp: ST.exp, ecn: g('ecn'), ect: g('ect'), fare: c.fare, ins: c.ins, bags: ST.bag, bagA: c.bagA, total: c.total, stops: ST.st.map(x => x.a), style: ST.style, cur: ST.cur, rate: rate(ST.cur) };
-  return t;
-}
-async function pay() {
-  if (busy) return; busy = true; const b0 = $('f-pay'); if (b0) { b0.disabled = true; b0.textContent = 'Traitement…'; }
-  try {
-    for (let i = 0; i < 4; i++) { const e = check(i); if (e) { ST.s = i; draw(); toast(e, 'error'); return; } }
-    await loadCfg(); const c = calc(); if (c.P.length < 2) throw new Error('Itinéraire invalide.');
-    const w = await supabaseClient.from('sw_wallets').select('balance').eq('user_id', currentUser.id).maybeSingle(), bal = Number(w.data ? w.data.balance : 0);
-    if (bal < c.fee) { draw(); return goRecharge(c.fee - bal); }
-    if (!await ask(money(c.fee) + ' seront débités de votre portefeuille pour générer ce billet.')) { draw(); return; }
-    const t = mkT(c); delete t.pnr;
-    const { data, error } = await supabaseClient.rpc('sw_book_flight', { p_row: { ...t, route: t.from + '-' + t.to, airline: t.ac } });
-    if (error || !data) { if (error && isLowBalance(error)) { draw(); return goRecharge(c.fee - bal); } throw new Error((error && error.message) || 'Paiement refusé'); }
-    ST = null; setNewMode(null); toast('Billet généré · ' + money(c.fee) + ' débités.'); show({ ...data.data, pnr: data.pnr, style: +data.style, cur: t.cur, rate: t.rate });
-  } catch (e) { console.error(e); toast('Erreur : ' + (e.message || e) + ' — vérifiez que flights-migration.sql a été exécuté.', 'error'); if (ST) draw(); }
-  finally { busy = false; const b = $('f-pay'); if (b) b.disabled = false; }
+function recap() { const c = calc(), r = $('f-recap'); if (!c.a || c.a === c.b) { r.innerHTML = 'Choisissez deux aéroports différents.'; return c; } r.innerHTML = `Distance : <b>${c.d} km</b> · Prix indicatif du billet : <b>${money(c.total)}</b><br>Frais de génération débités de votre portefeuille : <b>${money(CF.fee)}</b>` + (c.ok ? '' : `<br><b style="color:#dc2626">⚠ ${esc(c.L.n)} ne dessert pas ${esc(c.a.c)} → ${esc(c.b.c)}. Choisissez une autre compagnie.</b>`); $('f-btn').textContent = 'Payer ' + money(CF.fee) + ' et générer le billet'; return c; }
+function build() {
+  const o = AP.map(a => [a.i, `${a.c} (${a.i}) · ${a.k}`]), v = $('new-fly'), lbl = LB;
+  v.innerHTML = `<form id="fl-form" class="space-y-5">` +
+    CARD('Trajet', 'Distance calculée automatiquement', SEL('f-from', 'Départ', o) + SEL('f-to', 'Arrivée', o.slice().reverse()) + F('f-date', 'Date du vol', 'type="date" required') + SEL('f-cls', 'Classe', Object.entries(CLS).map(([k, x]) => [k, x[0] + ' (x' + x[1] + ')'])) + SEL('f-air', 'Compagnie aérienne', AL.map(a => [a.c, a.n])) + SEL('f-stops', 'Nombre d’escales (max ' + CF.stops + ')', Array.from({ length: CF.stops + 1 }, (_, i) => [i, i + ' escale(s)'])) + '<div id="f-stl" class="space-y-3"></div>') +
+    CARD('Passager', 'Les données privées restent confidentielles et ne figurent pas sur le billet', SEL('f-civ', 'Civilité', [['M.', 'M.'], ['Mme', 'Mme'], ['Mlle', 'Mlle']]) + F('f-nom', 'Nom', 'required') + F('f-pre', 'Prénom', 'required') + F('f-dob', 'Date de naissance', 'type="date" required') + SEL('f-nat', 'Nationalité', COUNTRIES.map(c => [c, c])) + F('f-pass', 'N° passeport / CNI', 'required') + F('f-exp', 'Date d’expiration', 'type="date" required') + F('f-ecn', 'Contact d’urgence (nom)', 'required') + F('f-ect', 'Contact d’urgence (téléphone)', 'type="tel" required')) +
+    CARD('Options et design', '', `<label class="flex items-center gap-3 text-sm font-semibold"><input id="f-ins" type="checkbox" class="w-5 h-5"> Assurance voyage</label>` + SEL('f-bag', 'Bagages supplémentaires', [0, 1, 2, 3].map(n => [n, n + ' bagage(s)'])) + `<div><p class="${lbl}">Style du billet</p><label class="block text-sm py-1"><input type="radio" name="f-st" value="1"> Style 1 · Billet physique à souche</label><label class="block text-sm py-1"><input type="radio" name="f-st" value="2" checked> Style 2 · E-ticket numérique</label></div><p id="f-recap" class="text-xs text-gray-700 bg-gray-50 rounded-xl p-3"></p>`) +
+    `<button id="f-btn" type="submit" class="w-full bg-swiftblue text-white font-semibold py-3.5 rounded-xl shadow-md cursor-pointer">Générer le billet</button></form>`;
+  $('f-date').min = new Date().toISOString().slice(0, 10); $('f-nat').value = 'Cameroun'; $('f-to').selectedIndex = 0;
+  v.querySelectorAll('#fl-form select,#fl-form input').forEach(e => e.addEventListener('input', recap));
+  $('f-stops').onchange = () => { $('f-stl').innerHTML = Array.from({ length: +$('f-stops').value }, (_, i) => SEL('f-s' + i, 'Pays de l’escale ' + (i + 1), COUNTRIES.map(c => [c, c]))).join(''); };
+  $('fl-form').onsubmit = submit; built = true; recap();
 }
 async function mine() {
-  const b = $('view-tickets'), H = '<h2 class="text-lg font-bold text-gray-900 px-1">🧾 Mes reçus de voyage</h2>'; b.innerHTML = H + '<p class="text-center text-gray-500 py-6">Chargement...</p>';
+  const b = $('view-tickets'), H = '<h2 class="text-lg font-bold text-gray-900 px-1">✈️ Mes billets d\'avion</h2>'; b.innerHTML = H + '<p class="text-center text-gray-500 py-6">Chargement...</p>';
   const { data, error } = await supabaseClient.from('sw_flight_tickets').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
-  if (error) { b.innerHTML = H; return toast('Erreur : ' + error.message, 'error'); }
-  MY = data; b.innerHTML = H + (data.length ? data.map((r, i) => `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mt-3"><div class="flex items-center justify-between gap-2"><div><p class="font-bold">${esc(r.route)} · ${esc(r.data.date)}</p><p class="text-xs text-gray-500">${esc(r.data.an)} · ${esc(r.data.flight)} · PNR ${esc(r.pnr)}</p></div><b class="text-sm text-swiftblue">${fmtC(r.total, r.currency || 'XAF', +r.rate || 1)}</b></div><div class="flex gap-2 mt-3"><button data-i="${i}" class="fl-v flex-1 text-sm font-semibold text-white bg-swiftblue rounded-full py-2 cursor-pointer">Voir le reçu</button><button data-i="${i}" class="fl-i flex-1 text-sm font-semibold text-swiftblue bg-blue-50 rounded-full py-2 cursor-pointer">Itinéraire</button></div></div>`).join('') : '<div class="bg-white rounded-3xl border border-gray-100 p-8 text-center mt-3"><p class="text-gray-500 mb-4">Vous n\'avez pas encore de reçu de voyage.</p><button type="button" id="fl-new" class="bg-swiftblue text-white font-semibold px-5 py-3 rounded-xl cursor-pointer">Créer mon premier reçu</button></div>');
+  if (error) { b.innerHTML = ''; return toast('Erreur : ' + error.message, 'error'); }
+  MY = data; b.innerHTML = H + (data.length ? data.map((r, i) => `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mt-3 flex items-center justify-between gap-2"><div><p class="font-bold">${esc(r.route)} · ${esc(r.data.date)}</p><p class="text-xs text-gray-500">${esc(r.data.an)} · ${esc(r.data.flight)} · PNR ${esc(r.pnr)}</p></div><button data-i="${i}" class="fl-v text-sm font-semibold text-white bg-swiftblue rounded-full px-4 py-2 cursor-pointer">Voir</button></div>`).join('') : '<div class="bg-white rounded-3xl border border-gray-100 p-8 text-center mt-3"><p class="text-gray-500 mb-4">Vous n\'avez pas encore de billet d\'avion.</p><button type="button" id="fl-new" class="bg-swiftblue text-white font-semibold px-5 py-3 rounded-xl cursor-pointer">Créer mon premier billet</button></div>');
   const nb = $('fl-new'); if (nb) nb.onclick = () => { showTab('new'); setNewMode('fly'); };
-  b.querySelectorAll('.fl-v').forEach(x => x.onclick = () => show(toT(MY[x.dataset.i]))); b.querySelectorAll('.fl-i').forEach(x => x.onclick = () => itin(toT(MY[x.dataset.i])));
+  b.querySelectorAll('.fl-v').forEach(x => x.onclick = () => show(toT(MY[x.dataset.i])));
+}
+async function submit(e) {
+  e.preventDefault(); const c = recap(), g = i => $(i).value.trim(), btn = $('f-btn');
+  if (!c.a || c.a === c.b) return toast('Choisissez deux aéroports différents.', 'error');
+  if (!c.ok) return toast(c.L.n + ' ne dessert pas cet itinéraire. Choisissez une autre compagnie.', 'error');
+  if (g('f-exp') <= g('f-date')) return toast('Le document expire avant la date du vol.', 'error');
+  if (g('f-dob') >= new Date().toISOString().slice(0, 10)) return toast('Date de naissance invalide.', 'error');
+  await loadCfg(); const w = await supabaseClient.from('sw_wallets').select('balance').eq('user_id', currentUser.id).maybeSingle();
+  { const bal = Number(w.data ? w.data.balance : 0); if (bal < CF.fee) return goRecharge(CF.fee - bal); }
+  if (!confirm('Confirmer ? ' + money(CF.fee) + ' seront débités de votre portefeuille.')) return;
+  const h = hs(c.a.i + c.b.i + g('f-date') + c.L.c), cl = $('f-cls').value, row = cl === 'vip' ? [1, 3] : cl === 'biz' ? [4, 9] : [18, 42], dep = TIMES[h % 7], [H, Mi] = dep.split(':').map(Number), bm = ((H * 60 + Mi - 90) + 1440) % 1440;
+  const t = { ac: c.L.c, an: c.L.n, from: c.a.i, to: c.b.i, dist: c.d, date: g('f-date'), dep, board: String(Math.floor(bm / 60)).padStart(2, '0') + ':' + String(bm % 60).padStart(2, '0'), flight: c.L.c + ' ' + (100 + h % 900), seat: (row[0] + h % (row[1] - row[0] + 1)) + 'ACDF'.charAt((h >> 3) % 4), cls: cl, civ: $('f-civ').value, nom: g('f-nom').toUpperCase(), pre: g('f-pre'), pass: g('f-pass').toUpperCase(), dob: g('f-dob'), nat: $('f-nat').value, exp: g('f-exp'), ecn: g('f-ecn'), ect: g('f-ect'), fare: c.fare, ins: c.ins, bags: c.bags, bagA: c.bagA, total: c.total, stops: Array.from({ length: Math.min(CF.stops, +$('f-stops').value) }, (_, i) => $('f-s' + i).value), style: +document.querySelector('input[name=f-st]:checked').value };
+  btn.disabled = true; const { data, error } = await supabaseClient.rpc('sw_book_flight', { p_row: { ...t, route: t.from + '-' + t.to, airline: t.ac } }); btn.disabled = false; recap();
+  if (error || !data) return toast((error && error.message) || 'Paiement refusé', 'error');
+  e.target.reset(); setNewMode(null); toast('Billet généré · ' + money(CF.fee) + ' débités.'); recap(); show({ ...data.data, pnr: data.pnr, style: +data.style });
 }
 window.ticketsInit = () => mine();
-window.flyInit = async () => { await loadCfg(); if (!ST) ST = fresh(); ST.n = Math.min(ST.n, CF.stops); ST.st.length = ST.n; draw(); liveRates().then(() => { if (ST && ST.s >= 2) draw(); }); };
-
-// ---------- ADMIN : paramètres / radar / flux des billets d'avion ----------
-const allT = () => supabaseClient.from('sw_flight_tickets').select('*').order('created_at', { ascending: false }).limit(1000);
-const sqlErr = e => `<div class="x-empty">Billets : ${esc(e.message)}<br>Exécutez « flights-migration.sql ».</div>`;
-const since = k => { const d = new Date(); d.setHours(0, 0, 0, 0); if (k === 'week') d.setDate(d.getDate() - 6); else if (k === 'month') d.setDate(d.getDate() - 29); return k === 'all' ? 0 : d.getTime(); };
-const sumF = a => a.reduce((s, r) => s + Number(r.fee), 0), top = (a, f) => Object.entries(a.reduce((o, r) => (o[f(r)] = (o[f(r)] || 0) + 1, o), {})).sort((x, y) => y[1] - x[1]).slice(0, 5);
-window.FLX = window.FLX || { p: 'all', q: '', d: '', c: '' };
-const ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-const fluxRows = data => { const q = FLX.q.toLowerCase(), t0 = since(FLX.p); return data.filter(r => { const ts = new Date(r.created_at); return (!FLX.d || ymd(ts) === FLX.d) && ts.getTime() >= t0 && (!FLX.c || r.data.cls === FLX.c) && (!q || (r.pnr + ' ' + r.route + ' ' + r.airline + ' ' + (r.data.an || '') + ' ' + r.data.nom + ' ' + r.data.pre).toLowerCase().includes(q)); }); };
-const fgo = o => { Object.assign(FLX, { p: 'all', q: '', d: '', c: '' }, o); window.swGo('pipe', 'fly'); };
-window.flyCfg = async (M) => {
-  await loadCfg(); const tab = M._t || 'price', lab = 'font-size:11px;display:block';
-  const save = async (o) => { const c = { ...CF, ...o }, { error } = await supabaseClient.rpc('sw_admin_set_flight', { p_km: c.km, p_fee: c.fee, p_ins: c.ins, p_bag: c.bag, p_stops: c.stops, p_promo: 0, p_eco: c.eco, p_biz: c.biz, p_vip: c.vip }); toast(error ? 'Erreur : ' + error.message : 'Enregistré.', error ? 'error' : ''); if (!error) window.flyCfg(M); };
-  const n = (id, l, v, ex = '') => `<label style="${lab}">${l}<input id="${id}" type="number" min="0" step="any" ${ex} class="x-in" value="${v}"></label>`;
-  M.innerHTML = `<div class="x-wrap"><h2 class="x-title">Paramètres · Billets d'avion</h2><p class="x-lead">${tab === 'price' ? 'Fixez les tarifs (en FCFA). Ils sont convertis automatiquement dans la devise choisie par le client.' : 'Offrez des billets gratuits à un groupe ciblé ou activez l’offre de bienvenue automatique.'}</p><div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:14px"><div class="x-read" style="cursor:default"><small>FRAIS PAR BILLET</small><strong style="font-size:20px">${money(CF.fee)}</strong><em>débités au client</em></div><div class="x-read" style="cursor:default"><small>PRIX / KM</small><strong style="font-size:20px">${money(CF.km)}</strong><em>classe économique</em></div></div><div style="display:flex;gap:8px;margin:0 0 12px">${[['price', '💰 Tarification'], ['promo', '🎁 Offres promotionnelles']].map(([k, l]) => `<button class="x-btn ${tab === k ? 'go' : ''}" data-t="${k}">${l}</button>`).join('')}</div>` + (tab === 'price' ? `<div class="x-panel" style="margin-top:0"><p class="x-h">TARIFS (FCFA)</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${n('v-km', 'PRIX / KM (FCFA)', CF.km)}${n('v-fee', 'FRAIS DE GÉNÉRATION (débités)', CF.fee)}${n('v-ins', 'ASSURANCE (FCFA)', CF.ins)}${n('v-bag', 'BAGAGE SUPPL. (FCFA)', CF.bag)}${n('v-st', 'ESCALES MAX (0 à 3)', CF.stops, 'max="3" step="1"')}${n('v-eco', 'COEF. ÉCONOMIQUE', CF.eco)}${n('v-biz', 'COEF. AFFAIRES', CF.biz)}${n('v-vip', 'COEF. VIP', CF.vip)}</div><button id="v-save" class="x-btn go" style="margin-top:10px">ENREGISTRER</button></div>` : '<div id="fly-promo"></div>') + '</div>';
-  M.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { M._t = b.dataset.t; window.flyCfg(M); });
-  const v = id => +$(id).value;
-  if ($('v-save')) $('v-save').onclick = () => save({ km: v('v-km'), fee: v('v-fee'), ins: v('v-ins'), bag: v('v-bag'), stops: Math.max(0, Math.min(3, v('v-st'))), eco: v('v-eco'), biz: v('v-biz'), vip: v('v-vip') });
-  if ($('fly-promo') && window.flyPromoMount) window.flyPromoMount($('fly-promo'));
+window.flyInit = async () => { await loadCfg(); if (!built || bs !== CF.stops) { build(); bs = CF.stops; } else recap(); };
+window.flyAdmin = async (M) => {
+  await loadCfg(); const { data, error } = await supabaseClient.from('sw_flight_tickets').select('*').order('created_at', { ascending: false }).limit(500);
+  if (error) { M.innerHTML = `<p class="x-h">Billets : ${esc(error.message)} (SQL à exécuter ?)</p>`; return; }
+  const fees = data.reduce((s, r) => s + Number(r.fee), 0), tot = data.reduce((s, r) => s + Number(r.total), 0), q = (M._q || '').toLowerCase();
+  const rows = data.filter(r => !q || (r.pnr + r.route + r.airline + r.data.nom + r.data.pre).toLowerCase().includes(q));
+  M.innerHTML = `<p class="x-h"><b>●</b> VOLS // billets d'avion</p><div class="x-panel" style="margin-top:0"><p class="x-h">TARIFICATION</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label style="font-size:11px">PRIX / KM (fictif, FCFA)<input id="v-km" type="number" min="0" class="x-in" value="${CF.km}"></label><label style="font-size:11px">FRAIS DE GÉNÉRATION (débités)<input id="v-fee" type="number" min="0" class="x-in" value="${CF.fee}"></label><label style="font-size:11px">ASSURANCE (fictif)<input id="v-ins" type="number" min="0" class="x-in" value="${CF.ins}"></label><label style="font-size:11px">BAGAGE SUPPL. (fictif)<input id="v-bag" type="number" min="0" class="x-in" value="${CF.bag}"></label><label style="font-size:11px">ESCALES MAX (0 à 3)<input id="v-st" type="number" min="0" max="3" class="x-in" value="${CF.stops}"></label></div><button id="v-save" class="x-btn go" style="margin-top:8px">ENREGISTRER</button></div><div class="x-panel"><p class="x-h">${data.length} BILLET(S) · COMMISSIONS ${money(fees)} · VALEUR AFFICHÉE ${money(tot)}</p><input id="v-q" class="x-in" placeholder="> PNR, nom, trajet, compagnie" value="${esc(M._q || '')}" style="margin-bottom:8px">${rows.map((r, i) => `<button class="x-row v-r" data-i="${i}"><span>${esc(r.pnr)} · ${esc(r.route)} · ${esc(r.data.nom)} ${esc(r.data.pre)}</span><span style="color:#7d8da0">${esc(r.data.date)}</span></button>`).join('') || '// aucun billet'}</div>`;
+  $('v-save').onclick = async () => { const { error: er } = await supabaseClient.rpc('sw_admin_set_flight', { p_km: +$('v-km').value, p_fee: +$('v-fee').value, p_ins: +$('v-ins').value, p_bag: +$('v-bag').value, p_stops: +$('v-st').value }); toast(er ? 'Erreur : ' + er.message : 'Tarifs enregistrés.', er ? 'error' : ''); if (!er) flyAdmin(M); };
+  $('v-q').oninput = e => { M._q = e.target.value; flyAdmin(M).then(() => { const i = $('v-q'); i.focus(); i.setSelectionRange(99, 99); }); };
+  M.querySelectorAll('.v-r').forEach(b => b.onclick = () => { const r = rows[b.dataset.i], d = $('x-drawer'); d.innerHTML = `<div style="display:flex;justify-content:space-between"><h3 style="font-weight:800">${esc(r.pnr)}</h3><button class="x-btn" data-close="1">FERMER ✕</button></div><button id="v-show" class="x-btn go" style="margin:8px 0">VOIR LE BILLET</button><div style="font-size:12px">${Object.entries(r.data).map(([k, v]) => `<p style="border-bottom:1px dashed #c9d1d9;padding:3px 0"><b>${esc(k)}</b> : ${esc(v)}</p>`).join('')}<p><b>frais</b> : ${esc(r.fee)} · <b>créé</b> : ${esc(fmtDate(r.created_at))}</p></div>`; d.classList.add('open'); $('x-veil').style.display = 'block'; $('v-show').onclick = () => show(toT(r)); });
 };
-window.flyCF = () => CF; window.flyAsk = ask;
-const LBL = { nom: 'Nom', pre: 'Prénom', civ: 'Civilité', dob: 'Naissance', nat: 'Nationalité', pass: 'Passeport / CNI', exp: 'Expiration document', ecn: 'Contact urgence (nom)', ect: 'Contact urgence (tél.)', from: 'Départ', to: 'Arrivée', stops: 'Escales', date: 'Date du vol', dep: 'Heure départ', board: 'Embarquement', flight: 'N° de vol', seat: 'Siège', cls: 'Classe', an: 'Compagnie', ac: 'Code compagnie', dist: 'Distance (km)', fare: 'Tarif de base (FCFA)', ins: 'Assurance (FCFA)', bags: 'Bagages', bagA: 'Bagages (FCFA)', total: 'Total (FCFA)', style: 'Modèle du reçu', cur: 'Devise', rate: 'Taux (FCFA / unité)' };
-async function adminOpen(r) {
-  const t = toT(r), d = $('x-drawer'), f = x => fmtC(x, t.cur, t.rate), z = Math.min(1, (Math.min(innerWidth, 600) - 40) / 760).toFixed(3);
-  let u = {}; try { const { data } = await supabaseClient.from('sw_profiles').select('*').eq('id', r.user_id).maybeSingle(); u = data || {}; } catch (e) {}
-  const uk = ['email', 'full_name', 'name', 'first_name', 'last_name', 'phone', 'whatsapp', 'country', 'city'].filter(k => u[k]);
-  const kv = ([k, v]) => `<p style="border-bottom:1px dashed #c9d1d9;padding:4px 0;display:flex;justify-content:space-between;gap:10px"><b>${esc(k)}</b><span style="text-align:right;word-break:break-word">${esc(Array.isArray(v) ? v.join(' · ') : v)}</span></p>`;
-  const main = [['Trajet', r.route + (t.stops && t.stops.length ? ' via ' + t.stops.map(stopTxt).join(', ') : '')], ['Compagnie / vol', `${t.an} · ${t.flight}`], ['Date / départ', `${t.date} · ${t.dep}`], ['Classe / siège', `${CLS[t.cls][0]} · ${t.seat}`], ['Total du billet', f(t.total) + (t.cur !== 'XAF' ? ' (' + money(t.total) + ')' : '')], ['Frais débités au client', money(r.fee)], ['Créé le', fmtDate(r.created_at)]];
-  d.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><h3 style="font-weight:800">✈ ${esc(r.pnr)}</h3><button class="x-btn" data-close="1">FERMER ✕</button></div>
-  <div class="x-panel"><p class="x-h">CLIENT QUI A CRÉÉ LE BILLET</p><div style="font-size:12px">${(uk.length ? uk.map(k => [k === 'email' ? 'E-mail' : k, u[k]]) : [['ID utilisateur', r.user_id]]).map(kv).join('')}</div></div>
-  <p class="x-h" style="margin-top:14px">APERÇU DU REÇU (tel que vu par le client)</p><div style="overflow-x:auto;padding-bottom:6px"><div style="width:760px;zoom:${z}">${tk(t, true)}</div></div>
-  <div style="display:flex;gap:8px;margin:10px 0"><button id="v-show" class="x-btn go">PLEIN ÉCRAN / IMPRIMER</button><button id="v-it" class="x-btn">ITINÉRAIRE</button></div>
-  <div class="x-panel"><p class="x-h">RÉSUMÉ</p><div style="font-size:12px">${main.map(kv).join('')}</div></div>
-  <div class="x-panel"><p class="x-h">TOUTES LES INFORMATIONS SAISIES</p><div style="font-size:12px">${Object.entries(t).filter(([k]) => LBL[k]).map(([k, v]) => kv([LBL[k], k === 'cls' ? CLS[v][0] : k === 'style' ? STY.find(x => x[0] === sty(v))[1] : k === 'stops' ? (v || []).map(stopTxt) : v])).join('')}</div></div>`;
-  d.classList.add('open'); $('x-veil').style.display = 'block'; d.scrollTop = 0; fitAll(d); requestAnimationFrame(() => fitAll(d)); $('v-show').onclick = () => show(t); $('v-it').onclick = () => itin(t);
-}
-const tRow = (r, i, extra) => `<button class="x-row v-r" data-i="${i}"><span>${esc(r.pnr)} · ${esc(r.route)} · ${esc(r.data.nom)} ${esc(r.data.pre)}</span><span style="color:#7d8da0">${extra}</span></button>`;
-window.flyRadar = async (M, quiet) => {
-  const { data, error } = await allT(); if (error) { M.innerHTML = `<div class="x-wrap">${sqlErr(error)}</div>`; return; }
-  const info = window.swInfo ? window.swInfo() : { rech: [], funds: 0, users: 0 }, now = Date.now(), p = k => data.filter(r => new Date(r.created_at).getTime() >= since(k));
-  const rd = (l, v, e, at, c) => `<button type="button" class="x-read ${c || ''}" ${at}><small>${l}</small><strong>${v}</strong><em>${e}</em></button>`, F = o => `data-f="${esc(JSON.stringify(o))}"`, G = (v, m) => `data-g="${v}" data-m="${m || ''}"`;
-  const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - 6 + i); return { k: ymd(d), l: d.toLocaleDateString('fr-FR', { weekday: 'short' }), n: 0 }; }); data.forEach(r => { const x = days.find(d => d.k === ymd(new Date(r.created_at))); if (x) x.n++; }); const mx = Math.max(1, ...days.map(d => d.n));
-  const cl = Object.keys(CLS).map(k => [k, data.filter(r => r.data.cls === k).length]), soon = data.filter(r => { const t = new Date(r.data.date + 'T00:00:00').getTime(); return t >= now - 864e5 && t <= now + 2 * 864e5; }).slice(0, 8), act = new Set(p('month').map(r => r.user_id)).size, clr = { eco: '#2563eb', biz: '#f59e0b', vip: '#7c3aed' };
-  const keep = M.scrollTop; M.dataset.v = 'radar';
-  M.innerHTML = `<h2 class="x-title">Radar · Billets d'avion</h2><p class="x-lead" style="text-transform:capitalize">${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} · actualisation automatique</p>
-  <div class="x-grid">${rd("BILLETS AUJOURD'HUI", p('day').length, 'générés', F({ p: 'day' }))}${rd('7 DERNIERS JOURS', p('week').length, 'billets', F({ p: 'week' }))}${rd('TOTAL ÉMIS', data.length, 'tous les billets', F({}))}${rd('CLIENTS ACTIFS', act, '30 derniers jours', G('acct'))}${rd('RECHARGES', info.rech.length, money(info.rech.reduce((a, r) => a + Number(r.amount), 0)), G('cash'), info.rech.length ? 'warn' : 'ok')}${rd('FONDS CLIENTS', money(info.funds), 'total portefeuilles', G('acct'))}</div>
-  <div class="x-panel"><p class="x-h">FINANCES BILLETS (frais de génération encaissés)</p><div class="x-grid">${rd("AUJOURD'HUI", money(sumF(p('day'))), 'commissions', F({ p: 'day' }), 'ok')}${rd('7 JOURS', money(sumF(p('week'))), 'commissions', F({ p: 'week' }), 'ok')}${rd('30 JOURS', money(sumF(p('month'))), 'commissions', F({ p: 'month' }), 'ok')}${rd('TOTAL HISTORIQUE', money(sumF(data)), 'cumul billets', F({}), 'ok')}</div></div>
-  <div class="x-panel"><p class="x-h">ACTIVITÉ · 7 DERNIERS JOURS (touchez un jour)</p><div style="display:flex;gap:6px;align-items:flex-end;height:120px">${days.map(d => `<button type="button" ${F({ d: d.k })} style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;height:100%"><b style="font-size:11px">${d.n}</b><span style="width:100%;border-radius:6px 6px 0 0;background:linear-gradient(#60a5fa,#2563eb);height:${Math.max(4, d.n / mx * 84)}px"></span><small style="font-size:10px;opacity:.7">${d.l}</small></button>`).join('')}</div></div>
-  <div class="x-panel"><p class="x-h">RÉPARTITION PAR CLASSE</p><div class="x-seg">${cl.map(([k, n]) => `<span style="width:${data.length ? n / data.length * 100 : 0}%;background:${clr[k]}"></span>`).join('')}</div><div class="x-leg">${cl.map(([k, n]) => `<button type="button" ${F({ c: k })}><i style="background:${clr[k]}"></i>${CLS[k][0]} ${n}</button>`).join('')}</div></div>
-  <div class="x-panel"><p class="x-h">DÉPARTS PROCHES (48 h)</p>${soon.map((r, i) => tRow(r, 'S' + i, esc(r.data.date) + ' ' + esc(r.data.dep))).join('') || '<span class="t-ok">RAS · aucun départ imminent</span>'}</div>
-  <div class="x-panel"><p class="x-h">TOP TRAJETS (touchez pour filtrer le flux)</p>${top(data, r => r.route).map(([k, c]) => `<button type="button" class="x-row" ${F({ q: k })}><span>${esc(k)}</span><span class="t-ok">${c}</span></button>`).join('') || '<span class="t-dim">// aucun billet</span>'}</div>
-  <div class="x-panel"><p class="x-h">TOP COMPAGNIES</p>${top(data, r => r.data.an || r.airline).map(([k, c]) => `<button type="button" class="x-row" ${F({ q: k })}><span>${esc(k)}</span><span class="t-ok">${c}</span></button>`).join('') || '<span class="t-dim">// aucune donnée</span>'}</div>
-  <div class="x-panel"><p class="x-h">JOURNAL DES FINANCES · BILLETS D'AVION</p>${data.slice(0, 30).map((r, i) => `<button class="x-row v-r" data-i="${i}"><span>${esc(fmtDate(r.created_at))} · ${esc(r.pnr)} · ${esc(r.route)}</span><span class="t-ok">+${money(r.fee)}</span></button>`).join('') || '<span class="t-dim">// aucune opération</span>'}<button type="button" class="x-btn" style="margin-top:8px;width:100%" ${F({})}>VOIR TOUT LE FLUX →</button></div>`;
-  M.querySelectorAll('[data-f]').forEach(b => b.onclick = () => fgo(JSON.parse(b.dataset.f))); M.querySelectorAll('[data-g]').forEach(b => b.onclick = () => window.swGo(b.dataset.g, b.dataset.m));
-  M.querySelectorAll('.v-r').forEach(b => b.onclick = () => adminOpen(String(b.dataset.i)[0] === 'S' ? soon[+String(b.dataset.i).slice(1)] : data[b.dataset.i]));
-  clearInterval(window.__flrT); window.__flrT = setInterval(() => { const h = $('fly-host'); if (!h || h.dataset.v !== 'radar' || !h.isConnected || $('x-drawer').classList.contains('open')) return clearInterval(window.__flrT); window.flyRadar(h, true); }, 15000);
-};
-window.flyFlux = async (M) => {
-  const { data, error } = await allT(); if (error) { M.innerHTML = `<div class="x-wrap">${sqlErr(error)}</div>`; return; } M.dataset.v = 'flux';
-  const chips = [FLX.d && 'Jour : ' + FLX.d, FLX.c && 'Classe : ' + CLS[FLX.c][0], FLX.q && FLX.q && 'Recherche : ' + FLX.q].filter(Boolean);
-  M.innerHTML = `<h2 class="x-title">Flux · Billets d'avion</h2><p class="x-lead" id="v-sum"></p><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${[['day', "AUJOURD'HUI"], ['week', '7 JOURS'], ['month', '30 JOURS'], ['all', 'TOUT']].map(([k, l]) => `<button class="x-btn ${!FLX.d && FLX.p === k ? 'go' : ''}" data-p="${k}">${l}</button>`).join('')}</div>${chips.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px">${chips.map(c => `<span class="x-tag t-ok">${esc(c)}</span>`).join('')}<button class="x-btn" id="v-clr">EFFACER LES FILTRES ✕</button></div>` : ''}<input id="v-q" class="x-in" placeholder="> PNR, nom, trajet, compagnie" value="${esc(FLX.q)}" style="margin-bottom:8px"><div class="x-panel" id="v-list" style="margin-top:0"></div>`;
-  const fill = () => { const rows = fluxRows(data); $('v-sum').textContent = rows.length + ' billet(s) · commissions ' + money(sumF(rows)); $('v-list').innerHTML = rows.map((r, i) => tRow(r, i, esc(r.data.date))).join('') || '// aucun billet'; $('v-list').querySelectorAll('.v-r').forEach(b => b.onclick = () => adminOpen(rows[b.dataset.i])); };
-  M.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { Object.assign(FLX, { p: b.dataset.p, d: '' }); window.flyFlux(M); });
-  if ($('v-clr')) $('v-clr').onclick = () => { Object.assign(FLX, { p: 'all', q: '', d: '', c: '' }); window.flyFlux(M); };
-  $('v-q').oninput = e => { FLX.q = e.target.value; fill(); }; fill();
-};
-window.flyLoad = loadCfg;
-window.flyAdmin = (M) => window.flyFlux(M);
 })();
 </script>
 </body>
