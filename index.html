@@ -134,6 +134,98 @@ body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sa
 #list-container>div{cursor:pointer}
 #list-container [id^="ev-"]{cursor:default}
 @media (prefers-reduced-motion:reduce){#dash-view section,#auth-view>div,.dbadge{animation:none!important}}
+/* ===== EXTENSIONS : transferts de crédit, double contrôle, fiche utilisateur admin ===== */
+:root{--sx-card:#fff;--sx-ink:#0f172a;--sx-mut:#64748b;--sx-line:#dfe9ff;--sx-soft:#f2f7ff;--sx-in:#f6f9ff;--sx-ok:#047857;--sx-okbg:#e8faf2;--sx-bad:#b91c1c;--sx-badbg:#fff1f1;--sx-warnbg:#fff8e6;--sx-warn:#92400e;--sx-brand:#0047AB}
+html[data-theme=dark]{--sx-card:#131c38;--sx-ink:#e8edfb;--sx-mut:#9fb0d3;--sx-line:#27375f;--sx-soft:#0f1a3a;--sx-in:#0f1a3a;--sx-ok:#4ade80;--sx-okbg:#0f2b24;--sx-bad:#f87171;--sx-badbg:#33161c;--sx-warnbg:#33260f;--sx-warn:#fbbf24;--sx-brand:#7db4ff}
+body.sx-lock,body.xa-lock{overflow:hidden}
+@keyframes sxFade{from{opacity:0}to{opacity:1}}@keyframes sxUp{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
+.sx-ov{position:fixed;inset:0;z-index:75;background:rgba(7,18,48,.55);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;animation:sxFade .18s ease both}
+.sx-sheet{position:relative;width:min(560px,100%);max-height:92vh;overflow-y:auto;background:var(--sx-card);color:var(--sx-ink);border-radius:26px 26px 0 0;box-shadow:0 -24px 60px -20px rgba(0,20,80,.6);animation:sxUp .25s ease both;padding-bottom:max(14px,env(safe-area-inset-bottom));font-family:'Inter',system-ui,sans-serif}
+.sx-ed .sx-sheet{max-height:96vh;display:flex;flex-direction:column;overflow:hidden}
+.sx-scroll{overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+@media(min-width:640px){.sx-ov{align-items:center;padding:20px}.sx-sheet{border-radius:26px}}
+.sx-h{display:flex;align-items:center;gap:12px;padding:18px 18px 14px;background:linear-gradient(135deg,#071d4d,#0a3a9a 60%,#2a7bff);color:#fff;border-radius:26px 26px 0 0;flex:none}
+.sx-h-ic{width:42px;height:42px;border-radius:14px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-size:21px;flex:none}
+.sx-h-t{min-width:0;flex:1}.sx-h-t b{display:block;font-size:16px;font-weight:800}.sx-h-t small{display:block;font-size:12px;opacity:.85;word-break:break-word}
+.sx-x{width:36px;height:36px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.14);color:#fff;font-size:15px;cursor:pointer;flex:none}
+.sx-b{padding:16px 18px 6px}
+.sx-l{display:block;font-size:12px;font-weight:700;color:var(--sx-brand);margin:12px 0 6px}.sx-l i{font-weight:400;color:var(--sx-mut);font-style:normal}
+.sx-in{width:100%;padding:12px 14px;border:1.5px solid var(--sx-line);border-radius:14px;background:var(--sx-in);color:var(--sx-ink);font-size:16px;font-family:inherit;outline:0;transition:border-color .15s,box-shadow .15s}
+.sx-in:focus{border-color:#2a7bff;box-shadow:0 0 0 4px rgba(42,123,255,.16)}
+.sx-amt{font-size:22px;font-weight:800}
+.sx-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.sx-chip{padding:8px 14px;border-radius:999px;border:1.5px solid var(--sx-line);background:var(--sx-card);color:var(--sx-brand);font-weight:700;font-size:13px;cursor:pointer}
+.sx-chip.dark{background:var(--sx-brand);color:#fff;border-color:transparent;flex:none}
+.sx-hint,.sx-sub{font-size:12px;color:var(--sx-mut);margin:8px 0}
+.sx-p{font-size:14px;line-height:1.5;margin:4px 0 10px}
+.sx-ul{margin:0 0 14px 18px;font-size:13px;color:var(--sx-mut);line-height:1.6;list-style:disc}
+.sx-st{min-height:20px;font-size:13px;margin-top:6px;font-weight:600}.sx-st.chk{color:var(--sx-mut)}.sx-st.ok{color:var(--sx-ok)}.sx-st.bad{color:var(--sx-bad)}
+.sx-err{margin:12px 0;padding:11px 14px;border-radius:14px;background:var(--sx-badbg);color:var(--sx-bad);font-size:13px;font-weight:600}
+.sx-warn{margin:12px 0;padding:11px 14px;border-radius:14px;background:var(--sx-warnbg);color:var(--sx-warn);font-size:12.5px;line-height:1.5}
+.sx-cta{width:100%;margin-top:14px;padding:15px;border:0;border-radius:16px;background:linear-gradient(135deg,#0047AB,#2a7bff);color:#fff;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 14px 28px -12px rgba(0,71,171,.8)}
+.sx-cta:disabled{opacity:.6}
+.sx-ghost{width:100%;margin-top:14px;padding:15px;border:1.5px solid var(--sx-line);border-radius:16px;background:var(--sx-card);color:var(--sx-brand);font-weight:700;font-size:14px;cursor:pointer}
+.sx-danger{width:100%;margin:14px 0 6px;padding:13px;border:1.5px solid #f3b4b4;border-radius:14px;background:transparent;color:var(--sx-bad);font-weight:700;cursor:pointer}
+.sx-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sx-sum{border:1px solid var(--sx-line);border-radius:18px;background:var(--sx-soft);padding:6px 14px;margin-top:6px}
+.sx-sum-r{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--sx-line);font-size:13px}.sx-sum-r:last-child{border:0}
+.sx-sum-r span{color:var(--sx-mut)}.sx-sum-r b{text-align:right;word-break:break-all}.sx-big{font-size:18px;color:var(--sx-brand)}
+.sx-done{text-align:center}.sx-check{width:68px;height:68px;margin:6px auto 8px;border-radius:50%;background:var(--sx-okbg);color:var(--sx-ok);font-size:34px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.sx-amt-big{font-size:30px;font-weight:800;color:var(--sx-brand);margin:0}
+.sx-copy{display:flex;gap:8px;align-items:center}.sx-copy .sx-in{font-size:13px}
+.sx-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sx-act{display:flex;align-items:center;gap:12px;text-align:left;padding:14px;border-radius:20px;border:1px solid var(--sx-line);background:var(--sx-card);color:var(--sx-ink);cursor:pointer;box-shadow:0 14px 30px -22px rgba(10,58,154,.6)}
+.sx-act b{display:block;font-size:14px}.sx-act small{display:block;font-size:11px;color:var(--sx-mut)}
+.sx-act-ic{width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,#0047AB,#2a7bff);display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+.sx-act.alt .sx-act-ic{background:linear-gradient(135deg,#047857,#34d399)}.sx-act.off{opacity:.6}
+.sx-card{background:var(--sx-card);border:1px solid var(--sx-line);border-radius:22px;padding:14px 14px 8px;box-shadow:0 14px 34px -22px rgba(10,58,154,.5);margin-bottom:12px}
+.sx-card-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:14px;color:var(--sx-ink)}.sx-card-h span{background:var(--sx-soft);color:var(--sx-brand);border-radius:999px;padding:2px 10px;font-size:12px;font-weight:800}
+.sx-tr,.sx-co-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--sx-line);width:100%;background:none;text-align:left;color:inherit;font:inherit}
+.sx-co-row{cursor:pointer;border-left:0;border-right:0;border-bottom:0}
+.sx-tr-ic{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;flex:none;background:var(--sx-soft)}
+.sx-tr-ic.in{background:var(--sx-okbg);color:var(--sx-ok)}.sx-tr-ic.out{background:var(--sx-badbg);color:var(--sx-bad)}
+.sx-tr-m{flex:1;min-width:0}.sx-tr-m b{display:block;font-size:13px;word-break:break-all}.sx-tr-m small{display:block;font-size:11px;color:var(--sx-mut);word-break:break-word}
+.sx-tr-a{font-weight:800;font-size:13px;white-space:nowrap;color:var(--sx-mut)}.sx-tr-a.in{color:var(--sx-ok)}.sx-tr-a.out{color:var(--sx-bad)}
+.sx-go{font-size:12px;font-weight:700;color:var(--sx-brand);white-space:nowrap}
+.sx-more{width:100%;padding:10px;border:0;background:none;color:var(--sx-brand);font-weight:700;font-size:13px;cursor:pointer;border-top:1px solid var(--sx-line)}
+.sx-log{font-size:12px;padding:8px 0;border-top:1px solid var(--sx-line);word-break:break-word}.sx-log small{display:block;color:var(--sx-mut)}
+.sx-sec{margin:0 0 16px;padding:14px;border:1px solid var(--sx-line);border-radius:18px;background:var(--sx-soft)}
+.sx-sec h4{font-size:13px;font-weight:800;color:var(--sx-brand);margin:0 0 6px;text-transform:uppercase;letter-spacing:.05em}
+.sx-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}.sx-span{grid-column:1/-1}
+.sx-f .sx-l i{color:var(--sx-bad)}
+.sx-chk{display:flex;align-items:center;gap:10px;font-size:14px;padding:6px 0}
+.sx-locks{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.sx-chiplock{display:inline-flex;gap:6px;align-items:center;padding:6px 12px;border-radius:999px;background:var(--sx-soft);border:1px solid var(--sx-line);font-size:12px;color:var(--sx-mut)}.sx-chiplock b{color:var(--sx-ink)}.sx-chiplock i{font-style:normal}
+.sx-foot{position:sticky;bottom:0;flex:none;display:grid;grid-template-columns:1fr 1.4fr;gap:10px;padding:10px 18px calc(12px + env(safe-area-inset-bottom));background:var(--sx-card);border-top:1px solid var(--sx-line)}
+.sx-foot .sx-ghost,.sx-foot .sx-cta{margin-top:0}
+#co-box{margin-bottom:14px}
+#list-container .share-btn{background:#fff;color:#0a2a6b!important;border:1.5px solid #cfe0ff!important;padding:8px 14px!important}
+#co-auth-note{margin-bottom:16px;padding:12px 14px;border-radius:14px;background:#eaf1ff;color:#0a2a6b;font-size:13px;font-weight:600;text-align:center}
+/* --- admin --- */
+.x-ulink{cursor:pointer;border-bottom:1px dotted currentColor;border-radius:4px;transition:background .12s,color .12s}
+.x-ulink:hover,.x-ulink:focus-visible{background:rgba(42,123,255,.16);color:var(--brand,#0047AB);outline:0}
+.xa-ov{position:fixed;inset:0;z-index:72;background:rgba(7,18,48,.55);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);overflow-y:auto;padding:14px;display:flex;justify-content:center;align-items:flex-start}
+.xa-card{width:min(760px,100%);background:var(--drawer,#f7f9fe);color:var(--ink,#0f1f3d);border:1px solid var(--line,#e1e9f6);border-radius:22px;padding:16px;box-shadow:0 30px 70px -24px rgba(0,20,80,.7);margin:auto 0}
+.xa-head{display:flex;gap:12px;align-items:center}
+.xa-av{width:52px;height:52px;border-radius:18px;background:linear-gradient(135deg,#0047AB,#2a7bff);color:#fff;font-weight:800;font-size:22px;display:flex;align-items:center;justify-content:center;flex:none}
+.xa-id{flex:1;min-width:0}.xa-id b{display:block;word-break:break-all;font-size:15px}.xa-id>span{display:block;font-size:12px;color:var(--mut,#5b6b86);margin:2px 0 4px}
+.xa-kpis,.xa-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:14px 0 4px}
+.xa-kpi{background:var(--card,#fff);border:1px solid var(--line,#e1e9f6);border-radius:14px;padding:10px 12px}
+.xa-kpi small{display:block;font-size:10px;font-weight:700;letter-spacing:.07em;color:var(--mut,#5b6b86)}.xa-kpi strong{display:block;font-size:17px;margin-top:3px}.xa-kpi em{font-style:normal;font-size:11px;color:var(--mut,#5b6b86)}
+.xa-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.xa-compose{background:var(--card,#fff);border:1px solid var(--line,#e1e9f6);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:inset 4px 0 0 #0047AB}
+.xa-tabs{display:flex;gap:4px;overflow-x:auto;padding:4px;background:var(--card,#fff);border:1px solid var(--line,#e1e9f6);border-radius:14px;margin-bottom:12px}
+.xa-tabs button{flex:1 0 auto;border:0;background:none;padding:9px 14px;border-radius:10px;font:inherit;font-size:12px;font-weight:700;color:var(--mut,#5b6b86);cursor:pointer;white-space:nowrap}
+.xa-tabs button.on{background:linear-gradient(135deg,#0047AB,#2a7bff);color:#fff}
+.xa-info{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.xa-info div{background:var(--card,#fff);border:1px solid var(--line,#e1e9f6);border-radius:12px;padding:9px 12px}.xa-info small{display:block;font-size:10.5px;color:var(--mut,#5b6b86)}.xa-info b{font-size:13px}
+.xa-tl{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line,#e1e9f6)}.xa-tl:last-child{border:0}
+.xa-tl-ic{width:34px;height:34px;border-radius:11px;background:var(--soft,#eaf1ff);display:flex;align-items:center;justify-content:center;flex:none}
+.xa-tl-m{flex:1;min-width:0}.xa-tl-m b{display:block;font-size:13px;word-break:break-word}.xa-tl-m small{display:block;font-size:11px;color:var(--mut,#5b6b86);word-break:break-word}.xa-tl-d{font-size:11px;color:var(--mut,#5b6b86);white-space:nowrap}
+.xa-sw{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.xa-sw>div{flex:1;min-width:180px}.xa-sw b{display:block;font-size:14px}.xa-sw small{display:block;font-size:12px;color:var(--mut,#5b6b86)}
+.xa-dot{width:16px;height:16px;border-radius:50%;background:#dc2626;box-shadow:0 0 0 5px rgba(220,38,38,.18);flex:none}.xa-dot.on{background:#059669;box-shadow:0 0 0 5px rgba(5,150,105,.2)}
+.xa-two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.xa-trbar{display:flex;gap:8px;margin-bottom:10px}.xa-trbar .x-in{flex:1}
+.xa-tiles{margin:12px 0}
 </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -154,6 +246,7 @@ body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sa
       <button id="tab-login" type="button" class="flex-1 py-2.5 text-sm font-semibold rounded-lg bg-white text-swiftblue shadow-sm transition cursor-pointer">Connexion</button>
       <button id="tab-signup" type="button" class="flex-1 py-2.5 text-sm font-semibold rounded-lg text-gray-500 hover:text-gray-900 transition cursor-pointer">S'inscrire</button>
     </div>
+    <div id="co-auth-note" class="hidden">🔗 Vous avez reçu un lien de double contrôle. Connectez-vous (ou créez un compte) : il s'ouvrira automatiquement.</div>
     <div id="alert-box" class="hidden mb-6 p-4 rounded-xl text-sm text-center font-medium"></div>
     <form id="login-form" class="space-y-5">
       <div><label id="t-login-email" class="block text-sm font-semibold text-gray-700 mb-1.5">Email ou Numéro de téléphone</label>
@@ -219,6 +312,7 @@ body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sa
       <button type="button" id="pwf-later" class="w-full text-sm font-semibold text-gray-500 hover:text-gray-900 cursor-pointer">Plus tard</button>
     </form>
     <div id="d-alert" class="hidden mb-4 p-4 rounded-xl text-sm text-center font-medium"></div>
+    <div id="co-box" class="hidden"></div>
     <section id="view-list"><div id="list-filters"></div><div id="list-container"></div></section>
     <section id="view-new" class="hidden">
       <div id="new-choose" class="space-y-4">
@@ -246,6 +340,11 @@ body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sa
         <p id="wallet-balance" class="text-4xl font-extrabold mt-1">0 FCFA</p>
         <p class="text-xs mt-3" style="opacity:.75">💳 Rechargez par MTN Money (MoMo) ou Orange Money (OM) ci-dessous</p>
       </div>
+      <div class="sx-actions">
+        <button type="button" id="tr-open" class="sx-act"><span class="sx-act-ic">💸</span><span><b>Transférer</b><small id="tr-open-sub">Envoyer du crédit</small></span></button>
+        <button type="button" id="tr-goto-rc" class="sx-act alt"><span class="sx-act-ic">➕</span><span><b>Recharger</b><small>MoMo / Orange Money</small></span></button>
+      </div>
+      <div id="tr-hist"></div>
       <form id="recharge-form" class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
         <h2 class="text-lg font-bold text-gray-900">Demander une recharge</h2>
         <p class="text-xs text-gray-500">Vous pouvez recharger avec MTN Money (MoMo) ou Orange Money (OM). Effectuez votre paiement, puis indiquez l'ID de la transaction et joignez la capture d'écran. Un administrateur vérifiera et créditera votre solde.</p>
@@ -937,6 +1036,7 @@ function showTab(name) {
   if (name === 'help') { loadHelp(); renderSupport(true); } else renderSupport();
   if (name !== 'help') refreshHelpBadge();
   if (name === 'new') { setNewMode(NEW_MODE); loadPrice().then(setNewLabel); }
+  if (window.coBoxUpdate) window.coBoxUpdate(name);
 }
 // Page « Nouvelle » : choix colis / billet d'avion (le dernier choix est gardé, par ex. pendant une recharge du portefeuille)
 let NEW_MODE = null;
@@ -1129,6 +1229,7 @@ async function loadShipments(openId) {
         <button type="button" data-id="${esc(s.id)}" class="details-btn text-sm font-semibold text-swiftblue cursor-pointer">${openId === s.id ? 'Masquer le suivi' : 'Voir le suivi'}</button>
         <button type="button" data-id="${esc(s.id)}" class="receipt-btn text-sm font-semibold text-gray-700 border border-gray-200 rounded-full px-3 py-1 cursor-pointer">Voir le reçu A5</button>
         <button type="button" data-id="${esc(s.id)}" class="copy-btn text-sm font-semibold text-gray-700 border border-gray-200 rounded-full px-3 py-1 cursor-pointer">Copier le lien de suivi</button>
+        <button type="button" data-co-share="${esc(s.id)}" data-co-kind="receipt" data-co-title="${esc(fmtCode(s.tracking_code))}" class="share-btn text-sm font-semibold text-gray-700 border border-gray-200 rounded-full px-3 py-1 cursor-pointer">🔗 Double contrôle</button>
         ${cancelBtn(s)}
         ${delBtn(s)}
       </div>
@@ -1265,6 +1366,7 @@ async function openProof(path) {
 let WR = {};
 async function loadWallet() {
   const list = $('recharge-list'); list.innerHTML = LOADING;
+  if (window.trRefresh) window.trRefresh();
   const [w, r, pn] = await Promise.all([
     myWallet(),
     supabaseClient.from('sw_recharges').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }),
@@ -1616,6 +1718,7 @@ document.addEventListener('visibilitychange', () => {
 // ---------- DÉMARRAGE ----------
 // Anciens liens / anciens QR codes (?suivi=1&t=CODE) : redirigés vers le site de suivi séparé.
 const QS = new URLSearchParams(location.search);
+if (QS.has('co')) { window.__coPending = QS.get('co') || ''; try { localStorage.setItem('sw_co_pending', window.__coPending); } catch (e) {} try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) {} }
 if (QS.has('t') || QS.has('suivi')) {
   const oldCode = QS.get('t') || '';
   const go = () => location.replace(TRACK_BASE + (oldCode ? '?t=' + encodeURIComponent(oldCode) : ''));
@@ -2045,9 +2148,10 @@ html[data-theme=dark] body{color:#e8edfb}
     cfg: '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
     journal: '<path d="M5 4h11l3 3v13H5z"/><path d="M8 10h8M8 14h8M8 18h5"/>',
     search: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>',
-    filter: '<path d="M4 6h16M7 12h10M10 18h4"/>'
+    filter: '<path d="M4 6h16M7 12h10M10 18h4"/>',
+    transfer: '<path d="M4 8h13l-3-3M20 16H7l3 3"/>'
   };
-  const SECOND = ['acct', 'pwd', 'wa', 'cancel', 'cfg', 'journal'];
+  const SECOND = ['acct', 'pwd', 'wa', 'cancel', 'transfers', 'cfg', 'journal'];
   A.innerHTML = `
   <header class="x-top"><span class="x-logo">SW<i>//</i>CONTROL</span><span class="x-clock" id="x-clock"></span>
     <span class="x-mail" id="admin-email"></span><button class="x-btn theme-btn" id="x-theme" type="button" aria-label="Mode nuit">🌙</button><button class="x-btn" id="x-exit">QUITTER</button></header>
@@ -2062,6 +2166,7 @@ html[data-theme=dark] body{color:#e8edfb}
       <button data-v="pwd">${ic(IC.pwd)}<span>Mots de passe</span><span class="n" id="nav-pw-badge"></span></button>
       <button data-v="wa">${ic(IC.wa)}<span>Contact</span></button>
       <button data-v="cancel">${ic(IC.cancel)}<span>Annulations</span><span class="n" id="nav-cx-badge"></span></button>
+      <button data-v="transfers">${ic(IC.transfer)}<span>Transferts</span></button>
       <button data-v="cfg">${ic(IC.cfg)}<span>Paramètres</span></button>
       <button data-v="journal">${ic(IC.journal)}<span>Journal</span></button>
       <button data-v="preview">${ic(IC.journal)}<span>Aperçu</span></button>
@@ -2150,7 +2255,7 @@ html[data-theme=dark] body{color:#e8edfb}
   const isSupU = (u) => String((u && u.email) || '').toLowerCase() === SUPER_EMAIL;
   const need = (p) => { if (can(p)) return true; toast('Action non autorisée pour votre rôle.', 'error'); return false; };
   const needSuper = () => { if (isSuper) return true; toast('Réservé au Super Admin Suprême.', 'error'); return false; };
-  const navOk = (n) => ({ radar: true, pipe: can('ship'), cash: can('rech'), acct: can('acct'), pwd: can('acct'), wa: can('wa'), cancel: can('cancel'), msg: can('msg'), cfg: isSuper || can('pay'), journal: true, preview: true })[n] === true;
+  const navOk = (n) => ({ radar: true, pipe: can('ship'), cash: can('rech'), acct: can('acct'), pwd: can('acct'), wa: can('wa'), cancel: can('cancel'), msg: can('msg'), transfers: can('rech'), cfg: isSuper || can('pay'), journal: true, preview: true })[n] === true;
   function applyNav() {
     A.querySelectorAll('.x-rail [data-v]').forEach(b => { b.style.display = navOk(b.dataset.v) ? '' : 'none'; });
     const mb = $('x-more'); if (mb) mb.style.display = [...A.querySelectorAll('.x-sheet [data-v]')].some(b => b.style.display !== 'none') ? '' : 'none';
@@ -2178,7 +2283,7 @@ html[data-theme=dark] body{color:#e8edfb}
     broadcast: 'Annonce globale envoyée', paynum_add: 'Numéro de paiement ajouté', paynum_edit: 'Numéro de paiement modifié', paynum_toggle: 'Numéro de paiement masqué/affiché',
     sw_admin_send_direct: 'Message direct envoyé', sw_admin_broadcast: 'Annonce globale envoyée', sw_admin_set_active: 'Compte utilisateur activé/coupé', sw_admin_review_recharge: 'Traitement de recharge',
     wa_contact: 'Discussion WhatsApp ouverte', mail_contact: 'E-mail ouvert (contact utilisateurs)', support_add: 'Contact assistance ajouté', support_del: 'Contact assistance retiré', pw_reset: 'Mot de passe réinitialisé (envoi WhatsApp)', pw_dismiss: 'Demande de mot de passe ignorée', acct_export: 'Export de la liste des comptes', sw_admin_grant_free_receipts: 'Reçu offert (offre promotionnelle)',
-    ship_view: 'Colis consulté'
+    ship_view: 'Colis consulté', user_view: 'Fiche utilisateur consultée', sw_admin_set_transfer_config: 'Réglage des transferts de crédit'
   };
   const actLabel = (a) => /^d:/.test(a) ? 'Détail · ' + a.slice(2).replace('sw_admin_', '') : (ACT_LABEL[a] || String(a).replace('sw_admin_', ''));
   // Enregistre une action dans le journal (visible dans l'onglet JOURNAL et dans la fiche de l'administrateur)
@@ -2197,6 +2302,7 @@ html[data-theme=dark] body{color:#e8edfb}
     if (fn === 'sw_admin_review_cancel') { const r = await one('sw_cancel_requests', 'id', a.p_id, 'shipment_id,user_id'); return (a.p_approve ? 'Annulation ACCEPTÉE' : 'Annulation REJETÉE') + ' · colis ' + await codeOf(r.shipment_id) + ' · client ' + await mailOf(r.user_id) + n; }
     if (/^sw_admin_(set_user|set_active|set_perms|promote)$/.test(fn)) return fn.replace('sw_admin_', '') + ' · ' + await mailOf(a.p_id) + ' · ' + JSON.stringify({ role: a.p_role, actif: a.p_active, perms: a.p_perms });
     if (/^sw_admin_(update_status|add_note|set_auto|set_window)$/.test(fn)) return 'Colis ' + await codeOf(a.p_id) + ' · ' + JSON.stringify({ statut: a.p_status, auto: a.p_auto, heures: a.p_hours, note: a.p_note });
+    if (fn === 'sw_admin_set_transfer_config') return 'Transferts ' + (a.p_enabled ? 'ACTIVÉS' : 'DÉSACTIVÉS') + ' · minimum ' + a.p_min + ' FCFA · plafond ' + (a.p_max || 'aucun');
     if (fn === 'sw_admin_send_direct') return 'Message à ' + await mailOf(a.p_user) + ' · « ' + a.p_subject + ' » : ' + a.p_body;
     if (fn === 'sw_admin_broadcast') return 'Annonce (' + a.p_filter + ') · « ' + a.p_subject + ' » : ' + a.p_body;
     if (fn === 'sw_admin_grant_free_receipts') return 'Reçus offerts à ' + (a.p_user_ids || []).length + ' utilisateur(s) · ' + (a.p_campaign || '');
@@ -2305,7 +2411,7 @@ html[data-theme=dark] body{color:#e8edfb}
   // ---------- TEMPS RÉEL : les nouveautés des clients arrivent toutes seules ----------
   // 1) Abonnement Supabase Realtime (instantané)  2) filet de sécurité : vérification toutes les 15 s
   let rtTimer = null, rtCh = null, rtBusy = false;
-  const NOREDRAW = ['journal', 'cfg', 'wa', 'preview'];
+  const NOREDRAW = ['journal', 'cfg', 'wa', 'preview', 'transfers'];
   async function refreshLive() {
     if (rtBusy || A.classList.contains('hidden')) return;
     rtBusy = true;
@@ -2331,7 +2437,7 @@ html[data-theme=dark] body{color:#e8edfb}
   }, 15000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !A.classList.contains('hidden') && Date.now() - (S.loadedAt || 0) > 5000) refreshLive(); });
 
-  function draw() { ({ radar, pipe, cash, acct, pwd: pwV, cfg, msg: inbox, cancel: cancelV, wa: waV, journal: journalV, preview: previewV })[S.v](); if (S.open) openDrawer(S.open, true); }
+  function draw() { ({ radar, pipe, cash, acct, pwd: pwV, cfg, msg: inbox, cancel: cancelV, wa: waV, journal: journalV, preview: previewV, transfers: transfersV })[S.v](); if (S.open) openDrawer(S.open, true); }
 
   function radar() {
     const radSegs = segs([['receipt', '🧾 Radar reçus'], ['flight', '✈️ Radar billets']], S.rv === 'flight' ? 'flight' : 'receipt', 'data-rdv');
@@ -3662,6 +3768,251 @@ html[data-theme=dark] body{color:#e8edfb}
     if (!s || s.status === to) return;
     if (confirm('Passer ' + s.tracking_code + ' à « ' + STATUS[to].label + ' » ?')) rpc('sw_admin_update_status', { p_id: s.id, p_status: to, p_note: null }, 'Statut mis à jour.');
   });
+
+  // ====================================================================================
+  // FICHE UTILISATEUR : cliquer sur n'importe quelle adresse e-mail de la console ouvre
+  // les informations, l'activité et l'envoi de message de ce compte (quel que soit l'onglet).
+  // ====================================================================================
+  const UPF = { id: null, tab: 'over', d: null, compose: false, subj: '', body: '' };
+  const EM_RE = /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/g;
+  const EM_SKIP = 'option,textarea,script,style,input,select,a,.x-ulink,.x-top,[data-nolink],[data-dmpick]';
+  function emailIndex() { const m = new Map(); (S.users || []).forEach((u) => { if (u && u.email) m.set(String(u.email).trim().toLowerCase(), u.id); }); return m; }
+  function linkEmails(root) {
+    if (!root || root.nodeType !== 1 || !(S.users || []).length) return;
+    if (root.closest && root.closest(EM_SKIP)) return;
+    const map = emailIndex(); if (!map.size) return;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode: (n) => (n.nodeValue.indexOf('@') > -1 && n.parentElement && !n.parentElement.closest(EM_SKIP)) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+    });
+    const nodes = []; let n; while ((n = walker.nextNode())) nodes.push(n);
+    nodes.forEach((t) => {
+      const txt = t.nodeValue; EM_RE.lastIndex = 0; let m, last = 0, frag = null;
+      while ((m = EM_RE.exec(txt))) {
+        const id = map.get(m[0].toLowerCase()); if (!id) continue;
+        frag = frag || document.createDocumentFragment();
+        if (m.index > last) frag.appendChild(document.createTextNode(txt.slice(last, m.index)));
+        const sp = document.createElement('span');
+        sp.className = 'x-ulink'; sp.dataset.upf = id; sp.title = 'Ouvrir la fiche de ce compte'; sp.setAttribute('role', 'button'); sp.tabIndex = 0; sp.textContent = m[0];
+        frag.appendChild(sp); last = m.index + m[0].length;
+      }
+      if (frag) { if (last < txt.length) frag.appendChild(document.createTextNode(txt.slice(last))); t.parentNode.replaceChild(frag, t); }
+    });
+  }
+  // Observation du DOM : tout ce qui s'affiche dans la console est analysé (aucun onglet n'est oublié)
+  let emTimer = 0; const emPend = new Set();
+  const emObs = new MutationObserver((ms) => {
+    ms.forEach((m) => m.addedNodes.forEach((x) => { if (x.nodeType === 1) emPend.add(x); else if (x.nodeType === 3 && x.parentElement) emPend.add(x.parentElement); }));
+    if (emPend.size && !emTimer) emTimer = setTimeout(flushEm, 40);
+  });
+  const emWatch = () => emObs.observe(A, { childList: true, subtree: true });
+  function flushEm() {
+    emTimer = 0; const arr = [...emPend]; emPend.clear(); emObs.disconnect();
+    try { arr.forEach((el) => { if (el.isConnected) linkEmails(el); }); } catch (e) {} finally { emWatch(); }
+  }
+  emWatch();
+  A.addEventListener('click', (e) => {
+    const l = e.target.closest && e.target.closest('.x-ulink'); if (!l) return;
+    e.preventDefault(); e.stopPropagation(); openUpf(l.dataset.upf);
+  }, true);
+  A.addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('x-ulink')) { e.preventDefault(); openUpf(e.target.dataset.upf); }
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('upf-modal')) closeUpf(); });
+
+  function upfRoot() {
+    let m = $('upf-modal');
+    if (!m) {
+      m = document.createElement('div'); m.id = 'upf-modal'; m.className = 'xa-ov'; m.setAttribute('data-nolink', '');
+      m.addEventListener('click', upfClick);
+      m.addEventListener('mousedown', (e) => { if (e.target === m) closeUpf(); });
+      m.addEventListener('input', (e) => { if (e.target.id === 'upf-subj') UPF.subj = e.target.value; if (e.target.id === 'upf-body') UPF.body = e.target.value; });
+      A.appendChild(m); document.body.classList.add('xa-lock');
+    }
+    return m;
+  }
+  function closeUpf() { const m = $('upf-modal'); if (m) m.remove(); UPF.id = null; document.body.classList.remove('xa-lock'); }
+
+  async function upfLoad(id) {
+    const safe = (p) => Promise.resolve(p).then((r) => r, (e) => ({ error: e }));
+    const sb = supabaseClient;
+    const [sh, rc, tk, ms, tr, sv] = await Promise.all([
+      safe(sb.from('sw_shipments').select('id,tracking_code,status,created_at,origin,destination,receiver_name,agency_name').eq('user_id', id).order('created_at', { ascending: false }).limit(40)),
+      safe(sb.from('sw_recharges').select('id,amount,approved_amount,status,method,reference,created_at').eq('user_id', id).order('created_at', { ascending: false }).limit(40)),
+      safe(sb.from('sw_flight_tickets').select('pnr,data,created_at').eq('user_id', id).order('created_at', { ascending: false }).limit(40)),
+      safe(sb.from('sw_messages').select('id,subject,body,category,status,created_at,admin_reply,is_broadcast').eq('user_id', id).order('created_at', { ascending: false }).limit(40)),
+      can('rech') ? safe(sb.rpc('sw_admin_transfers', { p_limit: 60, p_user: id })) : Promise.resolve(null),
+      safe(sb.rpc('sw_admin_user_supervision', { p_user: id, p_days: null }))
+    ]);
+    const ok = (r) => (r && !r.error) ? (r.data || []) : [];
+    return {
+      ship: ok(sh), rech: ok(rc), tick: ok(tk), msgs: ok(ms).filter((m) => !m.is_broadcast),
+      trf: tr && !tr.error && tr.data ? (tr.data.rows || []) : null, trSql: !!(tr && tr.error),
+      sv: sv && !sv.error ? sv.data : null
+    };
+  }
+  async function openUpf(id) {
+    const u = S.own[id]; if (!u) return toast('Compte introuvable ou protégé.', 'error');
+    UPF.id = id; UPF.tab = 'over'; UPF.d = null; UPF.compose = false; UPF.subj = ''; UPF.body = '';
+    logAct('user_view', 'Fiche consultée : ' + (u.email || id));
+    upfRender();
+    let d; try { d = await upfLoad(id); } catch (e) { d = { ship: [], rech: [], tick: [], msgs: [], trf: null }; }
+    if (UPF.id === id) { UPF.d = d; upfRender(); }
+  }
+  const upfRow = (main, sub, right, attr) => `<div class="x-row" style="cursor:${attr ? 'pointer' : 'default'};align-items:center;gap:10px" ${attr || ''}><span style="min-width:0;word-break:break-word">${main}${sub ? `<br><span class="t-mut x-sm">${sub}</span>` : ''}</span>${right ? `<span style="white-space:nowrap;text-align:right">${right}</span>` : ''}</div>`;
+  const stLab = (k) => (STATUS[k] && STATUS[k].label) || k || '-';
+  const rcLab = { pending: 'en attente', approved: 'approuvée', rejected: 'rejetée' };
+  function upfTimeline(d) {
+    const out = [];
+    (d.ship || []).forEach((s) => out.push({ t: s.created_at, ic: '📦', tx: 'Colis créé · ' + fmtCode(s.tracking_code), sub: [s.origin, s.destination].filter(Boolean).join(' → ') + ' · ' + stLab(s.status) }));
+    (d.rech || []).forEach((r) => out.push({ t: r.created_at, ic: '💳', tx: 'Recharge ' + fmtMoney(r.status === 'approved' && r.approved_amount != null ? r.approved_amount : r.amount), sub: (r.method || '') + ' · ' + (rcLab[r.status] || r.status) }));
+    (d.tick || []).forEach((k) => out.push({ t: k.created_at, ic: '✈️', tx: 'Billet ' + k.pnr, sub: ((k.data || {}).from || '') + ' → ' + ((k.data || {}).to || '') }));
+    (d.msgs || []).forEach((m) => out.push({ t: m.created_at, ic: '✉️', tx: 'Message : ' + (m.subject || '(sans titre)'), sub: m.status === 'open' ? 'ouvert' : 'résolu' }));
+    (d.trf || []).forEach((x) => { const o = x.sender_id === UPF.id; out.push({ t: x.created_at, ic: o ? '↗' : '↙', tx: (o ? 'Transfert envoyé ' : 'Transfert reçu ') + fmtMoney(x.amount), sub: (o ? 'à ' + (x.receiver_email || x.receiver_phone || '-') : 'de ' + (x.sender_email || x.sender_phone || '-')) + ' · ' + x.ref }); });
+    return out.sort((a, b) => new Date(b.t) - new Date(a.t));
+  }
+  const tlHtml = (arr) => arr.length ? arr.map((x) => `<div class="xa-tl"><span class="xa-tl-ic">${x.ic}</span><span class="xa-tl-m"><b>${esc(x.tx)}</b><small>${esc(x.sub || '')}</small></span><span class="xa-tl-d">${esc(fmtDate(x.t))}</span></div>`).join('') : '<div class="x-empty">Aucune activité.</div>';
+  function upfTab(u, d) {
+    if (!d) return '<p class="x-hint">Chargement de l’activité…</p>';
+    const t = UPF.tab;
+    if (t === 'over') {
+      const last = (a) => a && a[0] ? fmtDate(a[0].created_at) : '—';
+      const views = d.sv && d.sv.ships ? d.sv.ships.reduce((n, s) => n + (+s.views || 0), 0) : null;
+      return `<div class="xa-info"><div><small>Inscrit le</small><b>${esc(fmtDay(u.created_at))}</b></div><div><small>Dernier colis</small><b>${esc(last(d.ship))}</b></div><div><small>Dernière recharge</small><b>${esc(last(d.rech))}</b></div><div><small>Dernier billet</small><b>${esc(last(d.tick))}</b></div>${views != null ? `<div><small>Scans de ses colis</small><b>${views}</b></div>` : ''}<div><small>Identifiant</small><b style="font-size:11px">${esc(String(u.id).slice(0, 8))}…</b></div></div>
+        <p class="x-h" style="margin-top:14px">ACTIVITÉ RÉCENTE</p>${tlHtml(upfTimeline(d).slice(0, 8))}`;
+    }
+    if (t === 'act') return `<p class="x-h">TOUTE L’ACTIVITÉ</p>${tlHtml(upfTimeline(d).slice(0, 80))}${d.sv && (d.sv.audit || []).length ? `<p class="x-h" style="margin-top:14px">MODIFICATIONS D’ÉTAPES (${d.sv.audit.length})</p>${upfRow('Voir le détail dans la supervision du compte', '', '<button class="x-btn" data-upfa="sv">OUVRIR</button>')}` : ''}`;
+    if (t === 'ship') return d.ship.length ? d.ship.map((s) => upfRow(`<b>${esc(fmtCode(s.tracking_code))}</b>`, esc([s.origin, s.destination].filter(Boolean).join(' → ') + ' · ' + fmtDay(s.created_at)), `<span class="${TXT[s.status] || 't-mut'}">${esc(stLab(s.status))}</span>`, can('ship') ? `data-upfship="${esc(s.id)}"` : '')).join('') : '<div class="x-empty">Aucun colis.</div>';
+    if (t === 'tick') return d.tick.length ? d.tick.map((k) => upfRow(`<b>${esc(k.pnr)}</b> · ${esc((k.data || {}).from || '')} → ${esc((k.data || {}).to || '')}`, esc(((k.data || {}).nom || '') + ' ' + ((k.data || {}).pre || '') + ' · vol du ' + ((k.data || {}).date || '-')), `<span class="t-mut x-sm">${esc(fmtDay(k.created_at))}</span>`)).join('') : '<div class="x-empty">Aucun billet.</div>';
+    if (t === 'rech') return d.rech.length ? d.rech.map((r) => upfRow(`<b>${fmtMoney(r.status === 'approved' && r.approved_amount != null ? r.approved_amount : r.amount)}</b> · ${esc(r.method || '')}`, esc('Réf. ' + (r.reference || '-') + ' · ' + fmtDate(r.created_at)), `<span class="${RTXT[r.status] || 't-mut'}">${esc(rcLab[r.status] || r.status)}</span>`)).join('') : '<div class="x-empty">Aucune recharge.</div>';
+    if (t === 'trf') {
+      if (d.trSql) return '<div class="x-empty">Transferts indisponibles : exécutez le script SQL de mise à jour.</div>';
+      return d.trf && d.trf.length ? d.trf.map((x) => { const o = x.sender_id === UPF.id; return upfRow(`<b class="${o ? 't-bad' : 't-ok'}">${o ? '−' : '+'}${fmtMoney(x.amount)}</b> · ${o ? 'envoyé' : 'reçu'}`, esc((o ? 'à ' + (x.receiver_email || x.receiver_phone || '-') : 'de ' + (x.sender_email || x.sender_phone || '-')) + ' · ' + fmtDate(x.created_at) + ' · ' + x.ref), ''); }).join('') : '<div class="x-empty">Aucun transfert.</div>';
+    }
+    if (t === 'msg') return d.msgs.length ? d.msgs.map((m) => `<div class="x-row" style="cursor:default;flex-direction:column;gap:4px"><span><b>${esc(m.subject || '(sans titre)')}</b> <span class="t-mut x-sm">· ${esc(fmtDate(m.created_at))} · ${m.status === 'open' ? 'ouvert' : 'résolu'}</span></span><span class="x-sm" style="white-space:pre-wrap;word-break:break-word">${esc(m.body || '')}</span>${m.admin_reply ? `<span class="x-sm t-ok" style="white-space:pre-wrap">↳ Réponse : ${esc(m.admin_reply)}</span>` : ''}</div>`).join('') : '<div class="x-empty">Aucun message.</div>';
+    return '';
+  }
+  function upfRender() {
+    const u = S.own[UPF.id]; if (!u) return closeUpf();
+    const m = upfRoot(), d = UPF.d, prot = isSupU(u) || u.role === 'admin';
+    const bal = Number(S.bal[u.id] || 0);
+    const stL = u.is_active === false ? ['BLOQUÉ', 't-bad'] : u.role === 'admin' ? ['ADMIN', 't-info'] : ['ACTIF', 't-ok'];
+    const n = (a) => a ? (a.length >= 40 ? '40+' : a.length) : '…';
+    const kp = (l, v, e) => `<div class="xa-kpi"><small>${l}</small><strong>${v}</strong><em>${e || '&nbsp;'}</em></div>`;
+    const sum = d ? d.rech.filter((r) => r.status === 'approved').reduce((t, r) => t + Number(r.approved_amount != null ? r.approved_amount : r.amount || 0), 0) : null;
+    const trIn = d && d.trf ? d.trf.filter((x) => x.receiver_id === u.id).length : null, trOut = d && d.trf ? d.trf.filter((x) => x.sender_id === u.id).length : null;
+    const act = (a, l, cls) => `<button type="button" class="x-btn ${cls || ''}" data-upfa="${a}">${l}</button>`;
+    const tabs = [['over', 'Aperçu'], ['act', 'Activité'], ['ship', 'Colis'], ['tick', 'Billets'], ['rech', 'Recharges'], ...(can('rech') ? [['trf', 'Transferts']] : []), ['msg', 'Messages']];
+    if (!tabs.some(([k]) => k === UPF.tab)) UPF.tab = 'over';
+    m.innerHTML = `<div class="xa-card" role="dialog" aria-modal="true" aria-label="Fiche utilisateur">
+      <div class="xa-head"><div class="xa-av">${esc(String(u.email || u.phone || '?').trim().charAt(0).toUpperCase())}</div>
+        <div class="xa-id"><b>${esc(u.email || '—')}</b><span>${esc(u.phone || 'Téléphone non renseigné')}</span><div><span class="x-tag ${stL[1]}">${stL[0]}</span></div></div>
+        <button type="button" class="x-btn" data-xclose aria-label="Fermer">✕</button></div>
+      <div class="xa-kpis">${kp('SOLDE', fmtMoney(bal), sum != null ? 'recharges : ' + fmtMoney(sum) : '')}${kp('COLIS', n(d && d.ship), d ? 'créés' : '')}${kp('BILLETS', n(d && d.tick), d ? 'générés' : '')}${kp('TRANSFERTS', d && d.trf ? trIn + trOut : '—', d && d.trf ? '↙ ' + trIn + ' · ↗ ' + trOut : '')}</div>
+      <div class="xa-actions">${can('msg') ? act('msg', UPF.compose ? '✕ Annuler le message' : '✉ Envoyer un message', UPF.compose ? '' : 'go') : ''}${waNum(u.phone) ? act('wa', '💬 WhatsApp') : ''}${act('copy', '📋 Copier l’e-mail')}${(!prot && can('acct')) ? act('block', u.is_active === false ? '🔓 Réactiver' : '🔒 Bloquer', u.is_active === false ? '' : 'no') : ''}${can('ship') ? act('flux', '📦 Voir dans le Flux') : ''}</div>
+      ${UPF.compose && can('msg') ? `<div class="xa-compose"><p class="x-h" style="margin-bottom:8px">MESSAGE À ${esc(u.email || 'CET UTILISATEUR')}</p><input id="upf-subj" class="x-in" maxlength="120" placeholder="Sujet / titre" value="${esc(UPF.subj)}" style="margin-bottom:8px"><textarea id="upf-body" class="x-in" rows="5" maxlength="2000" placeholder="Votre message (il apparaît dans l’espace Messages de l’utilisateur)">${esc(UPF.body)}</textarea><button type="button" class="x-btn go" data-upfa="send" style="width:100%;margin-top:8px">ENVOYER</button></div>` : ''}
+      <div class="xa-tabs">${tabs.map(([k, l]) => `<button type="button" class="${UPF.tab === k ? 'on' : ''}" data-upft="${k}">${l}</button>`).join('')}</div>
+      <div class="xa-body">${upfTab(u, d)}</div></div>`;
+  }
+  async function upfClick(e) {
+    e.stopPropagation();
+    if (e.target.closest('[data-xclose]')) return closeUpf();
+    const tb = e.target.closest('[data-upft]'); if (tb) { UPF.tab = tb.dataset.upft; return upfRender(); }
+    const sh = e.target.closest('[data-upfship]'); if (sh) { closeUpf(); return openDrawer(sh.dataset.upfship); }
+    const a = e.target.closest('[data-upfa]'); if (!a) return;
+    const u = S.own[UPF.id]; if (!u) return;
+    const what = a.dataset.upfa;
+    if (what === 'msg') { UPF.compose = !UPF.compose; upfRender(); const s = $('upf-subj'); if (s) s.focus(); return; }
+    if (what === 'copy') {
+      try { await navigator.clipboard.writeText(u.email || ''); toast('E-mail copié.'); } catch (er) { prompt('Copiez cet e-mail :', u.email || ''); }
+      return;
+    }
+    if (what === 'wa') { logAct('wa_contact', 'Discussion WhatsApp ouverte : ' + (u.email || u.id)); window.open('https://wa.me/' + waNum(u.phone), '_blank'); return; }
+    if (what === 'flux') { if (!need('ship')) return; FL.fx = flDef.fx(); FL.fx.usr = u.id; closeUpf(); return showSub('pipe'); }
+    if (what === 'sv') { return svModal(u.id); }
+    if (what === 'block') {
+      if (!need('acct')) return;
+      if (isSupU(u) || u.role === 'admin') return toast('Action non autorisée pour ce compte.', 'error');
+      const next = u.is_active === false;
+      if (!confirm((next ? 'Réactiver' : 'Bloquer') + ' le compte ' + (u.email || '') + ' ?')) return;
+      const ok = await rpc('sw_admin_set_active', { p_id: u.id, p_active: next }, next ? 'Compte réactivé.' : 'Compte bloqué.');
+      if (ok && UPF.id) upfRender(); return;
+    }
+    if (what === 'send') {
+      if (!need('msg')) return;
+      const subject = ($('upf-subj').value || '').trim(), body = ($('upf-body').value || '').trim();
+      if (!subject || !body) return toast('Remplissez le sujet et le message.', 'error');
+      if (!confirm('Envoyer ce message à ' + (u.email || 'cet utilisateur') + ' ?')) return;
+      a.disabled = true;
+      const { error } = await arpc('sw_admin_send_direct', { p_user: u.id, p_subject: subject, p_body: body });
+      a.disabled = false;
+      if (error) return toast('Erreur : ' + error.message, 'error');
+      toast('Message envoyé à ' + (u.email || 'l’utilisateur') + '.');
+      UPF.compose = false; UPF.subj = ''; UPF.body = ''; UPF.tab = 'msg';
+      try { UPF.d = await upfLoad(u.id); } catch (er) {}
+      if (UPF.id) upfRender();
+    }
+  }
+
+  // ====================================================================================
+  // ONGLET TRANSFERTS : interrupteur ON/OFF, limites, statistiques et historique complet
+  // ====================================================================================
+  const TR = { rows: [], stats: null, cfg: null, err: '', q: '', loading: false, ready: false };
+  async function trLoad() {
+    TR.loading = true;
+    try {
+      const r = await supabaseClient.rpc('sw_admin_transfers', { p_limit: 500, p_user: null });
+      if (r.error) {
+        TR.err = /Could not find the function|PGRST202|schema cache/i.test((r.error.code || '') + ' ' + (r.error.message || '')) ? 'Mise à jour SQL manquante : exécutez « sw_transferts_partage_migration.sql » dans Supabase (SQL Editor).' : r.error.message;
+        TR.rows = []; TR.stats = null;
+      } else { TR.err = ''; TR.rows = (r.data && r.data.rows) || []; TR.stats = (r.data && r.data.stats) || {}; TR.cfg = (r.data && r.data.config) || {}; TR.ready = true; }
+    } catch (e) { TR.err = String((e && e.message) || e); }
+    TR.loading = false;
+  }
+  function transfersV() { trPaint(); trLoad().then(() => { if (S.v === 'transfers') trPaint(); }); }
+  function trPaint() {
+    const c = TR.cfg || {}, on = !!c.enabled, st = TR.stats || {};
+    const tile = (l, v, e) => `<div class="x-read" style="cursor:default"><small>${l}</small><strong>${v}</strong><em>${e}</em></div>`;
+    M.innerHTML = `<div class="x-wrap"><h2 class="x-title">Transferts de crédit</h2>
+      <p class="x-lead">Les clients peuvent s’envoyer du crédit entre comptes SwiftWay (e-mail ou téléphone). Vous gardez la main : <b>activez</b> ou <b>coupez</b> la fonction à tout moment.</p>
+      ${TR.err ? `<div class="x-panel x-hl"><p class="x-h">TRANSFERTS INDISPONIBLES</p><p class="t-warn x-sm">${esc(TR.err)}</p></div>` : ''}
+      <div class="x-panel x-hl">
+        <div class="xa-sw"><span class="xa-dot ${on ? 'on' : ''}"></span><div><b>${on ? 'TRANSFERTS ACTIVÉS' : 'TRANSFERTS DÉSACTIVÉS'}</b><small>${on ? 'Les clients peuvent envoyer du crédit.' : 'Le bouton « Transférer » est bloqué chez les clients.'}</small></div>
+          ${isSuper ? `<button type="button" class="x-btn ${on ? 'no' : 'go'}" data-trtog="${on ? 0 : 1}" ${TR.err ? 'disabled' : ''}>${on ? 'COUPER' : 'ACTIVER'}</button>` : ''}</div>
+        <div class="xa-two"><div><label class="x-lb">MONTANT MINIMUM (FCFA)</label><input id="tr-min" type="number" min="100" step="100" class="x-in" value="${esc(c.min_amount != null ? c.min_amount : 1000)}" ${isSuper ? '' : 'disabled'}></div>
+          <div><label class="x-lb">PLAFOND PAR TRANSFERT (0 = AUCUN)</label><input id="tr-max" type="number" min="0" step="1000" class="x-in" value="${esc(c.max_amount != null ? c.max_amount : 0)}" ${isSuper ? '' : 'disabled'}></div></div>
+        ${isSuper ? '<button type="button" class="x-btn go" data-trsave="1" style="margin-top:10px">ENREGISTRER LES LIMITES</button>' : '<p class="x-hint">Seul le Super Admin peut modifier ces réglages.</p>'}
+      </div>
+      <div class="xa-tiles">${tile('VOLUME TOTAL', fmtMoney(st.volume || 0), (st.count || 0) + ' transfert(s)')}${tile('AUJOURD’HUI', fmtMoney(st.volume_today || 0), (st.count_today || 0) + ' transfert(s)')}${tile('7 DERNIERS JOURS', fmtMoney(st.volume_7d || 0), (st.count_7d || 0) + ' transfert(s)')}</div>
+      <div class="x-panel"><p class="x-h">HISTORIQUE DES TRANSFERTS</p>
+        <div class="xa-trbar"><input id="tr-q" class="x-in" placeholder="> e-mail, téléphone, référence" value="${esc(TR.q)}"><button type="button" class="x-btn" data-trref="1">↻ ACTUALISER</button></div>
+        <div id="tr-rows"></div></div></div>`;
+    trRows();
+  }
+  function trRows() {
+    const box = $('tr-rows'); if (!box) return;
+    const q = TR.q.trim().toLowerCase();
+    const rows = TR.rows.filter((r) => !q || [r.ref, r.sender_email, r.sender_phone, r.receiver_email, r.receiver_phone, r.note].some((v) => String(v || '').toLowerCase().includes(q)));
+    box.innerHTML = (TR.loading && !TR.ready) ? '<p class="x-hint">Chargement…</p>' : rows.length
+      ? rows.slice(0, 200).map((r) => `<div class="x-row" style="cursor:default;flex-wrap:wrap;align-items:center;gap:8px"><span style="min-width:0;word-break:break-word"><b>${esc(r.ref)}</b> <span class="t-mut x-sm">· ${esc(fmtFull(r.created_at))}</span><br>${esc(r.sender_email || r.sender_phone || '-')} <span class="t-dim">→</span> ${esc(r.receiver_email || r.receiver_phone || '-')}${r.note ? `<br><span class="t-mut x-sm">« ${esc(r.note)} »</span>` : ''}</span><span class="t-ok" style="white-space:nowrap"><b>${fmtMoney(r.amount)}</b></span></div>`).join('') + (rows.length > 200 ? `<p class="x-hint">${rows.length} résultats : affinez la recherche pour voir les autres.</p>` : '')
+      : '<div class="x-empty">Aucun transfert.</div>';
+  }
+  async function trSave(enabled) {
+    if (!needSuper()) return;
+    const min = parseInt($('tr-min').value, 10), max = parseInt($('tr-max').value || '0', 10) || 0;
+    if (!(min >= 100)) return toast('Le minimum doit être d’au moins 100 FCFA.', 'error');
+    if (max && max < min) return toast('Le plafond doit être supérieur au minimum.', 'error');
+    if (enabled !== !!(TR.cfg && TR.cfg.enabled) && !confirm(enabled ? 'Activer les transferts de crédit pour tous les clients ?' : 'Couper les transferts de crédit ?')) return;
+    const { error } = await arpc('sw_admin_set_transfer_config', { p_enabled: enabled, p_min: min, p_max: max });
+    if (error) return toast('Erreur : ' + error.message, 'error');
+    toast(enabled ? 'Transferts activés.' : 'Transferts désactivés.'); await trLoad(); if (S.v === 'transfers') trPaint();
+  }
+  A.addEventListener('click', (e) => {
+    let el;
+    if ((el = e.target.closest('[data-trtog]'))) return trSave(el.dataset.trtog === '1');
+    if (e.target.closest('[data-trsave]')) return trSave(!!(TR.cfg && TR.cfg.enabled));
+    if (e.target.closest('[data-trref]')) { trLoad().then(() => { if (S.v === 'transfers') trPaint(); }); }
+  });
+  A.addEventListener('input', (e) => { if (e.target.id === 'tr-q') { TR.q = e.target.value; trRows(); } });
 })();
 </script>
 <script>
@@ -4112,7 +4463,7 @@ async function mine() {
     return `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 mt-3 overflow-hidden"><div style="background:${d.hc ? DocKit.theme({ hc: d.hc, bg: d.bg }).head : 'linear-gradient(120deg,#0b2a5b,#0047AB)'};color:${d.hc ? DocKit.theme({ hc: d.hc, bg: d.bg }).hcT : '#fff'};padding:8px 14px;display:flex;justify-content:space-between;gap:8px;font-size:11px;font-weight:700;letter-spacing:.06em"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">✈ ${esc(d.an)}</span><span style="flex:none">${esc((CLS[d.cls] || CLS.eco)[0].toUpperCase())}</span></div>
     <div style="padding:12px 14px"><div style="display:flex;align-items:center;gap:8px"><div style="min-width:0"><b style="font-size:24px;line-height:1">${esc(d.from)}</b><br><small class="text-gray-500">${esc(A.c)}</small></div><div style="flex:1;text-align:center;color:#0047AB;font-size:18px">— ✈ —<br><small style="font-size:9px;color:#64748b">${esc(I.dur)}${d.trip === 'rt' ? ' · aller-retour' : (d.stops || []).length ? ' · ' + d.stops.length + ' escale(s)' : ' · direct'}</small></div><div style="min-width:0;text-align:right"><b style="font-size:24px;line-height:1">${esc(d.to)}</b><br><small class="text-gray-500">${esc(B.c)}</small></div></div>
     <p class="text-xs text-gray-500 mt-2">${esc(d.date)} · Vol ${esc(d.flight)} · PNR <b>${esc(r.pnr)}</b> · ${esc(fm(d.total, d.cur))}</p>
-    <div style="display:flex;gap:8px;margin-top:10px"><button data-i="${i}" class="fl-v flex-1 text-sm font-semibold text-white bg-swiftblue rounded-full px-4 py-2 cursor-pointer">Voir le billet</button><button data-i="${i}" class="fl-i text-sm font-semibold text-swiftblue border border-blue-200 rounded-full px-4 py-2 cursor-pointer">Itinéraire</button><button data-i="${i}" class="fl-d text-sm font-semibold text-red-600 border border-red-200 rounded-full px-4 py-2 cursor-pointer">Supprimer</button></div></div></div>`; };
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button data-i="${i}" class="fl-v flex-1 text-sm font-semibold text-white bg-swiftblue rounded-full px-4 py-2 cursor-pointer">Voir le billet</button><button data-i="${i}" class="fl-i text-sm font-semibold text-swiftblue border border-blue-200 rounded-full px-4 py-2 cursor-pointer">Itinéraire</button><button type="button" data-co-share="${esc(r.pnr)}" data-co-kind="ticket" data-co-title="${esc((d.from||'')+' → '+(d.to||'')+' · '+r.pnr)}" class="text-sm font-semibold text-swiftblue border border-blue-200 rounded-full px-4 py-2 cursor-pointer">🔗 Partager</button><button data-i="${i}" class="fl-d text-sm font-semibold text-red-600 border border-red-200 rounded-full px-4 py-2 cursor-pointer">Supprimer</button></div></div></div>`; };
   b.innerHTML = H + (data.length ? data.map(card).join('') : '<div class="bg-white rounded-3xl border border-gray-100 p-8 text-center mt-3"><p class="text-gray-500 mb-4">Vous n\'avez pas encore de billet d\'avion.</p><button type="button" id="fl-new" class="bg-swiftblue text-white font-semibold px-5 py-3 rounded-xl cursor-pointer">Créer mon premier billet</button></div>');
   const nb = $('fl-new'); if (nb) nb.onclick = () => { showTab('new'); setNewMode('fly'); };
   b.querySelectorAll('.fl-v').forEach(x => x.onclick = () => show(toT(MY[x.dataset.i])));
@@ -4229,6 +4580,456 @@ window.flyRadar = async (box, o) => {
   box.querySelectorAll('[data-fk]').forEach(b => b.onclick = () => { if (b.dataset.fk === 'users') $('fr-users').scrollIntoView({ behavior: 'smooth' }); else { st.u = ''; st.q = ''; $('fr-q').value = ''; paint(); $('fr-list').scrollIntoView({ behavior: 'smooth' }); } });
   const cl = $('fr-clean'); if (cl) cl.onclick = async () => { const old = data.filter(r => Date.now() - new Date(r.created_at).getTime() > 30 * 864e5); if (!old.length) return toast('Aucun billet de plus de 30 jours.'); if (!confirm('Supprimer définitivement ' + old.length + ' billet(s) de plus de 30 jours ?')) return; if (prompt('Confirmation : tapez SUPPRIMER pour effacer ' + old.length + ' billet(s).') !== 'SUPPRIMER') return toast('Suppression annulée.'); if (await delAdmin(old)) window.flyRadar(box, o); };
 };
+})();
+</script>
+<script>
+/* =====================================================================
+   EXTENSIONS CLIENT : transferts de crédit + liens de double contrôle
+   (utilise les fonctions du script principal : esc, toast, fmtMoney, fmtDate, badge, myWallet, loadWallet...)
+   ===================================================================== */
+(() => {
+'use strict';
+const SQLHINT = 'Mise à jour SQL manquante : exécutez « sw_transferts_partage_migration.sql » dans Supabase (SQL Editor).';
+const isMissing = (e) => !!e && /Could not find the function|PGRST202|schema cache/i.test((e.code || '') + ' ' + (e.message || ''));
+const errMsg = (e) => isMissing(e) ? SQLHINT : String((e && e.message) || e || 'Erreur inconnue');
+const uid = () => { try { return crypto.randomUUID(); } catch (e) { return 'k' + Date.now() + Math.random().toString(16).slice(2); } };
+
+/* ---------- Fenêtre « feuille » commune ---------- */
+function sheet(id, inner, opts) {
+  const old = document.getElementById(id); if (old) old.remove();
+  const ov = document.createElement('div'); ov.id = id; ov.className = 'sx-ov' + (opts && opts.cls ? ' ' + opts.cls : '');
+  ov.innerHTML = '<div class="sx-sheet" role="dialog" aria-modal="true">' + inner + '</div>';
+  ov.addEventListener('mousedown', (e) => { if (e.target === ov && opts && opts.onBackdrop) opts.onBackdrop(); });
+  document.body.appendChild(ov); document.body.classList.add('sx-lock');
+  return ov;
+}
+function unsheet(id) {
+  const o = document.getElementById(id); if (o) o.remove();
+  if (!document.querySelector('.sx-ov')) document.body.classList.remove('sx-lock');
+}
+const shHead = (ic, title, sub) => `<div class="sx-h"><div class="sx-h-ic">${ic}</div><div class="sx-h-t"><b>${title}</b>${sub ? `<small>${sub}</small>` : ''}</div><button type="button" class="sx-x" data-x aria-label="Fermer">✕</button></div>`;
+async function copyText(txt, inputEl) {
+  try { await navigator.clipboard.writeText(txt); return true; } catch (e) {}
+  try { if (inputEl) { inputEl.select(); inputEl.setSelectionRange(0, 99999); } return document.execCommand('copy'); } catch (e) { return false; }
+}
+
+/* =====================================================================
+   1) TRANSFERT DE CRÉDIT
+   ===================================================================== */
+const TRC = { loaded: false, enabled: false, min_amount: 1000, max_amount: 0, err: '' };
+let TRH = [], trAll = false;
+
+async function trLoadConfig() {
+  const r = await supabaseClient.rpc('sw_transfer_config_get');
+  TRC.loaded = true;
+  if (r.error) { TRC.err = errMsg(r.error); TRC.enabled = false; return TRC; }
+  TRC.err = ''; Object.assign(TRC, r.data || {}); return TRC;
+}
+async function trLoadHistory() {
+  const r = await supabaseClient.rpc('sw_transfer_my_history', { p_limit: 40 });
+  TRH = r.error ? [] : (r.data || []);
+}
+function trRenderActions() {
+  const b = $('tr-open'), sub = $('tr-open-sub'); if (!b) return;
+  const off = !TRC.enabled || !!TRC.err;
+  b.classList.toggle('off', off);
+  sub.textContent = TRC.err ? 'Bientôt disponible' : off ? 'Indisponible pour le moment' : 'Dès ' + fmtMoney(TRC.min_amount);
+}
+function trRenderHistory() {
+  const box = $('tr-hist'); if (!box) return;
+  if (!TRH.length) { box.innerHTML = ''; return; }
+  const rows = trAll ? TRH : TRH.slice(0, 5);
+  box.innerHTML = `<div class="sx-card"><div class="sx-card-h"><b>Mes transferts</b><span>${TRH.length}</span></div>` +
+    rows.map((x) => { const out = x.dir === 'out';
+      return `<div class="sx-tr"><div class="sx-tr-ic ${out ? 'out' : 'in'}">${out ? '↗' : '↙'}</div><div class="sx-tr-m"><b>${out ? 'Envoyé à ' : 'Reçu de '}${esc(x.label)}</b><small>${fmtDate(x.created_at)} · ${esc(x.ref)}${x.note ? ' · « ' + esc(x.note) + ' »' : ''}</small></div><div class="sx-tr-a ${out ? 'out' : 'in'}">${out ? '−' : '+'}${fmtMoney(x.amount)}</div></div>`; }).join('') +
+    (TRH.length > 5 ? `<button type="button" class="sx-more" id="tr-more">${trAll ? 'Réduire' : 'Voir tout (' + TRH.length + ')'}</button>` : '') + '</div>';
+  const m = $('tr-more'); if (m) m.onclick = () => { trAll = !trAll; trRenderHistory(); };
+}
+// Appelé à chaque ouverture de l'onglet Portefeuille
+window.trRefresh = async () => {
+  await Promise.all([trLoadConfig(), trLoadHistory()]);
+  trRenderActions(); trRenderHistory(); trMarkSeen();
+};
+
+/* ----- Notification « crédit reçu » ----- */
+const seenKey = () => 'sw_tr_seen_' + (currentUser ? currentUser.id : '');
+function trSeen() { try { const v = localStorage.getItem(seenKey()); return v === null ? null : new Set(JSON.parse(v)); } catch (e) { return null; } }
+function trSaveSeen(set) { try { localStorage.setItem(seenKey(), JSON.stringify([...set].slice(-300))); } catch (e) {} }
+function trMarkSeen() {
+  const s = trSeen() || new Set(); TRH.filter((x) => x.dir === 'in').forEach((x) => s.add(x.id)); trSaveSeen(s);
+}
+async function trCheckIncoming() {
+  if (!currentUser || isAdmin || $('dash-view').classList.contains('hidden')) return;
+  const r = await supabaseClient.rpc('sw_transfer_my_history', { p_limit: 15 }); if (r.error) return;
+  const incoming = (r.data || []).filter((x) => x.dir === 'in'); let seen = trSeen();
+  if (seen === null) { // premier passage sur cet appareil : seuls les transferts de moins de 24 h déclenchent une alerte
+    seen = new Set(incoming.filter((x) => Date.now() - new Date(x.created_at).getTime() > 864e5).map((x) => x.id));
+  }
+  const fresh = incoming.filter((x) => !seen.has(x.id)); if (!fresh.length) { trSaveSeen(seen); return; }
+  fresh.forEach((x) => seen.add(x.id)); trSaveSeen(seen);
+  const tot = fresh.reduce((s, x) => s + Number(x.amount || 0), 0);
+  toast('💸 Crédit reçu : +' + fmtMoney(tot) + (fresh.length === 1 ? ' de ' + fresh[0].label : ''));
+  if (!$('view-wallet').classList.contains('hidden')) loadWallet();
+}
+
+/* ----- Fenêtre de transfert ----- */
+async function trOpen() {
+  if (!TRC.loaded) await trLoadConfig();
+  if (TRC.err) return toast(TRC.err, 'error');
+  if (!TRC.enabled) return toast('Les transferts de crédit sont momentanément désactivés.', 'error');
+  let bal = 0; try { const w = await myWallet(); bal = Number(w.data ? w.data.balance : 0); } catch (e) {}
+  const min = Number(TRC.min_amount) || 1000, max = Number(TRC.max_amount) || 0;
+  const S = { to: '', amt: '', note: '', label: '', ok: null, seq: 0, tm: 0, res: null, key: uid() };
+  const close = () => { clearTimeout(S.tm); unsheet('tr-modal'); };
+  const ov = sheet('tr-modal', '', { onBackdrop: close });
+  const box = ov.firstElementChild;
+  const head = (t) => shHead('💸', t, 'Solde disponible : <strong>' + fmtMoney(bal) + '</strong>');
+  const showErr = (m) => { const e = $('trm-err'); if (e) { e.textContent = m; e.hidden = !m; } };
+
+  function paintStatus(r) {
+    const st = $('trm-st'); if (!st) return;
+    if (r.error) { S.ok = null; st.className = 'sx-st bad'; st.textContent = r.error; return; }
+    if (r.found) { S.ok = true; S.label = r.label; st.className = 'sx-st ok'; st.innerHTML = '✓ Compte trouvé : <b>' + esc(r.label) + '</b>'; }
+    else { S.ok = false; st.className = 'sx-st bad'; st.textContent = r.self ? 'C’est votre propre compte : choisissez un autre destinataire.' : 'Aucun compte SwiftWay Logistics ne correspond à cet e-mail ou ce numéro.'; }
+  }
+  async function doLookup(v) {
+    const r = await supabaseClient.rpc('sw_transfer_lookup', { p_target: v });
+    return r.error ? { error: errMsg(r.error) } : (r.data || {});
+  }
+  function queueLookup() {
+    clearTimeout(S.tm); S.ok = null; S.label = '';
+    const st = $('trm-st'); if (!st) return; const v = S.to.trim();
+    const valid = v.includes('@') ? /^.+@.+\..+$/.test(v) : v.replace(/\D/g, '').length >= 8;
+    if (!v || !valid) { st.className = 'sx-st'; st.textContent = ''; return; }
+    st.className = 'sx-st chk'; st.textContent = 'Vérification…';
+    const my = ++S.seq;
+    S.tm = setTimeout(async () => { const r = await doLookup(v); if (my === S.seq) paintStatus(r); }, 450);
+  }
+  const readForm = () => { S.to = $('trm-to').value; S.amt = $('trm-amt').value; S.note = $('trm-note').value; };
+  function validate() {
+    const amt = Number(S.amt);
+    if (!S.to.trim()) return 'Indiquez l’e-mail ou le numéro du destinataire.';
+    if (!S.amt || !Number.isInteger(amt)) return 'Indiquez un montant en FCFA (nombre entier).';
+    if (amt < min) return 'Montant minimum : ' + fmtMoney(min) + '.';
+    if (max && amt > max) return 'Montant maximum par transfert : ' + fmtMoney(max) + '.';
+    if (amt > bal) return 'Solde insuffisant : il vous manque ' + fmtMoney(amt - bal) + '. Rechargez votre portefeuille.';
+    return '';
+  }
+  function paintForm() {
+    box.innerHTML = head('Transférer du crédit') + `<div class="sx-b">
+      <label class="sx-l" for="trm-to">Destinataire (e-mail ou numéro)</label>
+      <input id="trm-to" class="sx-in" type="text" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="ami@gmail.com ou 6XXXXXXXX" value="${esc(S.to)}">
+      <div id="trm-st" class="sx-st"></div>
+      <label class="sx-l" for="trm-amt">Montant (FCFA)</label>
+      <input id="trm-amt" class="sx-in sx-amt" type="number" inputmode="numeric" min="${min}" step="1" placeholder="${min}" value="${esc(S.amt)}">
+      <div class="sx-chips">${[1000, 2000, 5000, 10000, 25000].filter((v) => v >= min && (!max || v <= max)).map((v) => `<button type="button" class="sx-chip" data-amt="${v}">${fmtMoney(v).replace(' FCFA', '')}</button>`).join('')}</div>
+      <p class="sx-hint">Minimum ${fmtMoney(min)}${max ? ' · maximum ' + fmtMoney(max) : ''}. Le destinataire doit avoir un compte SwiftWay Logistics.</p>
+      <label class="sx-l" for="trm-note">Message <i>(facultatif)</i></label>
+      <input id="trm-note" class="sx-in" type="text" maxlength="80" placeholder="Ex : pour tes frais de colis" value="${esc(S.note)}">
+      <div id="trm-err" class="sx-err" hidden></div>
+      <button type="button" id="trm-go" class="sx-cta">Continuer</button></div>`;
+    $('trm-to').addEventListener('input', () => { S.to = $('trm-to').value; queueLookup(); });
+    $('trm-go').onclick = async () => {
+      readForm(); const err = validate(); if (err) return showErr(err); showErr('');
+      if (S.ok !== true) {
+        const b = $('trm-go'); b.disabled = true; b.textContent = 'Vérification…';
+        const r = await doLookup(S.to.trim()); b.disabled = false; b.textContent = 'Continuer'; paintStatus(r);
+        if (S.ok !== true) return;
+      }
+      S.key = uid(); paintConfirm();
+    };
+    ov.querySelectorAll('input').forEach((i) => i.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('trm-go').click(); } }));
+    if (S.to) { if (S.ok === true) paintStatus({ found: true, label: S.label }); else queueLookup(); }
+  }
+  function paintConfirm() {
+    const amt = Number(S.amt);
+    box.innerHTML = head('Confirmer le transfert') + `<div class="sx-b">
+      <div class="sx-sum">
+        <div class="sx-sum-r"><span>Destinataire</span><b>${esc(S.label)}</b></div>
+        <div class="sx-sum-r"><span>Montant envoyé</span><b class="sx-big">${fmtMoney(amt)}</b></div>
+        <div class="sx-sum-r"><span>Votre solde après</span><b>${fmtMoney(bal - amt)}</b></div>
+        ${S.note.trim() ? `<div class="sx-sum-r"><span>Message</span><b>${esc(S.note.trim())}</b></div>` : ''}
+      </div>
+      <p class="sx-warn">⚠ Un transfert est immédiat : votre compte est débité et celui du destinataire crédité. Vérifiez bien le destinataire avant de confirmer.</p>
+      <div id="trm-err" class="sx-err" hidden></div>
+      <div class="sx-two"><button type="button" class="sx-ghost" id="trm-back">Modifier</button><button type="button" class="sx-cta" id="trm-ok">Confirmer et envoyer</button></div></div>`;
+    $('trm-back').onclick = paintForm;
+    $('trm-ok').onclick = async () => {
+      const b = $('trm-ok'); b.disabled = true; b.textContent = 'Envoi en cours…'; showErr('');
+      const r = await supabaseClient.rpc('sw_transfer_credit', { p_target: S.to.trim(), p_amount: amt, p_note: S.note.trim() || null, p_key: S.key });
+      if (r.error) { b.disabled = false; b.textContent = 'Confirmer et envoyer'; showErr(errMsg(r.error)); return; }
+      S.res = r.data || {}; bal = Number(S.res.balance != null ? S.res.balance : bal - amt); paintDone();
+      if (!$('view-wallet').classList.contains('hidden')) loadWallet(); else trRefresh();
+    };
+  }
+  function paintDone() {
+    const x = S.res || {};
+    box.innerHTML = shHead('✅', 'Transfert envoyé', 'Nouveau solde : <strong>' + fmtMoney(bal) + '</strong>') + `<div class="sx-b sx-done">
+      <div class="sx-check">✓</div>
+      <p class="sx-amt-big">${fmtMoney(x.amount)}</p>
+      <p class="sx-p" style="text-align:center">envoyés à <b>${esc(x.to_label || S.label)}</b></p>
+      <div class="sx-sum"><div class="sx-sum-r"><span>Référence</span><b>${esc(x.ref || '')}</b></div><div class="sx-sum-r"><span>Date</span><b>${fmtDate(x.created_at || new Date())}</b></div></div>
+      <div class="sx-two"><button type="button" class="sx-ghost" id="trm-copy">Copier la référence</button><button type="button" class="sx-cta" id="trm-end">Terminé</button></div></div>`;
+    $('trm-end').onclick = close;
+    $('trm-copy').onclick = async () => { toast((await copyText(x.ref || '')) ? 'Référence copiée.' : 'Copie impossible.'); };
+  }
+  box.addEventListener('click', (e) => {
+    if (e.target.closest('[data-x]')) return close();
+    const c = e.target.closest('[data-amt]'); if (c && $('trm-amt')) { $('trm-amt').value = c.dataset.amt; $('trm-amt').focus(); }
+  });
+  paintForm();
+}
+
+/* =====================================================================
+   2) DOUBLE CONTRÔLE : lien de partage d'un billet ou d'un reçu
+   ===================================================================== */
+const coBase = () => { try { const u = new URL(location.href); u.search = ''; u.hash = ''; return u.toString(); } catch (e) { return location.href.split('?')[0].split('#')[0]; } };
+const coUrl = (tok) => coBase() + '?co=' + encodeURIComponent(tok);
+const coPending = () => { try { return localStorage.getItem('sw_co_pending') || ''; } catch (e) { return window.__coPending || ''; } };
+const coClear = () => { window.__coPending = ''; try { localStorage.removeItem('sw_co_pending'); } catch (e) {} };
+
+async function coShare(kind, id, title) {
+  const noun = kind === 'ticket' ? 'billet' : 'reçu';
+  const ov = sheet('co-share', shHead('🔗', 'Lien de double contrôle', esc(title)) + '<div class="sx-b" style="text-align:center;padding:30px 18px">Chargement…</div>', { onBackdrop: () => unsheet('co-share') });
+  const box = ov.firstElementChild; let st = null;
+  const fail = (e) => { box.innerHTML = shHead('🔗', 'Lien de double contrôle', esc(title)) + `<div class="sx-b"><div class="sx-err">${esc(errMsg(e))}</div></div>`; };
+  const load = async (create) => {
+    const r = await supabaseClient.rpc(create ? 'sw_co_share' : 'sw_co_status', { p_kind: kind, p_id: String(id) });
+    if (r.error) return fail(r.error); st = r.data || { active: false }; paint();
+  };
+  function paint() {
+    const head = shHead('🔗', 'Lien de double contrôle', esc(title));
+    if (!st.active) {
+      box.innerHTML = head + `<div class="sx-b"><p class="sx-p">Créez un lien pour permettre à une autre personne de <b>voir et modifier</b> ce ${noun}. Elle doit avoir un compte SwiftWay Logistics (ou en créer un).</p>
+        <ul class="sx-ul"><li>Le lien ouvre directement la plateforme sur ce ${noun}.</li><li>Les modifications s’enregistrent sur l’original.</li><li>Vous pouvez désactiver le lien à tout moment.</li></ul>
+        <button type="button" class="sx-cta" id="co-gen">Générer le lien</button></div>`;
+      $('co-gen').onclick = () => { $('co-gen').disabled = true; $('co-gen').textContent = 'Création…'; load(true); };
+      return;
+    }
+    const url = coUrl(st.token), mem = st.members || [], lg = st.logs || [];
+    box.innerHTML = head + `<div class="sx-b">
+      <label class="sx-l">Lien à envoyer</label>
+      <div class="sx-copy"><input class="sx-in" id="co-url" readonly value="${esc(url)}"><button type="button" class="sx-chip dark" id="co-cp">Copier</button></div>
+      <div class="sx-two"><button type="button" class="sx-ghost" id="co-wa">WhatsApp</button>${navigator.share ? '<button type="button" class="sx-ghost" id="co-sh">Partager…</button>' : '<span></span>'}</div>
+      <p class="sx-warn">⚠ Toute personne qui a ce lien <b>et</b> un compte SwiftWay peut modifier ce ${noun}. Ne l’envoyez qu’à des personnes de confiance.</p>
+      <p class="sx-sub">Lien actif depuis le ${fmtDate(st.created_at)}</p>
+      ${mem.length ? `<div class="sx-card-h" style="margin-top:6px"><b>Personnes ayant ouvert le lien</b><span>${mem.length}</span></div>${mem.map((m) => `<div class="sx-tr"><div class="sx-tr-ic in">👤</div><div class="sx-tr-m"><b>${esc(m.label)}</b><small>Dernière visite : ${fmtDate(m.last_at)}</small></div><div class="sx-tr-a">${Number(m.edits) || 0} modif.</div></div>`).join('')}` : '<p class="sx-hint">Personne n’a encore ouvert ce lien.</p>'}
+      ${lg.length ? `<div class="sx-card-h" style="margin-top:10px"><b>Dernières modifications</b></div>${lg.map((g) => `<div class="sx-log"><b>${esc(g.label)}</b> · ${esc(g.summary || '')}<small>${fmtDate(g.created_at)}</small></div>`).join('')}` : ''}
+      <button type="button" class="sx-danger" id="co-off">Désactiver le lien</button></div>`;
+    $('co-cp').onclick = async () => { toast((await copyText(url, $('co-url'))) ? 'Lien copié. Envoyez-le à la personne de votre choix.' : 'Copie impossible : sélectionnez le lien manuellement.'); };
+    $('co-wa').onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent('Lien de double contrôle SwiftWay Logistics (' + noun + ') : ' + url), '_blank');
+    const sh = $('co-sh'); if (sh) sh.onclick = () => navigator.share({ title: 'SwiftWay Logistics', text: 'Lien de double contrôle (' + noun + ')', url }).catch(() => {});
+    $('co-off').onclick = async () => {
+      if (!confirm('Désactiver ce lien ?\nLes personnes qui l’ont ouvert perdront immédiatement l’accès.')) return;
+      const r = await supabaseClient.rpc('sw_co_revoke', { p_kind: kind, p_id: String(id) });
+      if (r.error) return toast(errMsg(r.error), 'error'); toast('Lien désactivé.'); st = { active: false }; paint();
+    };
+  }
+  box.addEventListener('click', (e) => { if (e.target.closest('[data-x]')) unsheet('co-share'); });
+  load(false);
+}
+
+/* ----- Ouverture d'un lien reçu ----- */
+async function coOpen(token) {
+  const r = await supabaseClient.rpc('sw_co_open', { p_token: token });
+  if (r.error) { toast(errMsg(r.error), 'error'); return false; }
+  const d = r.data || {}; CO.at = 0;
+  if (d.kind === 'ticket') coEditTicket(d); else coEditReceipt(d);
+  return true;
+}
+function coProcessPending() { const t = coPending(); if (!t) return; coClear(); const n = $('co-auth-note'); if (n) n.classList.add('hidden'); coOpen(t); }
+
+/* ----- Constructeurs de champs ----- */
+const fIn = (id, label, val, o) => { o = o || {}; return `<div class="sx-f${o.span ? ' sx-span' : ''}"><label class="sx-l" for="${id}">${label}${o.req ? ' <i>*</i>' : ''}</label><input id="${id}" class="sx-in" type="${o.type || 'text'}" ${o.attrs || ''} value="${esc(val == null ? '' : val)}"></div>`; };
+const fSel = (id, label, val, opts, o) => { o = o || {}; const v = val == null ? '' : String(val); const list = opts.some(([x]) => String(x) === v) ? opts : [...opts, [v, v]];
+  return `<div class="sx-f${o.span ? ' sx-span' : ''}"><label class="sx-l" for="${id}">${label}</label><select id="${id}" class="sx-in">${list.map(([x, t]) => `<option value="${esc(x)}"${String(x) === v ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></div>`; };
+const fArea = (id, label, val) => `<div class="sx-f sx-span"><label class="sx-l" for="${id}">${label}</label><textarea id="${id}" class="sx-in" rows="3" maxlength="300">${esc(val == null ? '' : val)}</textarea></div>`;
+const fSec = (t, sub, body) => `<section class="sx-sec"><h4>${t}</h4>${sub ? `<p class="sx-hint" style="margin:0 0 8px">${sub}</p>` : ''}<div class="sx-grid">${body}</div></section>`;
+const CTRY = () => [['Cameroun', 'Cameroun'], ...COUNTRIES.filter((c) => c !== 'Cameroun').slice().sort((a, b) => a.localeCompare(b, 'fr')).map((c) => [c, c])];
+const lockChip = (l, v) => `<span class="sx-chiplock"><i>🔒</i>${l} : <b>${esc(v)}</b></span>`;
+
+/* ----- Éditeur de REÇU ----- */
+function coEditReceipt(d) {
+  let s = d.shipment || {}; const token = d.token; let dirty = false;
+  const T = [['sender', 'Expéditeur', 'sender_', 'origin'], ['receiver', 'Destinataire', 'receiver_', 'destination']];
+  const party = (p, title, pre, city) => fSec(title, '',
+    fIn('ce-' + pre + 'name', 'Nom complet', s[pre + 'name'], { req: 1, span: 1 }) + fIn('ce-' + pre + 'phone', 'Téléphone', s[pre + 'phone'], { req: 1, type: 'tel' }) + fIn('ce-' + pre + 'email', 'E-mail', s[pre + 'email'], { type: 'email' }) +
+    fIn('ce-' + pre + 'address', 'Adresse', s[pre + 'address'], { req: 1, span: 1 }) + fIn('ce-' + pre + 'district', 'Quartier', s[pre + 'district']) + fIn('ce-' + city, 'Ville', s[city], { req: 1 }) +
+    fIn('ce-' + pre + 'region', 'Région / Province', s[pre + 'region'], { req: 1 }) + fSel('ce-' + pre + 'country', 'Pays', s[pre + 'country'] || 'Cameroun', CTRY()));
+  const body = () => T.map((t) => party(...t)).join('') +
+    fSec('Le colis', '', fIn('ce-description', 'Contenu du colis', s.description, { req: 1, span: 1 }) + fSel('ce-package_type', 'Type de colis', s.package_type, PKG_TYPES.map((t) => [t, t])) +
+      fIn('ce-package_count', 'Nombre de colis', s.package_count || 1, { req: 1, type: 'number', attrs: 'min="1" step="1"' }) + fIn('ce-weight_kg', 'Poids (kg)', s.weight_kg, { req: 1, type: 'number', attrs: 'min="0.1" step="0.1"' }) +
+      fIn('ce-length_cm', 'Long. (cm)', s.length_cm, { type: 'number', attrs: 'min="0" step="0.1"' }) + fIn('ce-width_cm', 'Larg. (cm)', s.width_cm, { type: 'number', attrs: 'min="0" step="0.1"' }) + fIn('ce-height_cm', 'Haut. (cm)', s.height_cm, { type: 'number', attrs: 'min="0" step="0.1"' }) +
+      fSel('ce-currency', 'Devise du reçu', s.currency || 'XAF', CURRENCIES) + fIn('ce-declared_value', 'Valeur déclarée', s.declared_value, { type: 'number', attrs: 'min="0" step="any"' }) + fIn('ce-shipping_fee', 'Frais de transport', s.shipping_fee, { type: 'number', attrs: 'min="0" step="any"' })) +
+    fSec('Livraison', '', fIn('ce-agency_name', 'Agence / Transporteur', s.agency_name, { req: 1, span: 1, attrs: 'maxlength="80"' }) +
+      fSel('ce-service_type', 'Service', s.service_type || 'standard', [['standard', 'Standard'], ['express', 'Express']]) + fSel('ce-payer', 'Qui paie la livraison ?', s.payer || 'sender', [['sender', 'L’expéditeur'], ['receiver', 'Le destinataire']]) +
+      fSel('ce-stopover_country', 'Pays d’escale', s.stopover_country || '', [['', 'Aucune escale'], ...COUNTRIES.slice().sort((a, b) => a.localeCompare(b, 'fr')).map((c) => [c, c])]) +
+      fSel('ce-customs_status', 'Douane', s.customs_status || '', [['', 'Non précisé'], ['paid', 'Douane déjà payée'], ['unpaid', 'Douane non payée']]) +
+      `<label class="sx-chk sx-span"><input type="checkbox" id="ce-is_fragile" ${s.is_fragile ? 'checked' : ''}> Colis fragile</label>` + fArea('ce-delivery_instructions', 'Instructions de livraison', s.delivery_instructions));
+  const paint = () => {
+    box.innerHTML = shHead('🧾', 'Reçu en double contrôle', 'Partagé par <b>' + esc(d.owner_label || '') + '</b>' + (d.owner ? ' (vous)' : '')) +
+      `<div class="sx-b sx-scroll"><div class="sx-locks">${lockChip('Code de suivi', fmtCode(s.tracking_code))}${lockChip('Statut', (STATUS[s.status] || {}).label || s.status || '-')}</div>
+       <p class="sx-hint">Le code de suivi, le statut et les étapes restent gérés par le propriétaire. Tout le reste du reçu est modifiable ci-dessous.</p>
+       <div id="ce-form">${body()}</div><div id="ce-err" class="sx-err" hidden></div></div>
+       <div class="sx-foot"><button type="button" class="sx-ghost" id="ce-view">Voir le reçu A5</button><button type="button" class="sx-cta" id="ce-save">Enregistrer</button></div>`;
+    $('ce-form').addEventListener('input', () => { dirty = true; });
+    $('ce-view').onclick = () => { const r = collect(true); showReceipt({ ...s, ...(r.patch || {}) }); };
+    $('ce-save').onclick = save;
+  };
+  const NUM = ['package_count', 'weight_kg', 'length_cm', 'width_cm', 'height_cm', 'declared_value', 'shipping_fee'];
+  const REQ = ['sender_name', 'sender_phone', 'sender_address', 'origin', 'sender_region', 'receiver_name', 'receiver_phone', 'receiver_address', 'destination', 'receiver_region', 'description', 'agency_name'];
+  const KEYS = [...T.flatMap(([, , pre, city]) => ['name', 'phone', 'email', 'address', 'district', 'region', 'country'].map((k) => pre + k).concat(city)),
+    'description', 'package_type', 'package_count', 'weight_kg', 'length_cm', 'width_cm', 'height_cm', 'currency', 'declared_value', 'shipping_fee', 'agency_name', 'service_type', 'payer', 'stopover_country', 'customs_status', 'delivery_instructions'];
+  function collect(soft) {
+    const patch = {};
+    for (const k of KEYS) {
+      const el = $('ce-' + k); if (!el) continue; const raw = String(el.value || '').trim();
+      if (NUM.includes(k)) { patch[k] = raw === '' ? null : Number(raw); if (raw !== '' && !isFinite(patch[k])) return { err: 'Valeur numérique invalide.' }; }
+      else patch[k] = raw === '' && !REQ.includes(k) ? null : raw;
+    }
+    patch.is_fragile = !!$('ce-is_fragile').checked;
+    if (!soft) {
+      const miss = REQ.find((k) => !patch[k]); if (miss) return { err: 'Remplissez tous les champs obligatoires (*).' };
+      if (!(patch.package_count >= 1)) return { err: 'Le nombre de colis doit être au moins 1.' };
+      if (!(patch.weight_kg > 0)) return { err: 'Le poids doit être supérieur à 0.' };
+    }
+    return { patch };
+  }
+  async function save() {
+    const e = $('ce-err'); e.hidden = true;
+    const c = collect(false); if (c.err) { e.textContent = c.err; e.hidden = false; return; }
+    const b = $('ce-save'); b.disabled = true; b.textContent = 'Enregistrement…';
+    const r = await supabaseClient.rpc('sw_co_update_receipt', { p_token: token, p_patch: c.patch });
+    b.disabled = false; b.textContent = 'Enregistrer';
+    if (r.error) { e.textContent = errMsg(r.error); e.hidden = false; return; }
+    const res = r.data || {}; if (res.shipment) s = { ...s, ...res.shipment }; dirty = false;
+    const n = (res.changed || []).length; toast(n ? '✓ Reçu mis à jour (' + n + ' champ' + (n > 1 ? 's' : '') + ').' : 'Aucun changement à enregistrer.');
+    if (!$('view-list').classList.contains('hidden') && typeof loadShipments === 'function') loadShipments(lastOpenId || undefined);
+  }
+  const close = () => { if (dirty && !confirm('Fermer sans enregistrer vos modifications ?')) return; unsheet('co-ed'); };
+  const ov = sheet('co-ed', '', { cls: 'sx-ed', onBackdrop: close }); const box = ov.firstElementChild;
+  box.addEventListener('click', (e) => { if (e.target.closest('[data-x]')) close(); });
+  paint();
+}
+
+/* ----- Éditeur de BILLET D'AVION ----- */
+function coEditTicket(d) {
+  const tk = d.ticket || {}; let data = { ...(tk.data || {}) }, style = Number(tk.style) || Number(data.style) || 1, dirty = false;
+  const th = { hc: data.hc, bg: data.bg }; const rt = data.trip === 'rt';
+  const bd = (dep) => { const m = /^(\d\d):(\d\d)$/.exec(dep || ''); if (!m) return ''; const t = ((+m[1] * 60 + +m[2] - 90) + 1440) % 1440; return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
+  const flight = (p, label, req) => fSec(label, '', fIn('ct-' + p + 'date', 'Date', data[p + 'date'], { req: 1, type: 'date' }) + fIn('ct-' + p + 'dep', 'Heure de départ', data[p + 'dep'], { req: 1, type: 'time' }) +
+    fIn('ct-' + p + 'flight', 'N° de vol', data[p + 'flight'], { attrs: 'maxlength="12"' }) + fIn('ct-' + p + 'board', 'Embarquement', data[p + 'board'], { type: 'time' }) +
+    fIn('ct-' + p + 'seat', 'Siège', data[p + 'seat'], { attrs: 'maxlength="5"' }) + fIn('ct-' + p + 'term', 'Terminal', data[p + 'term'], { attrs: 'maxlength="4"' }) +
+    fIn('ct-' + p + 'gate', 'Porte', data[p + 'gate'], { attrs: 'maxlength="5"' }) + fIn('ct-' + p + 'zone', 'Zone', data[p + 'zone'], { attrs: 'maxlength="3"' }));
+  const paint = () => {
+    box.innerHTML = shHead('✈️', 'Billet en double contrôle', 'Partagé par <b>' + esc(d.owner_label || '') + '</b>' + (d.owner ? ' (vous)' : '')) +
+      `<div class="sx-b sx-scroll"><div class="sx-locks">${lockChip('PNR', tk.pnr)}${lockChip('Trajet', (data.from || '') + ' → ' + (data.to || ''))}${lockChip('Compagnie', data.an || data.ac || '')}${lockChip('Classe', ({ eco: 'Économique', biz: 'Affaires', vip: 'VIP' })[data.cls] || data.cls || '')}</div>
+       <p class="sx-hint">Le trajet, la compagnie, la classe et les montants ne peuvent pas être changés (ils déterminent le tarif payé). Tout le reste est modifiable.</p>
+       <div id="ct-form">
+       ${fSec('Passager', '', fSel('ct-civ', 'Civilité', data.civ || 'M.', [['M.', 'M.'], ['Mme', 'Mme'], ['Mlle', 'Mlle']]) + fIn('ct-nom', 'Nom', data.nom, { req: 1 }) + fIn('ct-pre', 'Prénom', data.pre, { req: 1 }) +
+          fIn('ct-dob', 'Date de naissance', data.dob, { req: 1, type: 'date' }) + fSel('ct-nat', 'Nationalité', data.nat || 'Cameroun', CTRY()) + fIn('ct-pass', 'N° passeport / CNI', data.pass, { req: 1 }) +
+          fIn('ct-exp', 'Expiration du document', data.exp, { req: 1, type: 'date' }) + fIn('ct-ecn', 'Contact d’urgence (nom)', data.ecn, { req: 1 }) + fIn('ct-ect', 'Contact d’urgence (tél.)', data.ect, { req: 1, type: 'tel' }))}
+       ${flight('', 'Vol aller')}
+       ${rt ? flight('r', 'Vol retour') : ''}
+       <section class="sx-sec"><h4>Apparence</h4><div class="sx-grid"><div class="sx-f sx-span"><div id="ct-theme"></div></div>
+         <div class="sx-f sx-span"><span class="sx-l">Style du billet</span><label class="sx-chk"><input type="radio" name="ct-st" value="1" ${style === 1 ? 'checked' : ''}> Style 1 · papier à souche</label><label class="sx-chk"><input type="radio" name="ct-st" value="2" ${style !== 1 ? 'checked' : ''}> Style 2 · numérique</label></div></div></section>
+       </div><div id="ct-err" class="sx-err" hidden></div></div>
+       <div class="sx-foot"><button type="button" class="sx-ghost" id="ct-view">Voir le billet</button><button type="button" class="sx-cta" id="ct-save">Enregistrer</button></div>`;
+    const f = $('ct-form'); f.addEventListener('input', (e) => {
+      dirty = true;
+      if (e.target.id === 'ct-dep' && !(e.target.dataset.manual)) { const b = $('ct-board'); if (b && !b.dataset.manual) b.value = bd(e.target.value); }
+      if (e.target.id === 'ct-rdep') { const b = $('ct-rboard'); if (b && !b.dataset.manual) b.value = bd(e.target.value); }
+      if (e.target.id === 'ct-board' || e.target.id === 'ct-rboard') e.target.dataset.manual = '1';
+    });
+    if (window.DocKit) DocKit.picker($('ct-theme'), th, (T) => { th.hc = T.hc; th.bg = T.bg; dirty = true; }, true, true);
+    $('ct-view').onclick = () => { const c = collect(true); window.flyShow({ ...data, ...c.patch, hc: th.hc, bg: th.bg, pnr: tk.pnr, style: c.style, created_at: tk.created_at }); };
+    $('ct-save').onclick = save;
+  };
+  const FIELDS = ['civ', 'nom', 'pre', 'dob', 'nat', 'pass', 'exp', 'ecn', 'ect', 'date', 'dep', 'flight', 'board', 'seat', 'term', 'gate', 'zone'];
+  function collect(soft) {
+    const patch = {}; const g = (id) => { const e = $(id); return e ? String(e.value || '').trim() : ''; };
+    FIELDS.forEach((k) => { patch[k] = g('ct-' + k); });
+    if (rt) ['date', 'dep', 'flight', 'board', 'seat', 'term', 'gate', 'zone'].forEach((k) => { patch['r' + k] = g('ct-r' + k); });
+    patch.nom = patch.nom.toUpperCase(); patch.pass = patch.pass.toUpperCase();
+    const sel = document.querySelector('input[name=ct-st]:checked'); const st = sel ? Number(sel.value) : style;
+    const out = { patch, style: st }; if (soft) return out;
+    const today = new Date().toISOString().slice(0, 10);
+    if (!patch.nom || !patch.pre || !patch.pass || !patch.ecn || !patch.ect) return { ...out, err: 'Remplissez tous les champs obligatoires du passager (*).' };
+    if (!patch.dob || patch.dob >= today) return { ...out, err: 'Date de naissance invalide.' };
+    if (!/^\d{4}-\d\d-\d\d$/.test(patch.date) || !/^\d\d:\d\d$/.test(patch.dep)) return { ...out, err: 'Indiquez la date et l’heure du vol aller.' };
+    if (rt) {
+      if (!/^\d{4}-\d\d-\d\d$/.test(patch.rdate) || !/^\d\d:\d\d$/.test(patch.rdep)) return { ...out, err: 'Indiquez la date et l’heure du vol retour.' };
+      if (new Date(patch.rdate + 'T' + patch.rdep) <= new Date(patch.date + 'T' + patch.dep)) return { ...out, err: 'Le retour doit être après l’aller.' };
+    }
+    if (!patch.exp || patch.exp <= (rt ? patch.rdate : patch.date)) return { ...out, err: 'Le document expire avant la fin du voyage.' };
+    return out;
+  }
+  async function save() {
+    const e = $('ct-err'); e.hidden = true; const c = collect(false);
+    if (c.err) { e.textContent = c.err; e.hidden = false; return; }
+    const b = $('ct-save'); b.disabled = true; b.textContent = 'Enregistrement…';
+    const r = await supabaseClient.rpc('sw_co_update_ticket', { p_token: d.token, p_data: { ...c.patch, hc: th.hc, bg: th.bg }, p_style: c.style });
+    b.disabled = false; b.textContent = 'Enregistrer';
+    if (r.error) { e.textContent = errMsg(r.error); e.hidden = false; return; }
+    const res = r.data || {}; if (res.data) data = { ...res.data }; style = c.style; dirty = false;
+    const n = (res.changed || []).length; toast(n ? '✓ Billet mis à jour (' + n + ' champ' + (n > 1 ? 's' : '') + ').' : 'Aucun changement à enregistrer.');
+    if (!$('view-tickets').classList.contains('hidden') && window.ticketsInit) window.ticketsInit();
+  }
+  const close = () => { if (dirty && !confirm('Fermer sans enregistrer vos modifications ?')) return; unsheet('co-ed'); };
+  const ov = sheet('co-ed', '', { cls: 'sx-ed', onBackdrop: close }); const box = ov.firstElementChild;
+  box.addEventListener('click', (e) => { if (e.target.closest('[data-x]')) close(); });
+  paint();
+}
+
+/* ----- « Partagés avec moi » (au-dessus de Mes colis et de Mes billets) ----- */
+const CO = { list: [], at: 0 };
+async function coBoxUpdate(tab) {
+  const box = $('co-box'); if (!box) return;
+  const kind = tab === 'tickets' ? 'ticket' : tab === 'list' ? 'receipt' : null;
+  box.dataset.tab = tab || '';
+  if (!kind || !currentUser || isAdmin) { box.innerHTML = ''; box.classList.add('hidden'); return; }
+  if (Date.now() - CO.at > 15000) { const r = await supabaseClient.rpc('sw_co_my_list'); CO.at = Date.now(); CO.list = r.error ? [] : (r.data || []); }
+  if (box.dataset.tab !== tab) return;
+  const rows = CO.list.filter((x) => x.kind === kind);
+  if (!rows.length) { box.innerHTML = ''; box.classList.add('hidden'); return; }
+  box.classList.remove('hidden');
+  box.innerHTML = `<div class="sx-card"><div class="sx-card-h"><b>🤝 Partagés avec moi</b><span>${rows.length}</span></div>` +
+    rows.map((x) => `<button type="button" class="sx-co-row" data-co-open="${esc(x.token)}"><span class="sx-tr-ic in">${kind === 'ticket' ? '✈️' : '🧾'}</span><span class="sx-tr-m"><b>${esc(x.title)}</b><small>${esc(x.subtitle || '')} · de ${esc(x.owner_label || '')}</small></span><span class="sx-go">Ouvrir ›</span></button>`).join('') + '</div>';
+}
+window.coBoxUpdate = coBoxUpdate;
+
+/* ----- Clics délégués ----- */
+document.addEventListener('click', (e) => {
+  const sh = e.target.closest && e.target.closest('[data-co-share]');
+  if (sh) { e.preventDefault(); e.stopPropagation(); coShare(sh.dataset.coKind, sh.dataset.coShare, sh.dataset.coTitle || ''); return; }
+  const op = e.target.closest && e.target.closest('[data-co-open]');
+  if (op) { e.preventDefault(); coOpen(op.dataset.coOpen); }
+}, true);
+
+/* ----- Branchements ----- */
+$('tr-open').addEventListener('click', trOpen);
+$('tr-goto-rc').addEventListener('click', () => { const f = $('recharge-form'); if (f) f.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+
+function afterLogin() {
+  CO.list = []; CO.at = 0; TRC.loaded = false;
+  trLoadConfig().then(trRenderActions);
+  trCheckIncoming();
+  coProcessPending();
+}
+const _showDash = window.showDashView;
+window.showDashView = async function () {
+  const r = await _showDash.apply(this, arguments);
+  try {
+    const dashOn = !$('dash-view').classList.contains('hidden');
+    if (dashOn && !isAdmin && currentUser) afterLogin();
+    else if (isAdmin && coPending()) { coClear(); toast('Un lien de double contrôle s’ouvre avec un compte client.', 'error'); }
+  } catch (e) {}
+  return r;
+};
+setInterval(() => { if (document.visibilityState === 'visible') trCheckIncoming(); }, 30000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') trCheckIncoming(); });
+// Bandeau sur l'écran de connexion lorsqu'un lien de double contrôle est en attente
+{ const n = $('co-auth-note'); if (n && coPending()) n.classList.remove('hidden'); }
 })();
 </script>
 </body>
