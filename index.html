@@ -655,7 +655,7 @@ $('new-form').innerHTML =
     `<label class="flex items-center gap-3 text-sm font-semibold text-gray-700"><input id="p-fragile" type="checkbox" class="w-5 h-5 rounded border-gray-300"> Colis fragile</label>` +
     `<div><label class="${LB}">Instructions de livraison${OPT}</label><textarea id="p-notes" rows="3" placeholder="Ex: appeler avant de livrer..." class="${IC}"></textarea></div>`) +
   CARD('Signatures', "Signez avec le doigt ou la souris. Elles s'impriment en encre bleue sur le reçu A5.",
-    sigPad('sig-s', "Signature de l'expéditeur") + sigPad('sig-a', "Signature de l'agence")) +
+    sigPad('sig-s', "Signature de l'expéditeur") + sigPad('sig-a', "Signature de l'agence") + '<div class="pt-3 border-t border-gray-200"><p class="block text-sm font-bold">🎨 Couleurs du reçu</p><p class="text-xs text-gray-500 mb-2">Choisissez l’en-tête ; le fond reste clair et le texte lisible. Modifiable aussi à l’affichage du reçu.</p><div id="rc-theme"></div></div>') +
   `<div id="price-box" class="bg-blue-50 border border-blue-100 rounded-2xl p-4 space-y-1">
     <p class="text-xs font-semibold text-gray-600">Coût de génération du reçu</p>
     <p id="price-amount" class="text-2xl font-extrabold text-swiftblue">…</p>
@@ -701,6 +701,7 @@ function initSig(id) {
 }
 function clearSig(id) { const s = SIG[id]; s.c.getContext('2d').clearRect(0, 0, s.c.width, s.c.height); s.empty = true; }
 function sigData(id) { return SIG[id].empty ? null : SIG[id].c.toDataURL('image/png'); }
+window.addEventListener('load', () => { if (window.DocKit && $('rc-theme')) DocKit.picker($('rc-theme'), DocKit.get()); });
 ['sig-s', 'sig-a'].forEach(initSig);
 document.querySelectorAll('.sig-clear').forEach(b => b.addEventListener('click', () => clearSig(b.dataset.clear)));
 
