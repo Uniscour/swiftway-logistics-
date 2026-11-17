@@ -905,7 +905,7 @@ function receiptScale(s) {
 }
 function showReceipt(s) {
   const sc = receiptScale(s);
-  DocKit.view({ name: 'Recu-' + s.tracking_code + '.pdf', text: "Reçu d'expédition " + s.tracking_code, init: DocKit.get(), render: th => receiptHtml({ ...s, _th: th }, sc), fit: null });
+  DocKit.view({ key: 'rc:' + (s.id || s.tracking_code), name: 'Recu-' + s.tracking_code + '.pdf', text: "Reçu d'expédition " + s.tracking_code, init: DocKit.get(), render: th => receiptHtml({ ...s, _th: th }, sc), fit: null });
 }
 function closeReceipt() { const o = $('receipt-overlay'); if (o) o.remove(); }
 async function openReceipt(s, btn) {
@@ -3711,7 +3711,7 @@ function theme(o) {
 const get = () => { try { const o = JSON.parse(localStorage.getItem('sw_doc_theme') || 'null'); return o && ok(o.hc) ? o : { ...DEF }; } catch (e) { return { ...DEF }; } };
 const put = o => { try { localStorage.setItem('sw_doc_theme', JSON.stringify({ hc: o.hc, bg: o.bg })); } catch (e) {} };
 
-function picker(el, cur, cb) {
+function picker(el, cur, cb, local) {
   if (!el) return;
   let st = { hc: theme(cur).hc, bg: theme(cur).bg };
   const sw = (k, c, on) => `<button type="button" data-k="${k}" data-c="${c}" aria-label="${c}" style="width:30px;height:30px;border-radius:999px;background:${c};border:${on === c ? '3px solid #0f172a' : '1px solid #cbd5e1'};flex:none;cursor:pointer"></button>`;
@@ -3725,7 +3725,7 @@ function picker(el, cur, cb) {
       <div style="margin-top:6px;border-radius:12px;padding:10px 14px;background:${T.bg};color:${T.ac};font-size:12px;font-weight:700;border:1px solid ${T.line}">Valeurs en couleur d’accent sur fond clair</div>
       <button type="button" data-reset="1" style="margin-top:10px;font-size:12px;font-weight:700;color:#0047AB;cursor:pointer">Revenir aux couleurs par défaut</button>`;
   };
-  const apply = () => { const T = theme(st); st = { hc: T.hc, bg: T.bg }; put(st); draw(); cb && cb(T); };
+  const apply = () => { const T = theme(st); st = { hc: T.hc, bg: T.bg }; if (!local) put(st); draw(); cb && cb(T); };
   el.onclick = e => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.reset) { st = { ...DEF }; apply(); return; }
@@ -3735,9 +3735,11 @@ function picker(el, cur, cb) {
   draw();
 }
 
-function view({ render, name, text, init, fit }) {
+function view({ render, name, text, init, fit, key }) {
   const old = document.getElementById('receipt-overlay'); if (old) old.remove();
-  let th = theme(init || get());
+  const sk = key ? 'sw_doc_theme:' + key : '';
+  let saved = null; try { saved = sk ? JSON.parse(localStorage.getItem(sk) || 'null') : null; } catch (e) {}
+  let th = theme(saved && ok(saved.hc) ? saved : (init || get()));
   const ov = document.createElement('div'); ov.id = 'receipt-overlay';
   ov.style.cssText = 'position:fixed;inset:0;z-index:80;background:#111c;overflow:auto;padding:16px 8px 40px';
   const B = 'font-weight:600;padding:12px 8px;border-radius:12px;cursor:pointer;';
@@ -3749,13 +3751,13 @@ function view({ render, name, text, init, fit }) {
       <button type="button" id="dk-dl" style="${B}background:#fff;color:#111827">Télécharger (PDF)</button>
       <button type="button" id="dk-pr" style="${B}background:#fff;color:#111827">Imprimer</button>
       <button type="button" id="dk-x" style="${B}background:#e5e7eb;color:#111827;grid-column:1/-1">Fermer</button></div>
-    <details style="margin-top:8px;background:#fff;border-radius:12px;padding:10px 12px"><summary style="font-weight:700;font-size:14px;cursor:pointer">🎨 Couleurs du document</summary><div id="dk-pick" style="margin-top:10px"></div></details></div>
+    <details open style="margin-top:8px;background:#fff;border-radius:12px;padding:10px 12px"><summary style="font-weight:700;font-size:14px;cursor:pointer">🎨 Couleurs du document</summary><p style="font-size:12px;color:#475569;margin:6px 0">Changez les couleurs autant de fois que vous voulez : l’aperçu se met à jour, puis Partager, Télécharger ou Imprimer utilisent les couleurs affichées. Elles sont gardées pour ce document.</p><div id="dk-pick" style="margin-top:10px"></div></details></div>
     <div style="overflow-x:auto"><div id="receipt-zoom" style="width:148mm;margin:0 auto;zoom:${Math.min(1, (innerWidth - 16) / 560).toFixed(3)}"></div></div>`;
   document.body.appendChild(ov);
   const zm = ov.querySelector('#receipt-zoom');
   const paint = () => { zm.innerHTML = render(th); if (fit) { fit(ov); requestAnimationFrame(() => fit(ov)); } };
   paint();
-  picker(ov.querySelector('#dk-pick'), th, t2 => { th = t2; paint(); });
+  picker(ov.querySelector('#dk-pick'), th, t2 => { th = t2; if (sk) { try { localStorage.setItem(sk, JSON.stringify({ hc: t2.hc, bg: t2.bg })); } catch (e) {} } paint(); }, !!sk);
 
   async function makePdf() {
     const host = document.createElement('div');
@@ -3929,7 +3931,7 @@ function fitTk(root) {
 }
 window.addEventListener('beforeprint', () => { const o = $('receipt-overlay'); if (o) fitTk(o); });
 function show(t) {
-  DocKit.view({ name: 'Billet-' + t.pnr + '.pdf', text: 'Billet d’avion ' + t.from + ' → ' + t.to + ' · ' + t.date + ' · Réf. ' + t.pnr,
+  DocKit.view({ key: 'tk:' + t.pnr, name: 'Billet-' + t.pnr + '.pdf', text: 'Billet d’avion ' + t.from + ' → ' + t.to + ' · ' + t.date + ' · Réf. ' + t.pnr,
     init: t.hc ? { hc: t.hc, bg: t.bg } : DocKit.get(), render: th => tk({ ...t, hc: th.hc, bg: th.bg }), fit: fitTk });
 }
 window.flyShow = show; window.flyTk = tk; window.flyFit = fitTk;
