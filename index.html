@@ -2638,7 +2638,7 @@ html[data-theme=dark] body{color:#e8edfb}
     const z = Math.min(1, (innerWidth - 24) / 560).toFixed(3);
     const sample = (st, rt) => ({ ac: 'AF', an: 'Air France', from: 'BFX', to: 'BOD', dist: 4499, date: new Date(Date.now() + 12 * 864e5).toISOString().slice(0, 10), dep: '16:30', board: '15:00', flight: 'AF 723', rflight: 'AF 410', rterm: '2E', rgate: 'C12', rseat: '12A', rzone: '4', rboard: '07:45', trip: rt ? 'rt' : 'ow',
       rdate: new Date(Date.now() + 26 * 864e5).toISOString().slice(0, 10), rdep: '09:15', seat: '41D', term: '1', gate: 'F24', zone: '5', seq: '240', etk: '812 3603764372', cls: 'eco', civ: 'M.', nom: 'EXEMPLE', pre: 'Jean', cur: 'XAF',
-      fare: rt ? 764830 : 382415, ins: 12000, nbag: 1, bags: 0, bagA: 0, total: rt ? 776830 : 394415, stops: [], pnr: '997B46', style: st === 't1' ? 1 : 2 });
+      fare: rt ? 764830 : 382415, ins: 12000, nbag: 1, bags: 0, bagA: 0, total: rt ? 776830 : 394415, stops: rt ? ['ABJ'] : [], lay: rt ? [75] : [], rstops: rt ? ['CDG'] : [], rlay: rt ? [90] : [], pnr: '997B46', style: st === 't1' ? 1 : 2 });
     const rcp = () => ({ id: 'x', tracking_code: 'SW7K2M9QX4PL8RT3WZ6N', created_at: new Date().toISOString(), agency_name: 'Agence Exemple', service_type: 'express', delivery_window_hours: 24,
       sender_name: 'Jean Exemple', sender_phone: '+237 600 00 00 00', sender_address: 'Rue 1.234', sender_district: 'Akwa', origin: 'Douala', sender_region: 'Littoral', sender_country: 'Cameroun',
       receiver_name: 'Marie Modèle', receiver_phone: '+33 6 00 00 00 00', receiver_address: '12 rue des Lilas', receiver_district: 'Centre', destination: 'Bordeaux', receiver_region: 'Nouvelle-Aquitaine', receiver_country: 'France',
@@ -3890,9 +3890,10 @@ const fmtA = a => fmtT(a) + (a >= 1440 ? ' (+' + Math.floor(a / 1440) + ')' : ''
 const bdOf = d => { const [a, b] = String(d || '08:00').split(':').map(Number), m = ((a * 60 + b - 90) + 1440) % 1440; return pad(Math.floor(m / 60)) + ':' + pad(m % 60); };
 /* Plan de vol : trajets réels entre les aéroports (aller ou retour) + escales aléatoires mémorisées dans le billet (lay / rlay, en minutes) */
 function plan(t, back) {
-  const stops = t.stops || [], ns = stops.length, seq = [t.from, ...stops, t.to]; if (back) seq.reverse();
+  const rs = Array.isArray(t.rstops) ? t.rstops : [...(t.stops || [])].reverse();   // anciens billets : retour = escales de l'aller à l'envers
+  const stops = back ? rs : (t.stops || []), ns = stops.length, seq = back ? [t.to, ...stops, t.from] : [t.from, ...stops, t.to];
   const [H, M] = String((back ? t.rdep : t.dep) || '08:00').split(':').map(Number), start = H * 60 + M;
-  const lay = back ? (t.rlay || (t.lay ? [...t.lay].reverse() : null)) : t.lay;
+  const lay = back ? (t.rlay || (Array.isArray(t.rstops) ? null : (t.lay ? [...t.lay].reverse() : null))) : t.lay;
   if (ns && !lay) { const m = Math.round((t.dist || 0) / 800 * 60) + 35 + ns * 90; return { ev: [], start, total: m, arr: start + m, wait: ns * 90, legacy: true, seq }; }
   const ev = [{ k: 'dep', ap: seq[0], at: start }]; let cur = start, wait = 0;
   for (let i = 0; i < seq.length - 1; i++) {
@@ -3915,6 +3916,26 @@ function tInfo(t) {
     etk: t.etk || String(100 + hs(t.ac || 'XX') % 900) + ' ' + String(hs(t.pnr)).padStart(10, '0').slice(-10),
     bag: nb + (nb > 1 ? ' valises' : ' valise'), dt: fd(t.date), rdt: fd(t.rdate) };
 }
+const dayLbl = (d, abs) => { if (!d) return abs >= 1440 ? '+' + Math.floor(abs / 1440) + ' j' : ''; try { const x = new Date(d + 'T00:00:00'); x.setDate(x.getDate() + Math.floor(abs / 1440)); const q = x.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' }); return /nvalid/i.test(q) ? '' : q; } catch (e) { return ''; } };
+const dur2 = m => Math.floor(m / 60) + ' h ' + pad(m % 60);
+/* Itinéraire complet d'un sens (aller ou retour) pour le billet : départ, chaque escale (arrivée, attente, redépart), arrivée, avec l'heure exacte */
+function itBlock(t, back, T) {
+  const P = plan(t, back), d0 = back ? t.rdate : t.date, ink = T.ac, AMB = '#d97706';
+  const city = c => APM[c] ? APM[c].c : c, ctry = c => APM[c] ? ctryName(APM[c].k) : '';
+  const tm = a => fmtT(a) + (a >= 1440 ? `<sup style="font-size:7px;color:#dc2626;font-weight:800">+${Math.floor(a / 1440)}</sup>` : '');
+  const ev = (a, code, tag, col, hollow) => `<div style="display:flex;gap:7px;align-items:center;padding:1px 0"><b style="flex:0 0 42px;font-size:11px;line-height:1.3;text-align:right;white-space:nowrap">${tm(a)}</b><i style="flex:none;width:9px;height:9px;box-sizing:border-box;border-radius:99px;${hollow ? `border:2px solid ${col};background:#fff` : `background:${col}`}"></i><span style="flex:1;min-width:0;font-size:10px;line-height:1.3"><b>${esc(code)}</b> · ${esc(city(code))}<span style="color:#64748b"> (${esc(ctry(code))})</span></span><span style="flex:none;font-size:8px;font-weight:800;letter-spacing:.08em;color:${col};white-space:nowrap">${tag}</span></div>`;
+  const leg = txt => `<div style="display:flex;gap:7px;align-items:center"><span style="flex:0 0 42px"></span><span style="flex:none;width:9px;display:flex;justify-content:center"><i style="width:0;height:15px;border-left:2px dotted #94a3b8"></i></span><span style="font-size:8.5px;color:#64748b">${txt}</span></div>`;
+  const dl = dayLbl(d0, 0), z = P.seq[P.seq.length - 1];
+  let h = `<div style="font-size:7.5px;letter-spacing:.14em;font-weight:800;color:${ink};margin-bottom:5px">${back ? 'ITINÉRAIRE RETOUR' : 'ITINÉRAIRE ALLER'} · ${esc(P.seq[0])} → ${esc(z)}${dl ? ' · ' + esc(dl.toUpperCase()) : ''}</div>`;
+  if (P.legacy) return h + `<div style="font-size:10px">Départ <b>${fmtT(P.start)}</b> · escales : ${P.seq.slice(1, -1).map(c => esc(city(c))).join(', ')} · arrivée <b>${fmtA(P.arr)}</b></div>`;
+  P.ev.forEach((e, i) => {
+    const nx = P.ev[i + 1], lg = nx ? leg(`✈ ${dur2(nx.leg)} en vol`) : '';
+    if (e.k === 'dep') h += ev(e.at, e.ap, 'DÉPART', ink, false) + lg;
+    else if (e.k === 'stop') h += ev(e.at, e.ap, 'ESCALE', AMB, false) + leg(`⏳ Attente ${dur2(e.wait)} à ${esc(city(e.ap))}`) + ev(e.out, e.ap, 'REDÉPART', AMB, true) + lg;
+    else h += ev(e.at, e.ap, 'ARRIVÉE', ink, false);
+  });
+  return h + `<div style="font-size:8.5px;color:#64748b;margin-top:4px">Durée totale ${dur2(P.total)}${P.wait ? ' · dont escale ' + dur2(P.wait) : ' · vol direct'}</div>`;
+}
 function tk(t) {
   const T = DocKit.theme({ hc: t.hc, bg: t.bg });
   const L = ALM[t.ac] || { c: t.ac, n: t.an }, I = tInfo(t), cur = t.cur || 'XAF', A = APM[t.from] || { c: t.from, k: '' }, B = APM[t.to] || { c: t.to, k: '' };
@@ -3923,17 +3944,20 @@ function tk(t) {
   const prices = [['Tarif de base', (t.fare || 0) + (t.bagA || 0)]]; if (t.ins) prices.push(['Assurance voyage', t.ins]); if (t.disc) prices.push(['Réduction ' + t.discP + ' %', -t.disc]);
   const cell = (l, v, o = {}) => `<div style="flex:${o.f || 1} 1 0;min-width:0;padding:${o.p || '0 8px'};${o.b || ''}"><small style="display:block;font-size:7.5px;letter-spacing:.14em;text-transform:uppercase;color:${o.lc || '#64748b'};margin-bottom:2px;white-space:nowrap;overflow:hidden">${l}</small><b class="tkfit" data-fs="${o.fs || 13}" style="display:block;white-space:nowrap;overflow:hidden;font-size:${o.fs || 13}px;color:${o.vc || 'inherit'};line-height:1.25">${esc(v)}</b></div>`;
   const big = (code, a, al) => `<div style="flex:0 0 31%;min-width:0;text-align:${al}"><div class="tkfit" data-fs="36" style="font-size:36px;font-weight:800;letter-spacing:.02em;line-height:1;white-space:nowrap;overflow:hidden">${esc(code)}</div><div class="tkfit" data-fs="12" style="font-size:12px;font-weight:700;margin-top:3px;white-space:nowrap;overflow:hidden">${esc(a.c)}</div><div class="tkfit" data-fs="9" style="font-size:9px;color:#64748b;white-space:nowrap;overflow:hidden">${esc(ctryName(a.k))}</div></div>`;
-  const mid = (col) => `<div style="flex:1;min-width:0;text-align:center"><div style="display:flex;align-items:center;gap:4px;color:${col}"><i style="flex:1;border-top:2px dotted #94a3b8"></i><span style="font-size:22px;line-height:1">✈</span><i style="flex:1;border-top:2px dotted #94a3b8"></i></div><div style="font-size:9px;color:#64748b;margin-top:3px;white-space:nowrap">${I.dur} · ${num(t.dist)} km</div>${stopsTxt ? `<div style="display:inline-block;margin-top:4px;font-size:8px;font-weight:700;letter-spacing:.08em;color:${col};border:1px solid currentColor;border-radius:99px;padding:1px 7px;white-space:nowrap">${t.stops.length} ESCALE${t.stops.length > 1 ? 'S' : ''}${t.trip === 'rt' ? ' · ALLER-RETOUR' : ''}</div>` : `<div style="display:inline-block;margin-top:4px;font-size:8px;font-weight:700;letter-spacing:.08em;color:${col};border:1px solid currentColor;border-radius:99px;padding:1px 7px;white-space:nowrap">DIRECT${t.trip === 'rt' ? ' · ALLER-RETOUR' : ''}</div>`}</div>`;
+  const mid = (col) => `<div style="flex:1;min-width:0;text-align:center"><div style="display:flex;align-items:center;gap:4px;color:${col}"><i style="flex:1;border-top:2px dotted #94a3b8"></i><span style="font-size:22px;line-height:1">✈</span><i style="flex:1;border-top:2px dotted #94a3b8"></i></div><div style="font-size:9px;color:#64748b;margin-top:3px;white-space:nowrap">${I.dur} · ${num(t.dist)} km</div><div style="display:inline-block;margin-top:4px;font-size:8px;font-weight:700;letter-spacing:.08em;color:${col};border:1px solid currentColor;border-radius:99px;padding:1px 7px;white-space:nowrap">${t.trip === 'rt' ? 'ALLER-RETOUR' : (t.stops && t.stops.length) ? t.stops.length + ' ESCALE' + (t.stops.length > 1 ? 'S' : '') : 'DIRECT'}</div></div>`;
   if (t.style === 1) {
     const ink = T.ac, ln = `1px solid ${ink}`, row = (inner, o = '') => `<div style="display:flex;border-bottom:${ln};${o}">${inner}</div>`, c1 = (l, v, o = {}) => cell(l, v, { lc: '#475569', p: '5px 7px', b: `border-left:${ln};`, ...o });
     const first = (l, v, o = {}) => cell(l, v, { lc: '#475569', p: '5px 7px', ...o });
+    const itRow = back => row(`<div style="flex:1;min-width:0;padding:6px 8px">${itBlock(t, back, T)}</div>`);
     return `<div id="receipt-sheet" style="width:148mm;box-sizing:border-box;background:${T.bg};color:${ink};font-family:Georgia,'Times New Roman',serif;font-size:11px;padding:6mm;filter:drop-shadow(0 6px 18px rgba(0,0,0,.45))"><div style="border:2px solid ${ink};padding:3px"><div style="border:${ln}">
       <div style="background:${T.hc};color:${T.hcT};padding:9px 12px;display:flex;align-items:center;gap:10px"><div style="flex:1;min-width:0">${brand(L, T.hcT, 20)}</div><div style="text-align:right;flex:none"><div style="font-size:7.5px;letter-spacing:.2em">BILLET D'AVION</div><div style="font-size:11px;font-weight:700;letter-spacing:.1em">E-TICKET</div></div></div>
       ${row(first('Nom du passager', name, { f: 2.2, fs: 14 }) + c1('Classe', cl, { f: 1 }) + c1('Réf. PNR', t.pnr, { f: 1, fs: 14 }))}
       ${row(`<div style="flex:1 1 0;min-width:0;padding:7px 8px;display:flex;gap:8px;align-items:center">${big(t.from, A, 'left').replace('flex:0 0 31%', 'flex:0 0 34%').replace(/36px/g, '30px').replace('data-fs="36"', 'data-fs="30"')}${mid(ink)}${big(t.to, B, 'right').replace('flex:0 0 31%', 'flex:0 0 34%').replace(/36px/g, '30px').replace('data-fs="36"', 'data-fs="30"')}</div>`)}
-      ${stopsTxt ? row(first('Escale(s)', stopsTxt, { f: 1, fs: 11 })) : ''}
+
       ${row(first('Vol', t.flight, { fs: 13 }) + c1('Date', I.dt, { f: 1.9, fs: 12 }) + c1('Départ', t.dep) + c1('Arrivée', I.arr) + c1('Embarq.', t.board))}
+      ${itRow(false)}
       ${t.trip === 'rt' ? row(first('Retour ' + t.to + ' → ' + t.from, I.rdt, { f: 1.9, fs: 12 }) + c1('Départ', t.rdep) + c1('Arrivée', I.rarr) + c1('Embarq.', I.rboard)) + row(first('Vol retour', t.rflight || '-') + c1('Terminal', I.rterm) + c1('Porte', I.rgate, { vc: T.ac, fs: 15 }) + c1('Siège', I.rseat, { vc: T.ac, fs: 15 }) + c1('Zone', I.rzone)) : ''}
+      ${t.trip === 'rt' ? itRow(true) : ''}
       ${row(first('Terminal', I.term) + c1('Porte', I.gate, { vc: T.ac, fs: 15 }) + c1('Siège', t.seat, { vc: T.ac, fs: 15 }) + c1('Zone', I.zone) + c1('N° séq.', I.seq))}
       ${row(first('Bagages', I.bag, { f: 1 }) + c1('N° billet électronique', I.etk, { f: 1.6, fs: 12 }))}
       ${row(prices.map((p, i) => (i ? c1 : first)(p[0], fm(p[1], cur), { fs: 12 })).join('') + c1('TOTAL', fm(t.total, cur), { vc: T.ac, fs: 14, f: 1.4 }))}
@@ -3944,16 +3968,17 @@ function tk(t) {
   const bgN = (pos) => `radial-gradient(circle at 0 ${pos},transparent 9px,${T.bg} 9.5px) left/51% 100% no-repeat,radial-gradient(circle at 100% ${pos},transparent 9px,${T.bg} 9.5px) right/51% 100% no-repeat`;
   const panel = (inner, o = '') => `<div style="display:flex;background:${T.panel};border-radius:10px;padding:8px 0;margin-top:8px;${o}">${inner}</div>`, sep = 'border-left:1px solid ' + T.line + ';';
   const retP = t.trip === 'rt' ? panel(cell('Retour ' + t.to + ' → ' + t.from, I.rdt, { fs: 12, f: 1.7 }) + cell('Départ', t.rdep, { b: sep }) + cell('Arrivée', I.rarr, { b: sep, f: 1.2 }) + cell('Embarquement', I.rboard, { b: sep, f: 1.2 })) + panel(cell('Vol retour', t.rflight || '-') + cell('Terminal', I.rterm, { b: sep }) + cell('Porte', I.rgate, { b: sep, vc: T.ac, fs: 17 }) + cell('Siège', I.rseat, { b: sep, vc: T.ac, fs: 17 }) + cell('Zone', I.rzone, { b: sep })) : '';
+  const itPanel = back => `<div style="background:${T.panel};border-radius:10px;padding:8px 12px;margin-top:8px">${itBlock(t, back, T)}</div>`;
   return `<div id="receipt-sheet" style="width:148mm;box-sizing:border-box;font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;color:#0f172a;filter:drop-shadow(0 6px 18px rgba(0,0,0,.45))">
     <div style="background:${bgN('100%')};border-radius:16px 16px 0 0;overflow:hidden;padding-bottom:16px">
       <div style="background:${T.head};color:${T.hcT};padding:14px 18px;display:flex;align-items:center;gap:12px"><div style="flex:1;min-width:0">${brand(L, T.hcT, 21)}</div><div style="text-align:right;flex:none"><div style="font-size:7.5px;letter-spacing:.22em;opacity:.8">BILLET D'AVION</div><div style="font-size:13px;font-weight:800;letter-spacing:.14em">E-TICKET</div></div></div>
       <div style="padding:14px 18px 0">
         <div style="display:flex;gap:10px;align-items:flex-end">${cell('Passager', name, { f: 2.4, p: '0', fs: 16 })}<div style="flex:none;background:${T.hc};color:${T.hcT};border-radius:99px;padding:4px 12px;font-size:9px;font-weight:800;letter-spacing:.12em">${esc(cl)}</div></div>
         <div style="display:flex;align-items:center;gap:8px;padding:14px 0 4px">${big(t.from, A, 'left')}${mid(T.ac)}${big(t.to, B, 'right')}</div>
-        ${stopsTxt ? `<div style="font-size:10px;text-align:center;color:#475569;margin-top:6px"><b>Escale(s) :</b> ${esc(stopsTxt)}</div>` : ''}
+
         ${panel(cell(t.trip === 'rt' ? 'Date aller' : 'Date', I.dt, { fs: 12, f: 1.7 }) + cell('Départ', t.dep, { b: sep }) + cell('Arrivée', I.arr, { b: sep, f: 1.2 }) + cell('Embarquement', t.board, { b: sep, f: 1.2 }))}
         ${panel(cell(t.trip === 'rt' ? 'Vol aller' : 'Vol', t.flight) + cell('Terminal', I.term, { b: sep }) + cell('Porte', I.gate, { b: sep, vc: T.ac, fs: 17 }) + cell('Siège', t.seat, { b: sep, vc: T.ac, fs: 17 }) + cell('Zone', I.zone, { b: sep }))}
-        ${retP}
+        ${itPanel(false)}${retP}${t.trip === 'rt' ? itPanel(true) : ''}
         <div style="margin-top:10px;border:1px solid ${T.line};border-radius:10px;padding:8px 12px"><div style="font-size:7.5px;letter-spacing:.14em;color:#64748b;margin-bottom:4px">DÉTAIL DU TARIF · ${esc(curName(cur).toUpperCase())}</div>${prices.map(p => `<div style="display:flex;justify-content:space-between;gap:10px;font-size:10.5px;line-height:1.7"><span>${esc(p[0])}</span><span style="white-space:nowrap">${fm(p[1], cur)}</span></div>`).join('')}<div style="display:flex;justify-content:space-between;gap:10px;border-top:1px dashed ${T.line2};margin-top:3px;padding-top:4px;font-weight:800;font-size:13px"><span>TOTAL</span><span style="white-space:nowrap;color:${T.ac}">${fm(t.total, cur)}</span></div></div>
       </div>
     </div>
@@ -3988,22 +4013,29 @@ function show(t) {
 }
 function itinHtml(t) {
   if (!t.dep) return '<p class="text-xs text-gray-500">Choisissez la date et l’heure de départ pour voir l’itinéraire.</p>';
-  const dl = (d, abs) => { if (!d) return abs >= 1440 ? '+' + Math.floor(abs / 1440) + ' j' : ''; try { const x = new Date(d + 'T00:00:00'); x.setDate(x.getDate() + Math.floor(abs / 1440)); const s = x.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' }); return /nvalid/.test(s) ? '' : s; } catch (e) { return ''; } };
-  const nm = c => APM[c] ? APM[c].c + ' (' + c + ')' : c, dur = m => Math.floor(m / 60) + ' h ' + pad(m % 60) + ' min';
-  const row = (time, sub, title, note, col) => `<div style="display:flex;gap:10px"><div style="flex:0 0 74px;text-align:right"><b style="font-size:15px">${time}</b><div style="font-size:10px;color:#64748b">${sub}</div></div><div style="flex:none;display:flex;flex-direction:column;align-items:center"><i style="width:12px;height:12px;border-radius:99px;background:${col};margin-top:5px"></i><i style="flex:1;width:2px;background:#cbd5e1;min-height:14px"></i></div><div style="flex:1;min-width:0;padding-bottom:10px"><b style="font-size:13px">${esc(title)}</b>${note ? `<div style="font-size:11px;color:#475569">${note}</div>` : ''}</div></div>`;
-  const leg = m => `<div style="display:flex;gap:10px"><div style="flex:0 0 74px"></div><div style="flex:none;width:12px;display:flex;justify-content:center"><i style="width:2px;background:#cbd5e1"></i></div><div style="flex:1;font-size:11px;color:#0047AB;font-weight:700;padding:0 0 10px">✈ ${dur(m)} en vol</div></div>`;
+  const T = DocKit.theme({ hc: t.hc, bg: t.bg }), city = c => APM[c] ? APM[c].c : c, ctry = c => APM[c] ? ctryName(APM[c].k) : '';
+  const dur = m => Math.floor(m / 60) + ' h ' + pad(m % 60) + ' min', GREEN = '#16a34a', AMB = '#d97706', RED = '#dc2626';
+  const tag = (l, col) => `<span style="display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.12em;color:${col};background:${col}1f;padding:2px 9px;border-radius:99px">${l}</span>`;
+  const place = (c, l, col) => tag(l, col) + `<div style="font-size:15px;font-weight:800;color:#0f172a;margin-top:5px;line-height:1.2">${esc(city(c))} <span style="font-weight:700;color:#64748b;font-size:13px">· ${esc(c)}</span></div><div style="font-size:11.5px;color:#64748b;line-height:1.35">Aéroport de ${esc(city(c))} (${esc(c)}) · ${esc(ctry(c))}</div>`;
+  const chip = (txt, bg, fg) => `<div style="margin-top:9px;display:inline-block;background:${bg};color:${fg};border-radius:10px;padding:5px 11px;font-size:11.5px;font-weight:700">${txt}</div>`;
+  const R = (a, d0, col, hollow, body, last) => `<div style="display:flex;gap:12px"><div style="flex:0 0 58px;text-align:right"><b style="display:block;font-size:18px;line-height:1.1;color:#0f172a;font-variant-numeric:tabular-nums">${fmtT(a)}</b><span style="font-size:10px;color:#64748b">${esc(dayLbl(d0, a))}</span></div><div style="flex:none;width:16px;display:flex;flex-direction:column;align-items:center"><i style="flex:none;width:16px;height:16px;box-sizing:border-box;border-radius:99px;margin-top:2px;${hollow ? `border:4px solid ${col};background:#fff` : `background:${col};box-shadow:0 0 0 4px ${col}26`}"></i>${last ? '' : '<i style="flex:1;width:3px;min-height:26px;margin-top:3px;border-radius:2px;background:repeating-linear-gradient(to bottom,#94a3b8 0 5px,transparent 5px 10px)"></i>'}</div><div style="flex:1;min-width:0;padding-bottom:${last ? 0 : 18}px">${body}</div></div>`;
+  const stat = (l, v) => `<div style="flex:1;min-width:0;text-align:center;padding:9px 4px;background:#f8fafc;border-radius:12px"><div style="font-size:9px;letter-spacing:.12em;color:#64748b;font-weight:700">${l}</div><div style="font-size:13px;font-weight:800;color:#0f172a;margin-top:2px">${v}</div></div>`;
   const side = back => {
-    const P = plan(t, back), d0 = back ? t.rdate : t.date, tt = back ? 'RETOUR' : t.trip === 'rt' ? 'ALLER' : 'ALLER SIMPLE';
-    let h = `<p style="font-size:11px;font-weight:800;letter-spacing:.12em;color:#0047AB;margin:14px 0 8px">${tt} · ${esc(nm(P.seq[0]))} → ${esc(nm(P.seq[P.seq.length - 1]))}</p>`;
-    if (P.legacy) h += `<p style="font-size:12px">Départ <b>${fmtT(P.start)}</b> · escales : ${P.seq.slice(1, -1).map(c => esc(nm(c))).join(', ')} · arrivée <b>${fmtA(P.arr)}</b></p>`;
-    else P.ev.forEach(e => {
-      if (e.k === 'dep') h += row(fmtT(e.at), dl(d0, e.at), nm(e.ap), 'Départ', '#16a34a');
-      else if (e.k === 'stop') h += leg(e.leg) + row(fmtT(e.at), dl(d0, e.at), nm(e.ap), `Arrivée · <b>escale de ${dur(e.wait)}</b> · redépart à ${fmtA(e.out)}`, '#f59e0b');
-      else h += leg(e.leg) + row(fmtT(e.at), dl(d0, e.at), nm(e.ap), 'Arrivée', '#dc2626');
+    const P = plan(t, back), d0 = back ? t.rdate : t.date, a0 = P.seq[0], z0 = P.seq[P.seq.length - 1], ns = P.seq.length - 2;
+    const head = `<div style="background:${T.head};color:${T.hcT};padding:13px 15px;display:flex;align-items:center;gap:12px"><span style="font-size:24px;line-height:1;display:inline-block;${back ? 'transform:scaleX(-1)' : ''}">✈</span><div style="flex:1;min-width:0"><div style="font-size:10px;letter-spacing:.18em;font-weight:800;opacity:.85">${back ? 'VOL RETOUR' : t.trip === 'rt' ? 'VOL ALLER' : 'VOL ALLER SIMPLE'}</div><div style="font-size:17px;font-weight:800;line-height:1.25">${esc(city(a0))} → ${esc(city(z0))}</div><div style="font-size:11px;opacity:.85">${esc(a0)} → ${esc(z0)}</div></div><div style="text-align:right;flex:none"><div style="font-size:11px;opacity:.85">${esc(dayLbl(d0, 0))}</div><div style="font-size:16px;font-weight:800">${dur2(P.total)}</div></div></div>`;
+    let body = '';
+    if (P.legacy) body = `<p style="font-size:12px;color:#0f172a">Départ <b>${fmtT(P.start)}</b> · escales : ${P.seq.slice(1, -1).map(c => esc(city(c))).join(', ')} · arrivée <b>${fmtA(P.arr)}</b></p>`;
+    else P.ev.forEach((e, i) => {
+      const nx = P.ev[i + 1], lg = nx ? chip(`✈ ${dur(nx.leg)} en vol · ${num(hv(e.ap, nx.ap, 0))} km`, '#eff6ff', '#1d4ed8') : '';
+      if (e.k === 'dep') body += R(e.at, d0, GREEN, false, place(e.ap, 'DÉPART', GREEN) + `<div style="font-size:11px;color:#64748b;margin-top:3px">Embarquement à ${bdOf(back ? t.rdep : t.dep)}</div>` + lg);
+      else if (e.k === 'stop') body += R(e.at, d0, AMB, false, place(e.ap, 'ESCALE · ARRIVÉE', AMB) + chip(`⏳ Escale de ${dur(e.wait)}`, '#fef3c7', '#92400e')) + R(e.out, d0, AMB, true, place(e.ap, 'REDÉPART', AMB) + lg);
+      else body += R(e.at, d0, RED, false, place(e.ap, 'ARRIVÉE', RED), true);
     });
-    return h + `<div style="background:#f1f5f9;border-radius:12px;padding:8px 12px;font-size:12px;line-height:1.6">Durée totale du voyage : <b>${dur(P.total)}</b><br>Temps d’escale : <b>${P.wait ? dur(P.wait) : 'aucune escale'}</b> · Arrivée : <b>${fmtA(P.arr)}</b></div>`;
+    const foot = `<div style="display:flex;gap:8px;padding:6px 14px 14px">${stat('DURÉE TOTALE', dur2(P.total))}${stat('ESCALES', ns ? ns + ' · ' + dur2(P.wait) : 'Vol direct')}${stat('ARRIVÉE', fmtT(P.arr) + (P.arr >= 1440 ? ' (+' + Math.floor(P.arr / 1440) + ')' : ''))}</div>`;
+    return `<div style="margin-top:14px;border-radius:20px;overflow:hidden;border:1px solid #e2e8f0;background:#fff;box-shadow:0 14px 34px -22px rgba(15,23,42,.45)">${head}<div style="padding:16px 14px 6px">${body}</div>${foot}</div>`;
   };
-  return side(false) + (t.trip === 'rt' && t.rdep ? side(true) : '');
+  const stay = () => { if (!(t.date && t.rdate)) return ''; const n = Math.round((new Date(t.rdate + 'T00:00:00') - new Date(t.date + 'T00:00:00')) / 864e5); if (!(n > 0)) return ''; return `<div style="margin-top:12px;text-align:center"><span style="display:inline-block;background:#f1f5f9;color:#334155;border-radius:99px;padding:6px 14px;font-size:12px;font-weight:700">🏨 Séjour à ${esc(city(t.to))} · ${n} nuit${n > 1 ? 's' : ''}</span></div>`; };
+  return side(false) + (t.trip === 'rt' && t.rdep ? stay() + side(true) : '');
 }
 function showItin(t) {
   const ov = document.createElement('div'); ov.style.cssText = 'position:fixed;inset:0;z-index:90;background:#111c;overflow:auto;padding:16px 8px 40px';
@@ -4031,8 +4063,8 @@ function recap() {
   const c = calc(), r = $('f-recap'); if (!r) return c;
   const ret = $('f-ret'); if (ret) { ret.classList.toggle('hidden', !c.rt); $('f-rdate').required = c.rt; $('f-rdep').required = c.rt; }
   if (!c.a || c.a === c.b) { r.innerHTML = 'Choisissez deux aéroports différents.'; return c; }
-  const dep = $('f-dep').value, ns = +$('f-stops').value || 0, st = Array.from({ length: ns }, (_, i) => $('f-s' + i) ? $('f-s' + i).value : '').filter(Boolean);
-  const tmp = { from: c.a.i, to: c.b.i, stops: st, dist: c.d, date: $('f-date').value, dep, rdate: $('f-rdate').value, rdep: $('f-rdep').value, trip: c.rt ? 'rt' : 'ow', lay: LAY.out, rlay: LAY.back, pnr: 'x', flight: 'x' };
+  const dep = $('f-dep').value, ns = +$('f-stops').value || 0, st = Array.from({ length: ns }, (_, i) => $('f-s' + i) ? $('f-s' + i).value : '').filter(Boolean), nr = c.rt ? (+$('f-rstops').value || 0) : 0, rst = Array.from({ length: nr }, (_, i) => $('f-r' + i) ? $('f-r' + i).value : '').filter(Boolean);
+  const tmp = { from: c.a.i, to: c.b.i, stops: st, rstops: rst, dist: c.d, date: $('f-date').value, dep, rdate: $('f-rdate').value, rdep: $('f-rdep').value, trip: c.rt ? 'rt' : 'ow', lay: LAY.out, rlay: LAY.back, pnr: 'x', flight: 'x' };
   const I = dep ? tInfo(tmp) : null, it = $('f-itin'); if (it) it.innerHTML = itinHtml(tmp);
   r.innerHTML = `Distance : <b>${num(c.d)} km</b>${I ? ` · Durée : <b>${I.dur}</b> · Arrivée : <b>${I.arr}</b>` : ''}<br>${c.rt ? 'Aller-retour' : 'Aller simple'} · Prix du billet : <b>${fm(c.total, c.cur)}</b>${c.pct ? ` <span style="color:#15803d">(réduction ${c.pct} % incluse)</span>` : ''}${c.cur !== 'XAF' ? ` <span class="text-gray-500">(taux indicatif)</span>` : ''}<br>Frais de génération débités de votre portefeuille : <b>${money(CF.fee)}</b>` + (c.ok ? '' : `<br><b style="color:#dc2626">⚠ ${esc(c.L.n)} ne dessert pas ${esc(c.a.c)} → ${esc(c.b.c)}. Choisissez une autre compagnie.</b>`);
   $('f-btn').textContent = 'Payer ' + money(CF.fee) + ' et générer le billet'; return c;
@@ -4042,7 +4074,9 @@ function build() {
   v.innerHTML = `<form id="fl-form" class="space-y-5">` +
     CARD('Départ', 'Choisissez le pays, puis l\'aéroport de la ville', APSEL('f-from', 'Départ', 'CM')) +
     CARD('Arrivée', 'Choisissez le pays, puis l\'aéroport de la ville', APSEL('f-to', 'Arrivée', 'FR')) +
-    CARD('Vol', 'Distance, durée et heure d’arrivée calculées automatiquement', SEL('f-trip', 'Type de voyage', [['ow', 'Aller simple'], ['rt', 'Aller-retour']]) + F('f-date', 'Date du départ', 'type="date" required') + F('f-dep', 'Heure de départ', 'type="time" required') + `<div id="f-ret" class="hidden space-y-3">` + F('f-rdate', 'Date du retour', 'type="date"') + F('f-rdep', 'Heure de départ du retour', 'type="time"') + `</div>` + SEL('f-cls', 'Classe', Object.entries(CLS).map(([k, x]) => [k, x[0] + ' (x' + x[1] + ')'])) + SEL('f-air', 'Compagnie aérienne', AL.map(a => [a.c, a.n])) + SEL('f-stops', 'Nombre d’escales (max ' + CF.stops + ')', Array.from({ length: CF.stops + 1 }, (_, i) => [i, i + ' escale(s)'])) + '<div id="f-stl" class="space-y-3"></div>') +
+    CARD('Vol', 'Distance, durée et heure d’arrivée calculées automatiquement', SEL('f-trip', 'Type de voyage', [['ow', 'Aller simple'], ['rt', 'Aller-retour']]) + F('f-date', 'Date du départ', 'type="date" required') + F('f-dep', 'Heure de départ', 'type="time" required') + SEL('f-cls', 'Classe', Object.entries(CLS).map(([k, x]) => [k, x[0] + ' (x' + x[1] + ')'])) + SEL('f-air', 'Compagnie aérienne', AL.map(a => [a.c, a.n])) +
+      `<div class="rounded-2xl border border-blue-100 p-3 space-y-3"><p class="text-xs font-bold text-gray-800">✈ Escales de l’aller</p>` + SEL('f-stops', 'Nombre d’escales à l’aller (max ' + CF.stops + ')', Array.from({ length: CF.stops + 1 }, (_, i) => [i, i + ' escale(s)'])) + '<div id="f-stl" class="space-y-3"></div></div>' +
+      `<div id="f-ret" class="hidden space-y-3 rounded-2xl border border-blue-100 p-3"><p class="text-xs font-bold text-gray-800">↩ Vol retour (départ de l’arrivée de l’aller)</p>` + F('f-rdate', 'Date du retour', 'type="date"') + F('f-rdep', 'Heure de départ du retour', 'type="time"') + SEL('f-rstops', 'Nombre d’escales au retour (max ' + CF.stops + ')', Array.from({ length: CF.stops + 1 }, (_, i) => [i, i + ' escale(s)'])) + '<div id="f-rstl" class="space-y-3"></div></div>') +
     CARD('Passager', 'Les données privées restent confidentielles et ne figurent pas sur le billet', SEL('f-civ', 'Civilité', [['M.', 'M.'], ['Mme', 'Mme'], ['Mlle', 'Mlle']]) + F('f-nom', 'Nom', 'required') + F('f-pre', 'Prénom', 'required') + F('f-dob', 'Date de naissance', 'type="date" required') + SEL('f-nat', 'Nationalité', COUNTRIES.map(c => [c, c])) + F('f-pass', 'N° passeport / CNI', 'required') + F('f-exp', 'Date d’expiration', 'type="date" required') + F('f-ecn', 'Contact d’urgence (nom)', 'required') + F('f-ect', 'Contact d’urgence (téléphone)', 'type="tel" required')) +
     CARD('Devise et options', 'Tous les montants du billet seront affichés dans la devise choisie', SEL('f-cur', 'Devise du billet', CURS) + `<label class="flex items-center gap-3 text-sm font-semibold"><input id="f-ins" type="checkbox" class="w-5 h-5"> Assurance voyage</label>` + SEL('f-bag', 'Nombre de bagages', [1, 2, 3, 4, 5].map(n => [n, n + ' bagage' + (n > 1 ? 's' : '')])) + `<div><p class="${lbl}">Style du billet</p><label class="block text-sm py-1"><input type="radio" name="f-st" value="1"> Style 1 · Billet papier à souche</label><label class="block text-sm py-1"><input type="radio" name="f-st" value="2" checked> Style 2 · Billet numérique (e-ticket)</label></div><p id="f-recap" class="text-xs text-gray-700 bg-gray-50 rounded-xl p-3"></p>`) +
     CARD('Itinéraire et horaires', 'Aperçu automatique : heures de départ, escales (durées aléatoires), arrivée et durée totale du voyage', '<div id="f-itin"></div><button type="button" id="f-relay" class="text-sm font-semibold text-swiftblue cursor-pointer">🔀 Nouvelle simulation des escales</button>') +
@@ -4051,9 +4085,11 @@ function build() {
   $('f-date').min = new Date().toISOString().slice(0, 10); $('f-nat').value = 'Cameroun'; $('f-cur').value = 'XAF'; $('f-dep').value = '08:00'; $('f-rdep').value = '08:00';
   bindAp('f-from'); bindAp('f-to'); DocKit.picker($('f-theme'), DocKit.get());
   v.querySelectorAll('#fl-form select,#fl-form input').forEach(e => e.addEventListener('input', recap));
-  $('f-stops').onchange = () => { $('f-stl').innerHTML = Array.from({ length: +$('f-stops').value }, (_, i) => `<div class="rounded-2xl border border-gray-100 p-3 space-y-3 bg-gray-50"><p class="text-xs font-bold text-gray-700">Escale ${i + 1}</p>${APSEL('f-s' + i, 'Escale ' + (i + 1), 'FR')}</div>`).join(''); Array.from({ length: +$('f-stops').value }, (_, i) => bindAp('f-s' + i)); LAY = { out: genLay(+$('f-stops').value), back: genLay(+$('f-stops').value) }; recap(); };
-  $('f-stl').addEventListener('input', recap); LAY = { out: [], back: [] };
-  $('f-relay').onclick = () => { const n = +$('f-stops').value; LAY = { out: genLay(n), back: genLay(n) }; recap(); };
+  const stList = (sel, box, pre, sfx) => { const n = +$(sel).value; $(box).innerHTML = Array.from({ length: n }, (_, i) => `<div class="rounded-2xl border border-gray-100 p-3 space-y-3 bg-gray-50"><p class="text-xs font-bold text-gray-700">Escale ${i + 1} (${sfx})</p>${APSEL(pre + i, 'Escale ' + (i + 1) + ' ' + sfx, 'FR')}</div>`).join(''); for (let i = 0; i < n; i++) bindAp(pre + i); };
+  $('f-stops').onchange = () => { stList('f-stops', 'f-stl', 'f-s', 'aller'); LAY.out = genLay(+$('f-stops').value); recap(); };
+  $('f-rstops').onchange = () => { stList('f-rstops', 'f-rstl', 'f-r', 'retour'); LAY.back = genLay(+$('f-rstops').value); recap(); };
+  $('f-stl').addEventListener('input', recap); $('f-rstl').addEventListener('input', recap); LAY = { out: [], back: [] };
+  $('f-relay').onclick = () => { LAY = { out: genLay(+$('f-stops').value), back: genLay(+$('f-rstops').value) }; recap(); };
   $('fl-form').onsubmit = submit; built = true; recap();
 }
 
@@ -4074,7 +4110,7 @@ async function mine() {
   MY = data;
   const card = (r, i) => { const d = r.data || {}, I = tInfo({ ...d, pnr: r.pnr }), A = APM[d.from] || { c: d.from }, B = APM[d.to] || { c: d.to };
     return `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 mt-3 overflow-hidden"><div style="background:${d.hc ? DocKit.theme({ hc: d.hc, bg: d.bg }).head : 'linear-gradient(120deg,#0b2a5b,#0047AB)'};color:${d.hc ? DocKit.theme({ hc: d.hc, bg: d.bg }).hcT : '#fff'};padding:8px 14px;display:flex;justify-content:space-between;gap:8px;font-size:11px;font-weight:700;letter-spacing:.06em"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">✈ ${esc(d.an)}</span><span style="flex:none">${esc((CLS[d.cls] || CLS.eco)[0].toUpperCase())}</span></div>
-    <div style="padding:12px 14px"><div style="display:flex;align-items:center;gap:8px"><div style="min-width:0"><b style="font-size:24px;line-height:1">${esc(d.from)}</b><br><small class="text-gray-500">${esc(A.c)}</small></div><div style="flex:1;text-align:center;color:#0047AB;font-size:18px">— ✈ —<br><small style="font-size:9px;color:#64748b">${esc(I.dur)}${(d.stops || []).length ? ' · ' + d.stops.length + ' escale(s)' : ' · direct'}</small></div><div style="min-width:0;text-align:right"><b style="font-size:24px;line-height:1">${esc(d.to)}</b><br><small class="text-gray-500">${esc(B.c)}</small></div></div>
+    <div style="padding:12px 14px"><div style="display:flex;align-items:center;gap:8px"><div style="min-width:0"><b style="font-size:24px;line-height:1">${esc(d.from)}</b><br><small class="text-gray-500">${esc(A.c)}</small></div><div style="flex:1;text-align:center;color:#0047AB;font-size:18px">— ✈ —<br><small style="font-size:9px;color:#64748b">${esc(I.dur)}${d.trip === 'rt' ? ' · aller-retour' : (d.stops || []).length ? ' · ' + d.stops.length + ' escale(s)' : ' · direct'}</small></div><div style="min-width:0;text-align:right"><b style="font-size:24px;line-height:1">${esc(d.to)}</b><br><small class="text-gray-500">${esc(B.c)}</small></div></div>
     <p class="text-xs text-gray-500 mt-2">${esc(d.date)} · Vol ${esc(d.flight)} · PNR <b>${esc(r.pnr)}</b> · ${esc(fm(d.total, d.cur))}</p>
     <div style="display:flex;gap:8px;margin-top:10px"><button data-i="${i}" class="fl-v flex-1 text-sm font-semibold text-white bg-swiftblue rounded-full px-4 py-2 cursor-pointer">Voir le billet</button><button data-i="${i}" class="fl-i text-sm font-semibold text-swiftblue border border-blue-200 rounded-full px-4 py-2 cursor-pointer">Itinéraire</button><button data-i="${i}" class="fl-d text-sm font-semibold text-red-600 border border-red-200 rounded-full px-4 py-2 cursor-pointer">Supprimer</button></div></div></div>`; };
   b.innerHTML = H + (data.length ? data.map(card).join('') : '<div class="bg-white rounded-3xl border border-gray-100 p-8 text-center mt-3"><p class="text-gray-500 mb-4">Vous n\'avez pas encore de billet d\'avion.</p><button type="button" id="fl-new" class="bg-swiftblue text-white font-semibold px-5 py-3 rounded-xl cursor-pointer">Créer mon premier billet</button></div>');
@@ -4089,6 +4125,8 @@ async function submit(e) {
   if (!c.ok) return toast(c.L.n + ' ne dessert pas cet itinéraire. Choisissez une autre compagnie.', 'error');
   const nst = Math.min(CF.stops, +$('f-stops').value), stops = Array.from({ length: nst }, (_, i) => $('f-s' + i).value);
   if (stops.some(s => s === c.a.i || s === c.b.i)) return toast('Une escale ne peut pas être l’aéroport de départ ou d’arrivée.', 'error');
+  const nrs = c.rt ? Math.min(CF.stops, +$('f-rstops').value) : 0, rstops = Array.from({ length: nrs }, (_, i) => $('f-r' + i).value);
+  if (rstops.some(s => s === c.a.i || s === c.b.i)) return toast('Une escale du retour ne peut pas être l’aéroport de départ ou d’arrivée.', 'error');
   const dep = g('f-dep'); if (!/^\d\d:\d\d$/.test(dep)) return toast('Choisissez l’heure de départ.', 'error');
   const d0 = new Date(g('f-date') + 'T' + dep); if (isNaN(d0) || d0 < new Date()) return toast('Le départ doit être dans le futur.', 'error');
   let rdate = '', rdep = ''; if (c.rt) { rdate = g('f-rdate'); rdep = g('f-rdep'); if (!rdate || !rdep) return toast('Indiquez la date et l’heure du retour.', 'error'); if (new Date(rdate + 'T' + rdep) <= d0) return toast('Le retour doit être après l’aller.', 'error'); }
@@ -4102,16 +4140,16 @@ async function submit(e) {
   const dif = (gen, cur) => { let v, n = 0; do { v = gen(); } while (v === cur && n++ < 40); return v; };
   const gFl = () => c.L.c + ' ' + (100 + rnd(900)), gSeat = () => (row[0] + rnd(row[1] - row[0] + 1)) + pick([...'ABCDEF']), gTerm = () => pick(['1', '2', '2A', '2B', '2E', '3']), gGate = () => pick([...'ABCDEF']) + (1 + rnd(40)), gZone = () => String(cl === 'vip' ? 1 + rnd(2) : cl === 'biz' ? 1 + rnd(3) : 3 + rnd(4));
   const flight = gFl(), seat = gSeat(), term = gTerm(), gate = gGate(), zone = gZone();
-  const fixLay = (a) => Array.from({ length: nst }, (_, i) => a[i] || 60 + 5 * rnd(31));
+  const fixLay = (a, n) => Array.from({ length: n }, (_, i) => (a && a[i]) || 60 + 5 * rnd(31));
   const t = { ac: c.L.c, an: c.L.n, from: c.a.i, to: c.b.i, dist: c.d, date: g('f-date'), dep, board: pad(Math.floor(bm / 60)) + ':' + pad(bm % 60),
-    flight, seat, term, gate, zone, trip: c.rt ? 'rt' : 'ow', rdate, rdep, lay: fixLay(LAY.out), rlay: fixLay(LAY.back),
+    flight, seat, term, gate, zone, trip: c.rt ? 'rt' : 'ow', rdate, rdep, lay: fixLay(LAY.out, nst), rlay: fixLay(LAY.back, nrs),
     rflight: c.rt ? dif(gFl, flight) : '', rseat: c.rt ? dif(gSeat, seat) : '', rterm: c.rt ? dif(gTerm, term) : '', rgate: c.rt ? dif(gGate, gate) : '', rzone: c.rt ? dif(gZone, zone) : '', rboard: c.rt ? bdOf(rdep) : '',
     seq: String(1 + rnd(399)).padStart(3, '0'), etk: String(100 + rnd(900)) + ' ' + String(rnd(1e9)).padStart(9, '0') + rnd(10),
     cls: cl, civ: $('f-civ').value, nom: g('f-nom').toUpperCase(), pre: g('f-pre'), pass: g('f-pass').toUpperCase(), dob: g('f-dob'), nat: $('f-nat').value, exp: g('f-exp'), ecn: g('f-ecn'), ect: g('f-ect'),
-    cur: c.cur, curN: curName(c.cur), xaf: c.xaf, fare: c.fare, ins: c.ins, nbag: c.nbag, bags: c.extra, bagA: 0, disc: c.disc, discP: c.pct, total: c.total, stops, hc: th.hc, bg: th.bg, style: +document.querySelector('input[name=f-st]:checked').value };
+    cur: c.cur, curN: curName(c.cur), xaf: c.xaf, fare: c.fare, ins: c.ins, nbag: c.nbag, bags: c.extra, bagA: 0, disc: c.disc, discP: c.pct, total: c.total, stops, rstops, hc: th.hc, bg: th.bg, style: +document.querySelector('input[name=f-st]:checked').value };
   btn.disabled = true; const { data, error } = await supabaseClient.rpc('sw_book_flight', { p_row: { ...t, route: t.from + '-' + t.to, airline: t.ac } }); btn.disabled = false; recap();
   if (error || !data) return toast((error && error.message) || 'Paiement refusé', 'error');
-  e.target.reset(); setNewMode(null); toast('Billet généré · ' + money(CF.fee) + ' débités.'); recap(); show({ ...data.data, ...t, pnr: data.pnr, style: +data.style });
+  e.target.reset(); $('f-stl').innerHTML = ''; $('f-rstl').innerHTML = ''; LAY = { out: [], back: [] }; setNewMode(null); toast('Billet généré · ' + money(CF.fee) + ' débités.'); recap(); show({ ...data.data, ...t, pnr: data.pnr, style: +data.style });
 }
 window.ticketsInit = () => mine();
 window.flyInit = async () => { await loadCfg(); if (!built || bs !== CF.stops) { build(); bs = CF.stops; } else recap(); };
