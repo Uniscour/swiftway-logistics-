@@ -4800,7 +4800,7 @@ const coClear = () => { window.__coPending = ''; try { localStorage.removeItem('
 
 async function coShare(kind, id, title) {
   const noun = kind === 'ticket' ? 'billet' : 'reçu';
-  const act = kind === 'ticket' ? ['voir et modifier', 'modifier ce billet', 'Les modifications s’enregistrent sur l’original.'] : ['consulter et mettre à jour le suivi de', 'mettre à jour le suivi de ce reçu', 'Les informations du colis restent verrouillées : seul le suivi peut être mis à jour.'];
+  const act = kind === 'ticket' ? ['consulter', 'consulter ce billet', 'Le billet est verrouillé : personne ne peut modifier ses informations.'] : ['consulter et mettre à jour le suivi de', 'mettre à jour le suivi de ce reçu', 'Les informations du colis restent verrouillées : seul le suivi peut être mis à jour.'];
   const ov = sheet('co-share', shHead('🔗', 'Lien de double contrôle', esc(title)) + '<div class="sx-b" style="text-align:center;padding:30px 18px">Chargement…</div>', { onBackdrop: () => unsheet('co-share') });
   const box = ov.firstElementChild; let st = null;
   const fail = (e) => { box.innerHTML = shHead('🔗', 'Lien de double contrôle', esc(title)) + `<div class="sx-b"><div class="sx-err">${esc(errMsg(e))}</div></div>`; };
@@ -4845,18 +4845,12 @@ async function coOpen(token) {
   const r = await supabaseClient.rpc('sw_co_open', { p_token: token });
   if (r.error) { toast(errMsg(r.error), 'error'); return false; }
   const d = r.data || {}; CO.at = 0;
-  if (d.kind === 'ticket') coEditTicket(d); else coEditReceipt(d);
+  if (d.kind === 'ticket') coViewTicket(d); else coEditReceipt(d);
   return true;
 }
 function coProcessPending() { const t = coPending(); if (!t) return; coClear(); const n = $('co-auth-note'); if (n) n.classList.add('hidden'); coOpen(t); }
 
 /* ----- Constructeurs de champs ----- */
-const fIn = (id, label, val, o) => { o = o || {}; return `<div class="sx-f${o.span ? ' sx-span' : ''}"><label class="sx-l" for="${id}">${label}${o.req ? ' <i>*</i>' : ''}</label><input id="${id}" class="sx-in" type="${o.type || 'text'}" ${o.attrs || ''} value="${esc(val == null ? '' : val)}"></div>`; };
-const fSel = (id, label, val, opts, o) => { o = o || {}; const v = val == null ? '' : String(val); const list = opts.some(([x]) => String(x) === v) ? opts : [...opts, [v, v]];
-  return `<div class="sx-f${o.span ? ' sx-span' : ''}"><label class="sx-l" for="${id}">${label}</label><select id="${id}" class="sx-in">${list.map(([x, t]) => `<option value="${esc(x)}"${String(x) === v ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></div>`; };
-const fArea = (id, label, val) => `<div class="sx-f sx-span"><label class="sx-l" for="${id}">${label}</label><textarea id="${id}" class="sx-in" rows="3" maxlength="300">${esc(val == null ? '' : val)}</textarea></div>`;
-const fSec = (t, sub, body) => `<section class="sx-sec"><h4>${t}</h4>${sub ? `<p class="sx-hint" style="margin:0 0 8px">${sub}</p>` : ''}<div class="sx-grid">${body}</div></section>`;
-const CTRY = () => [['Cameroun', 'Cameroun'], ...COUNTRIES.filter((c) => c !== 'Cameroun').slice().sort((a, b) => a.localeCompare(b, 'fr')).map((c) => [c, c])];
 const lockChip = (l, v) => `<span class="sx-chiplock"><i>🔒</i>${l} : <b>${esc(v)}</b></span>`;
 
 /* Cadre commun des deux éditeurs (reçu et billet) */
@@ -4892,71 +4886,11 @@ function coEditReceipt(d) {
   paint();
 }
 
-/* ----- Éditeur de BILLET D'AVION ----- */
-function coEditTicket(d) {
-  const tk = d.ticket || {}; let data = { ...(tk.data || {}) }, style = Number(tk.style) || Number(data.style) || 1, dirty = false;
-  const th = { hc: data.hc, bg: data.bg }; const rt = data.trip === 'rt';
-  const bd = (dep) => { const m = /^(\d\d):(\d\d)$/.exec(dep || ''); if (!m) return ''; const t = ((+m[1] * 60 + +m[2] - 90) + 1440) % 1440; return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
-  const flight = (p, label, req) => fSec(label, '', fIn('ct-' + p + 'date', 'Date', data[p + 'date'], { req: 1, type: 'date' }) + fIn('ct-' + p + 'dep', 'Heure de départ', data[p + 'dep'], { req: 1, type: 'time' }) +
-    fIn('ct-' + p + 'flight', 'N° de vol', data[p + 'flight'], { attrs: 'maxlength="12"' }) + fIn('ct-' + p + 'board', 'Embarquement', data[p + 'board'], { type: 'time' }) +
-    fIn('ct-' + p + 'seat', 'Siège', data[p + 'seat'], { attrs: 'maxlength="5"' }) + fIn('ct-' + p + 'term', 'Terminal', data[p + 'term'], { attrs: 'maxlength="4"' }) +
-    fIn('ct-' + p + 'gate', 'Porte', data[p + 'gate'], { attrs: 'maxlength="5"' }) + fIn('ct-' + p + 'zone', 'Zone', data[p + 'zone'], { attrs: 'maxlength="3"' }));
-  const paint = () => {
-    box.innerHTML = shHead('✈️', 'Billet en double contrôle', 'Partagé par <b>' + esc(d.owner_label || '') + '</b>' + (d.owner ? ' (vous)' : '')) +
-      `<div class="sx-b sx-scroll"><div class="sx-locks">${lockChip('PNR', tk.pnr)}${lockChip('Trajet', (data.from || '') + ' → ' + (data.to || ''))}${lockChip('Compagnie', data.an || data.ac || '')}${lockChip('Classe', ({ eco: 'Économique', biz: 'Affaires', vip: 'VIP' })[data.cls] || data.cls || '')}</div>
-       <p class="sx-hint">Le trajet, la compagnie, la classe et les montants ne peuvent pas être changés (ils déterminent le tarif payé). Tout le reste est modifiable.</p>
-       <div id="ct-form">
-       ${fSec('Passager', '', fSel('ct-civ', 'Civilité', data.civ || 'M.', [['M.', 'M.'], ['Mme', 'Mme'], ['Mlle', 'Mlle']]) + fIn('ct-nom', 'Nom', data.nom, { req: 1 }) + fIn('ct-pre', 'Prénom', data.pre, { req: 1 }) +
-          fIn('ct-dob', 'Date de naissance', data.dob, { req: 1, type: 'date' }) + fSel('ct-nat', 'Nationalité', data.nat || 'Cameroun', CTRY()) + fIn('ct-pass', 'N° passeport / CNI', data.pass, { req: 1 }) +
-          fIn('ct-exp', 'Expiration du document', data.exp, { req: 1, type: 'date' }) + fIn('ct-ecn', 'Contact d’urgence (nom)', data.ecn, { req: 1 }) + fIn('ct-ect', 'Contact d’urgence (tél.)', data.ect, { req: 1, type: 'tel' }))}
-       ${flight('', 'Vol aller')}
-       ${rt ? flight('r', 'Vol retour') : ''}
-       <section class="sx-sec"><h4>Apparence</h4><div class="sx-grid"><div class="sx-f sx-span"><div id="ct-theme"></div></div>
-         <div class="sx-f sx-span"><span class="sx-l">Style du billet</span><label class="sx-chk"><input type="radio" name="ct-st" value="1" ${style === 1 ? 'checked' : ''}> Style 1 · papier à souche</label><label class="sx-chk"><input type="radio" name="ct-st" value="2" ${style !== 1 ? 'checked' : ''}> Style 2 · numérique</label></div></div></section>
-       </div><div id="ct-err" class="sx-err" hidden></div></div>
-       <div class="sx-foot"><button type="button" class="sx-ghost" id="ct-view">Voir le billet</button><button type="button" class="sx-cta" id="ct-save">Enregistrer</button></div>`;
-    const f = $('ct-form'); f.addEventListener('input', (e) => {
-      dirty = true;
-      if (e.target.id === 'ct-dep' && !(e.target.dataset.manual)) { const b = $('ct-board'); if (b && !b.dataset.manual) b.value = bd(e.target.value); }
-      if (e.target.id === 'ct-rdep') { const b = $('ct-rboard'); if (b && !b.dataset.manual) b.value = bd(e.target.value); }
-      if (e.target.id === 'ct-board' || e.target.id === 'ct-rboard') e.target.dataset.manual = '1';
-    });
-    if (window.DocKit) DocKit.picker($('ct-theme'), th, (T) => { th.hc = T.hc; th.bg = T.bg; dirty = true; }, true, true);
-    $('ct-view').onclick = () => { const c = collect(true); window.flyShow({ ...data, ...c.patch, hc: th.hc, bg: th.bg, pnr: tk.pnr, style: c.style, created_at: tk.created_at }); };
-    $('ct-save').onclick = save;
-  };
-  const FIELDS = ['civ', 'nom', 'pre', 'dob', 'nat', 'pass', 'exp', 'ecn', 'ect', 'date', 'dep', 'flight', 'board', 'seat', 'term', 'gate', 'zone'];
-  function collect(soft) {
-    const patch = {}; const g = (id) => { const e = $(id); return e ? String(e.value || '').trim() : ''; };
-    FIELDS.forEach((k) => { patch[k] = g('ct-' + k); });
-    if (rt) ['date', 'dep', 'flight', 'board', 'seat', 'term', 'gate', 'zone'].forEach((k) => { patch['r' + k] = g('ct-r' + k); });
-    patch.nom = patch.nom.toUpperCase(); patch.pass = patch.pass.toUpperCase();
-    const sel = document.querySelector('input[name=ct-st]:checked'); const st = sel ? Number(sel.value) : style;
-    const out = { patch, style: st }; if (soft) return out;
-    const today = new Date().toISOString().slice(0, 10);
-    if (!patch.nom || !patch.pre || !patch.pass || !patch.ecn || !patch.ect) return { ...out, err: 'Remplissez tous les champs obligatoires du passager (*).' };
-    if (!patch.dob || patch.dob >= today) return { ...out, err: 'Date de naissance invalide.' };
-    if (!/^\d{4}-\d\d-\d\d$/.test(patch.date) || !/^\d\d:\d\d$/.test(patch.dep)) return { ...out, err: 'Indiquez la date et l’heure du vol aller.' };
-    if (rt) {
-      if (!/^\d{4}-\d\d-\d\d$/.test(patch.rdate) || !/^\d\d:\d\d$/.test(patch.rdep)) return { ...out, err: 'Indiquez la date et l’heure du vol retour.' };
-      if (new Date(patch.rdate + 'T' + patch.rdep) <= new Date(patch.date + 'T' + patch.dep)) return { ...out, err: 'Le retour doit être après l’aller.' };
-    }
-    if (!patch.exp || patch.exp <= (rt ? patch.rdate : patch.date)) return { ...out, err: 'Le document expire avant la fin du voyage.' };
-    return out;
-  }
-  async function save() {
-    const e = $('ct-err'); e.hidden = true; const c = collect(false);
-    if (c.err) { e.textContent = c.err; e.hidden = false; return; }
-    const b = $('ct-save'); b.disabled = true; b.textContent = 'Enregistrement…';
-    const r = await supabaseClient.rpc('sw_co_update_ticket', { p_token: d.token, p_data: { ...c.patch, hc: th.hc, bg: th.bg }, p_style: c.style });
-    b.disabled = false; b.textContent = 'Enregistrer';
-    if (r.error) { e.textContent = errMsg(r.error); e.hidden = false; return; }
-    const res = r.data || {}; if (res.data) data = { ...res.data }; style = c.style; dirty = false;
-    const n = (res.changed || []).length; toast(n ? '✓ Billet mis à jour (' + n + ' champ' + (n > 1 ? 's' : '') + ').' : 'Aucun changement à enregistrer.');
-    if (!$('view-tickets').classList.contains('hidden') && window.ticketsInit) window.ticketsInit();
-  }
-  const box = edFrame(() => dirty);
-  paint();
+/* ----- Billet partagé : CONSULTATION SEULE (un billet payé ne se modifie plus) ----- */
+function coViewTicket(d) {
+  const tk = d.ticket || {};
+  toast('🔒 Billet de ' + (d.owner_label || 'son propriétaire') + ' : consultation seule, aucune modification possible.');
+  window.flyShow({ ...(tk.data || {}), pnr: tk.pnr, style: Number(tk.style) || Number((tk.data || {}).style) || 1, created_at: tk.created_at });
 }
 
 /* ----- « Partagés avec moi » (au-dessus de Mes colis et de Mes billets) ----- */
