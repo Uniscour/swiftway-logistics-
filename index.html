@@ -134,6 +134,11 @@ body.bg-gray-50{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sa
 #list-container>div{cursor:pointer}
 #list-container [id^="ev-"]{cursor:default}
 @media (prefers-reduced-motion:reduce){#dash-view section,#auth-view>div,.dbadge{animation:none!important}}
+/* Partage désactivé par l'administrateur */
+body.sh-off-receipt [data-co-kind="receipt"],body.sh-off-ticket [data-co-kind="ticket"]{display:none!important}
+#wallet-promo:empty{display:none}
+#wallet-promo{margin-top:8px;font-size:12px;line-height:1.5;opacity:.92}
+#wallet-promo b{font-weight:800}
 /* ===== EXTENSIONS : transferts de crédit, double contrôle, fiche utilisateur admin ===== */
 :root{--sx-card:#fff;--sx-ink:#0f172a;--sx-mut:#64748b;--sx-line:#dfe9ff;--sx-soft:#f2f7ff;--sx-in:#f6f9ff;--sx-ok:#047857;--sx-okbg:#e8faf2;--sx-bad:#b91c1c;--sx-badbg:#fff1f1;--sx-warnbg:#fff8e6;--sx-warn:#92400e;--sx-brand:#0047AB}
 html[data-theme=dark]{--sx-card:#131c38;--sx-ink:#e8edfb;--sx-mut:#9fb0d3;--sx-line:#27375f;--sx-soft:#0f1a3a;--sx-in:#0f1a3a;--sx-ok:#4ade80;--sx-okbg:#0f2b24;--sx-bad:#f87171;--sx-badbg:#33161c;--sx-warnbg:#33260f;--sx-warn:#fbbf24;--sx-brand:#7db4ff}
@@ -352,6 +357,7 @@ html[data-theme=dark] .dr-clear{color:#f87171}
       <div class="wallet-hero">
         <p class="text-xs font-semibold" style="opacity:.8">Solde du portefeuille</p>
         <p id="wallet-balance" class="text-4xl font-extrabold mt-1">0 FCFA</p>
+        <div id="wallet-promo"></div>
         <p class="text-xs mt-3" style="opacity:.75">💳 Rechargez par MTN Money (MoMo) ou Orange Money (OM) ci-dessous</p>
       </div>
       <div class="sx-actions">
@@ -1189,6 +1195,7 @@ window.swOpenShared = (id) => { PEND_OPEN = id || null; showTab('list'); };
 // Colis partagés AVEC moi (liens actifs) : ils sont affichés dans « Mes colis » comme les autres, avec la mention « Colis partagé par <pseudo> »
 async function loadSharedReceipts() {
   SHARED = {};
+  if (window.SHC && window.SHC.receipt === false) return []; // partage des colis désactivé par l'administrateur
   try {
     const r = await supabaseClient.rpc('sw_dc_my_shared');
     if (r.error) return [];
@@ -1327,7 +1334,8 @@ $('new-form').addEventListener('submit', async (e) => {
   const btn = $('new-btn');
   await loadPrice();
   const wb = await myWallet();
-  const bal = Number(wb.data ? wb.data.balance : 0);
+  const lk0 = window.swLocks ? await window.swLocks() : { rec: 0, fl: 0 };
+  const bal = Number(wb.data ? wb.data.balance : 0) - lk0.fl; // le crédit promotionnel « billets » ne peut pas payer un reçu
   if (bal < RECEIPT_PRICE) { goRecharge(RECEIPT_PRICE - bal); return; }
   if (!confirm("Confirmer le paiement ?\n" + fmtMoney(RECEIPT_PRICE) + " seront débités de votre portefeuille pour générer le reçu et le code de suivi.")) return;
   btn.disabled = true; btn.textContent = 'Paiement...';
@@ -1426,6 +1434,7 @@ async function loadWallet() {
     supabaseClient.from('sw_pay_numbers').select('*').order('created_at')
   ]);
   $('wallet-balance').textContent = fmtMoney(w.data ? w.data.balance : 0);
+  if (window.swPromoLine) window.swPromoLine();
   PERR = pn.error ? pn.error.message : '';
   PAYNUMS = pn.error ? [] : (pn.data || []).filter(p => p.is_active !== false); renderPayNums();
   WR = {};
@@ -2336,7 +2345,7 @@ html[data-theme=dark] body{color:#e8edfb}
     broadcast: 'Annonce globale envoyée', paynum_add: 'Numéro de paiement ajouté', paynum_edit: 'Numéro de paiement modifié', paynum_toggle: 'Numéro de paiement masqué/affiché',
     sw_admin_send_direct: 'Message direct envoyé', sw_admin_broadcast: 'Annonce globale envoyée', sw_admin_set_active: 'Compte utilisateur activé/coupé', sw_admin_review_recharge: 'Traitement de recharge',
     wa_contact: 'Discussion WhatsApp ouverte', mail_contact: 'E-mail ouvert (contact utilisateurs)', support_add: 'Contact assistance ajouté', support_del: 'Contact assistance retiré', pw_reset: 'Mot de passe réinitialisé (envoi WhatsApp)', pw_dismiss: 'Demande de mot de passe ignorée', acct_export: 'Export de la liste des comptes', sw_admin_grant_free_receipts: 'Reçu offert (offre promotionnelle)',
-    ship_view: 'Colis consulté', user_view: 'Fiche utilisateur consultée', sw_admin_set_transfer_config: 'Réglage des transferts de crédit'
+    ship_view: 'Colis consulté', user_view: 'Fiche utilisateur consultée', sw_admin_set_transfer_config: 'Réglage des transferts de crédit', sw_admin_set_share_config: 'Réglage du partage (double contrôle)'
   };
   const actLabel = (a) => /^d:/.test(a) ? 'Détail · ' + a.slice(2).replace('sw_admin_', '') : (ACT_LABEL[a] || String(a).replace('sw_admin_', ''));
   // Enregistre une action dans le journal (visible dans l'onglet JOURNAL et dans la fiche de l'administrateur)
@@ -2355,6 +2364,7 @@ html[data-theme=dark] body{color:#e8edfb}
     if (fn === 'sw_admin_review_cancel') { const r = await one('sw_cancel_requests', 'id', a.p_id, 'shipment_id,user_id'); return (a.p_approve ? 'Annulation ACCEPTÉE' : 'Annulation REJETÉE') + ' · colis ' + await codeOf(r.shipment_id) + ' · client ' + await mailOf(r.user_id) + n; }
     if (/^sw_admin_(set_user|set_active|set_perms|promote)$/.test(fn)) return fn.replace('sw_admin_', '') + ' · ' + await mailOf(a.p_id) + ' · ' + JSON.stringify({ role: a.p_role, actif: a.p_active, perms: a.p_perms });
     if (/^sw_admin_(update_status|add_note|set_auto|set_window)$/.test(fn)) return 'Colis ' + await codeOf(a.p_id) + ' · ' + JSON.stringify({ statut: a.p_status, auto: a.p_auto, heures: a.p_hours, note: a.p_note });
+    if (fn === 'sw_admin_set_share_config') return 'Partage ' + (a.p_kind === 'ticket' ? 'des BILLETS' : 'des COLIS') + ' ' + (a.p_enabled ? 'ACTIVÉ' : 'DÉSACTIVÉ');
     if (fn === 'sw_admin_set_transfer_config') return 'Transferts ' + (a.p_enabled ? 'ACTIVÉS' : 'DÉSACTIVÉS') + ' · minimum ' + a.p_min + ' FCFA · plafond ' + (a.p_max || 'aucun');
     if (fn === 'sw_admin_send_direct') return 'Message à ' + await mailOf(a.p_user) + ' · « ' + a.p_subject + ' » : ' + a.p_body;
     if (fn === 'sw_admin_broadcast') return 'Annonce (' + a.p_filter + ') · « ' + a.p_subject + ' » : ' + a.p_body;
@@ -3252,7 +3262,7 @@ html[data-theme=dark] body{color:#e8edfb}
     const segOpts = [['never_zero', "Jamais généré d'expédition ET solde à 0 FCFA (prioritaire)"], ['never', "Jamais généré d'expédition"], ['zero', 'Solde à 0 FCFA'], ['new7', 'Nouveaux inscrits (7 jours)'], ['dormant', 'Inactifs depuis plus de 30 jours'], ['loyal', '⭐ Meilleurs utilisateurs : récompense fidélité (régulière)']];
     const sel = (id, cur, opts) => `<select id="${id}" class="x-in" style="margin-top:4px">${opts.map(([v, l]) => `<option value="${v}" ${String(cur) === String(v) ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
     return `<div class="x-panel" id="pr-box" style="margin-top:0;margin-bottom:12px"><p class="x-h">${K ? '✈️ PROMOTION BILLETS D\'AVION // billets offerts à un groupe' : '🎁 OFFRE PROMOTIONNELLE // reçus offerts à un groupe'}</p>
-      <p class="x-lead" style="margin-bottom:14px">Crédite les frais de génération ${K ? "d'un billet d'avion" : "d'un reçu"} (<b>${fmtMoney(U)}</b>) sur le portefeuille des utilisateurs sélectionnés : ils génèrent leurs ${K ? 'billets' : 'expéditions'} sans payer. Seuls les comptes actifs sont ciblés. Les segments classiques ne reçoivent l'offre qu'une seule fois${S.grantsOk ? ' (' + new Set(S.grants.map(g => g.user_id)).size + ' déjà gratifié(s))' : ''} ; la <b>récompense fidélité</b> peut être renouvelée à intervalle régulier pour encourager vos meilleurs utilisateurs.</p>
+      <p class="x-lead" style="margin-bottom:14px">Crédite les frais de génération ${K ? "d'un billet d'avion" : "d'un reçu"} (<b>${fmtMoney(U)}</b>) sur le portefeuille des utilisateurs sélectionnés : ils génèrent leurs ${K ? 'billets' : 'expéditions'} sans payer. <b>Ce crédit promotionnel est verrouillé</b> : il ne peut servir qu'à ${K ? 'générer des billets d\'avion' : 'générer des reçus de colis'} et n'est <b>pas transférable</b>. Seuls les comptes actifs sont ciblés. Les segments classiques ne reçoivent l'offre qu'une seule fois${S.grantsOk ? ' (' + new Set(S.grants.map(g => g.user_id)).size + ' déjà gratifié(s))' : ''} ; la <b>récompense fidélité</b> peut être renouvelée à intervalle régulier pour encourager vos meilleurs utilisateurs.</p>
       ${S.grantsOk ? '' : '<p class="x-hint t-warn" style="margin:0 0 12px">Migration SQL non exécutée : l\'envoi sera refusé tant que la fonction « ${K ? "sw_admin_grant_free_tickets" : "sw_admin_grant_free_receipts"} » n\'existe pas.</p>'}
       <div style="display:grid;gap:12px">
         <div><label class="x-lb">SEGMENT CIBLÉ</label>${sel('pr-seg', PR.seg, segOpts)}</div>
@@ -3282,8 +3292,18 @@ html[data-theme=dark] body{color:#e8edfb}
     };
   }
 
+  // ---------- Partage (double contrôle) : activer / désactiver, colis et billets ----------
+  S.sh = S.sh || { receipt: true, ticket: true, err: '' };
+  async function shLoad() { const r = await supabaseClient.rpc('sw_share_config_get'); S.shL = true; if (r.error) S.sh.err = 'Exécutez « sw_promo_partage_migration.sql » dans Supabase (' + r.error.message + ')'; else { S.sh.err = ''; Object.assign(S.sh, r.data || {}); } }
+  function shPanel(kind) {
+    const on = S.sh[kind] !== false, nm = kind === 'ticket' ? 'DES BILLETS D\'AVION' : 'DES COLIS (REÇUS)', what = kind === 'ticket' ? 'billets' : 'colis';
+    return `<div class="x-panel x-hl" style="margin-top:12px"><p class="x-h">🔗 PARTAGE ${nm} // double contrôle</p>${S.sh.err ? `<p class="t-warn x-sm" style="margin-bottom:10px">${esc(S.sh.err)}</p>` : ''}
+      <div class="xa-sw"><span class="xa-dot ${on ? 'on' : ''}"></span><div><b>${on ? 'PARTAGE ACTIVÉ' : 'PARTAGE DÉSACTIVÉ'}</b><small>${on ? 'Les clients peuvent partager leurs ' + what + ' avec un autre utilisateur par lien.' : 'Le bouton « Partager » est masqué chez les clients et les liens existants cessent de s\'ouvrir.'}</small></div>
+      ${isSuper ? `<button type="button" class="x-btn ${on ? 'no' : 'go'}" data-shtog="${kind}:${on ? 0 : 1}" ${S.sh.err ? 'disabled' : ''}>${on ? 'DÉSACTIVER' : 'ACTIVER'}</button>` : ''}</div></div>`;
+  }
   // ---------- PARAMÈTRES : sous-onglets (Tarification / Numéros de dépôt / Offres promotionnelles) ----------
   function cfg() {
+    if (isSuper && !S.shL) { S.shL = 1; shLoad().then(() => { if (S.v === 'cfg') cfg(); }); }
     if (!isSuper) S.cs = 'pay'; else if (!S.cs) S.cs = 'price';
     if (!S.fcs) S.fcs = 'fprice';
     const FL = isSuper && S.cg === 'flight';
@@ -3322,7 +3342,7 @@ html[data-theme=dark] body{color:#e8edfb}
     M.innerHTML = `<div class="x-wrap"><h2 class="x-title">Paramètres</h2><p class="x-lead">${isSuper ? 'Tarification et offres.' : 'Numéros de paiement.'}</p>
       ${grp}<p class="x-lead">${FL ? leadF : lead}</p>
       ${FL ? tabsF : sum + tabs}
-      ${FL ? (S.fcs === 'fpromo' ? '<div id="fl-disc-box"></div>' + promoHtml() : '<div id="fl-price-box"></div>') : (S.cs === 'support' ? supportPanel() : S.cs === 'price' ? priceHtml : S.cs === 'promo' ? '<div id="wo-card" class="x-panel x-p0"></div>' + promoHtml() : payHtml)}</div>`;
+      ${FL ? (S.fcs === 'fpromo' ? '<div id="fl-disc-box"></div>' + promoHtml() : '<div id="fl-price-box"></div>' + shPanel('ticket')) : (S.cs === 'support' ? supportPanel() : S.cs === 'price' ? priceHtml + shPanel('receipt') : S.cs === 'promo' ? '<div id="wo-card" class="x-panel x-p0"></div>' + promoHtml() : payHtml)}</div>`;
     if (FL) { if (S.fcs === 'fpromo') { window.flyDiscUI($('fl-disc-box'), S.users); prList(); } else window.flyPriceUI($('fl-price-box'), S.users); }
     else { prList(); if (S.cs === 'promo') welcomeCard(); }
   }
@@ -3451,6 +3471,15 @@ html[data-theme=dark] body{color:#e8edfb}
       if (!txt) return toast('Rien à copier pour ce filtre.', 'error');
       try { await navigator.clipboard.writeText(txt); toast(txt.split('\n').length + ' élément(s) copié(s).'); } catch (er) { prompt('Copiez cette liste :', txt); }
       return;
+    }
+    if ((el = g('data-shtog'))) {
+      if (!needSuper()) return;
+      const [k, v] = el.dataset.shtog.split(':'), en = v === '1', what = k === 'ticket' ? 'des billets d\'avion' : 'des colis';
+      if (!en && !confirm('Désactiver le partage ' + what + ' ?\nLe bouton « Partager » disparaîtra chez tous les clients et les liens existants ne s\'ouvriront plus.')) return;
+      el.disabled = true;
+      const r = await arpc('sw_admin_set_share_config', { p_kind: k, p_enabled: en });
+      if (r.error) { el.disabled = false; return toast('Erreur : ' + r.error.message, 'error'); }
+      toast('Partage ' + what + (en ? ' activé.' : ' désactivé.')); await shLoad(); return cfg();
     }
     // ---- Offre promotionnelle (Super Admin) ----
     if (g('data-prall')) { PR.excl = {}; return prList(); }
@@ -4538,7 +4567,7 @@ async function submit(e) {
   if (g('f-exp') <= (c.rt ? rdate : g('f-date'))) return toast('Le document expire avant la date du vol.', 'error');
   if (g('f-dob') >= new Date().toISOString().slice(0, 10)) return toast('Date de naissance invalide.', 'error');
   await loadCfg(); const w = await supabaseClient.from('sw_wallets').select('balance').eq('user_id', currentUser.id).maybeSingle();
-  { const bal = Number(w.data ? w.data.balance : 0); if (bal < feeOf(c.rt)) return goRecharge(feeOf(c.rt) - bal); }
+  { const lkF = await walletLocks(); const bal = Number(w.data ? w.data.balance : 0) - lkF.rec; if (bal < feeOf(c.rt)) return goRecharge(feeOf(c.rt) - bal); }
   if (!confirm('Confirmer ? ' + money(feeOf(c.rt)) + ' seront débités de votre portefeuille' + (c.rt ? ' (aller-retour : 1,5 × le prix d’un aller simple)' : '') + '.')) return;
   const cl = $('f-cls').value, row = cl === 'vip' ? [1, 3] : cl === 'biz' ? [4, 9] : [18, 42], [H, Mi] = dep.split(':').map(Number), bm = ((H * 60 + Mi - 90) + 1440) % 1440, th = DocKit.theme(DocKit.get());
   // Aller et retour : deux vols différents (n° de vol, terminal, porte, siège, zone) tirés au hasard et forcés à être différents
@@ -4643,6 +4672,14 @@ window.flyRadar = async (box, o) => {
    ===================================================================== */
 (() => {
 'use strict';
+
+/* ===== Partage activable par l'admin + crédits promotionnels verrouillés ===== */
+window.SHC = { receipt: true, ticket: true };
+function shApply() { document.body.classList.toggle('sh-off-receipt', window.SHC.receipt === false); document.body.classList.toggle('sh-off-ticket', window.SHC.ticket === false); }
+async function shLoadClient() { try { const r = await supabaseClient.rpc('sw_share_config_get'); if (!r.error && r.data) Object.assign(window.SHC, r.data); } catch (e) {} shApply(); if (window.coBoxUpdate && window.SHC.ticket === false) { const b = $('co-box'); if (b) { b.innerHTML = ''; b.classList.add('hidden'); } } }
+async function walletLocks() { try { if (!currentUser) return { rec: 0, fl: 0 }; const r = await supabaseClient.from('sw_wallets').select('promo_receipt,promo_flight').eq('user_id', currentUser.id).maybeSingle(); if (r.error || !r.data) return { rec: 0, fl: 0 }; return { rec: Math.max(0, Number(r.data.promo_receipt) || 0), fl: Math.max(0, Number(r.data.promo_flight) || 0) }; } catch (e) { return { rec: 0, fl: 0 }; } }
+window.swLocks = walletLocks;
+window.swPromoLine = async () => { const el = $('wallet-promo'); if (!el) return; const k = await walletLocks(); const p = []; if (k.rec > 0) p.push('🧾 <b>' + fmtMoney(k.rec) + '</b> pour les reçus de colis'); if (k.fl > 0) p.push('✈️ <b>' + fmtMoney(k.fl) + '</b> pour les billets d’avion'); el.innerHTML = p.length ? '🎁 Crédit promotionnel inclus : ' + p.join(' · ') + '<br><small>Non transférable, utilisable uniquement pour l’usage indiqué.</small>' : ''; };
 const SQLHINT = 'Mise à jour SQL manquante : exécutez « sw_transferts_partage_migration.sql » dans Supabase (SQL Editor).';
 const isMissing = (e) => !!e && /Could not find the function|PGRST202|schema cache/i.test((e.code || '') + ' ' + (e.message || ''));
 const DCHINT = 'Mise à jour SQL manquante : exécutez « sw_pseudo_double_controle.sql » dans Supabase (SQL Editor).';
@@ -4734,12 +4771,13 @@ async function trOpen() {
   if (TRC.err) return toast(TRC.err, 'error');
   if (!TRC.enabled) return toast('Les transferts de crédit sont momentanément désactivés.', 'error');
   let bal = 0; try { const w = await myWallet(); bal = Number(w.data ? w.data.balance : 0); } catch (e) {}
+  const lkT = await walletLocks(), totBal = bal, promoT = lkT.rec + lkT.fl; bal = Math.max(0, bal - promoT); // les crédits promotionnels ne sont pas transférables
   const min = Number(TRC.min_amount) || 1000, max = Number(TRC.max_amount) || 0;
   const S = { to: '', amt: '', note: '', label: '', ok: null, seq: 0, tm: 0, res: null, key: uid() };
   const close = () => { clearTimeout(S.tm); unsheet('tr-modal'); };
   const ov = sheet('tr-modal', '', { onBackdrop: close });
   const box = ov.firstElementChild;
-  const head = (t) => shHead('💸', t, 'Solde disponible : <strong>' + fmtMoney(bal) + '</strong>');
+  const head = (t) => shHead('💸', t, 'Solde transférable : <strong>' + fmtMoney(bal) + '</strong>' + (promoT > 0 ? '<br><small>Hors crédits promotionnels (' + fmtMoney(promoT) + ') : non transférables.</small>' : ''));
   const showErr = (m) => { const e = $('trm-err'); if (e) { e.textContent = m; e.hidden = !m; } };
 
   function paintStatus(r) {
@@ -4768,6 +4806,7 @@ async function trOpen() {
     if (!S.amt || !Number.isInteger(amt)) return 'Indiquez un montant en FCFA (nombre entier).';
     if (amt < min) return 'Montant minimum : ' + fmtMoney(min) + '.';
     if (max && amt > max) return 'Montant maximum par transfert : ' + fmtMoney(max) + '.';
+    if (amt > bal && promoT > 0 && amt <= totBal) return 'Les crédits promotionnels (' + fmtMoney(promoT) + ') ne sont pas transférables. Montant maximum : ' + fmtMoney(bal) + '.';
     if (amt > bal) return 'Solde insuffisant : il vous manque ' + fmtMoney(amt - bal) + '. Rechargez votre portefeuille.';
     return '';
   }
@@ -4900,6 +4939,7 @@ const coPending = () => { try { return localStorage.getItem('sw_co_pending') || 
 const coClear = () => { window.__coPending = ''; try { localStorage.removeItem('sw_co_pending'); } catch (e) {} };
 
 async function coShare(kind, id, title) {
+  if (window.SHC && window.SHC[kind === 'ticket' ? 'ticket' : 'receipt'] === false) return toast('Le partage ' + (kind === 'ticket' ? 'des billets' : 'des colis') + ' est désactivé par l’administrateur.', 'error');
   // Le pseudo est obligatoire : c'est lui (et jamais l'e-mail) que la personne verra
   if (!PS.loaded) await pseudoLoad();
   if (!PS.v && !PS.missing) { const ps = await pseudoAsk({ required: true, why: 'Avant de partager, choisissez votre pseudo : c’est lui que la personne verra, à la place de votre e-mail.' }); if (!ps) return; }
@@ -5010,7 +5050,7 @@ async function coBoxUpdate(tab) {
   const box = $('co-box'); if (!box) return;
   const kind = tab === 'tickets' ? 'ticket' : null;
   box.dataset.tab = tab || '';
-  if (!kind || !currentUser || isAdmin) { box.innerHTML = ''; box.classList.add('hidden'); return; }
+  if (!kind || !currentUser || isAdmin || (window.SHC && window.SHC.ticket === false)) { box.innerHTML = ''; box.classList.add('hidden'); return; }
   if (Date.now() - CO.at > 15000) { const r = await supabaseClient.rpc('sw_dc_my_shared'); CO.at = Date.now(); CO.list = r.error ? [] : (r.data || []); }
   if (box.dataset.tab !== tab) return;
   const rows = CO.list.filter((x) => x.kind === kind);
@@ -5176,6 +5216,7 @@ let afterFor = '';
 function afterLogin() {
   CO.list = []; CO.at = 0; TRC.loaded = false;
   trLoadConfig().then(trRenderActions);
+  shLoadClient();
   trCheckIncoming();
   draftInit();
   coProcessPending();
@@ -5200,7 +5241,7 @@ window.showDashView = async function () {
 };
 try { new MutationObserver(ensureAfterLogin).observe($('dash-view'), { attributes: true, attributeFilter: ['class'] }); } catch (e) {}
 ensureAfterLogin();
-setInterval(() => { if (document.visibilityState === 'visible') trCheckIncoming(); }, 30000);
+setInterval(() => { if (document.visibilityState === 'visible') { trCheckIncoming(); if (currentUser && !isAdmin) shLoadClient(); } }, 30000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') trCheckIncoming(); });
 // Bandeau sur l'écran de connexion lorsqu'un lien de double contrôle est en attente
 { const n = $('co-auth-note'); if (n && coPending()) n.classList.remove('hidden'); }
