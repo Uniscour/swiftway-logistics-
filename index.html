@@ -195,6 +195,10 @@ body.sx-lock,body.xa-lock{overflow:hidden}
 .sx-f .sx-l i{color:var(--sx-bad)}
 .sx-chk{display:flex;align-items:center;gap:10px;font-size:14px;padding:6px 0}
 .sx-locks{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.shr-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-16px -16px 12px;padding:9px 16px;background:#eef2ff;border-bottom:1px solid #c7d2fe;color:#3730a3;font-size:12px;font-weight:600;border-radius:16px 16px 0 0}
+.shr-bar b{font-weight:800}.shr-bar .shr-pin{font-size:13px}.shr-bar small{flex-basis:100%;font-weight:500;color:#4f46e5;font-size:11px}
+html[data-theme=dark] .shr-bar{background:#1b2350;border-bottom-color:#33407a;color:#c7d2fe}html[data-theme=dark] .shr-bar small{color:#a5b4fc}
+@keyframes shrflash{0%,100%{box-shadow:0 0 0 0 #6366f100}30%{box-shadow:0 0 0 4px #6366f1aa}}.shr-flash{animation:shrflash 1.6s ease 2}
 .sx-chiplock{display:inline-flex;gap:6px;align-items:center;padding:6px 12px;border-radius:999px;background:var(--sx-soft);border:1px solid var(--sx-line);font-size:12px;color:var(--sx-mut)}.sx-chiplock b{color:var(--sx-ink)}.sx-chiplock i{font-style:normal}
 .sx-foot{position:sticky;bottom:0;flex:none;display:grid;grid-template-columns:1fr 1.4fr;gap:10px;padding:10px 18px calc(12px + env(safe-area-inset-bottom));background:var(--sx-card);border-top:1px solid var(--sx-line)}
 .sx-foot .sx-ghost,.sx-foot .sx-cta{margin-top:0}
@@ -266,6 +270,8 @@ html[data-theme=dark] .dr-clear{color:#f87171}
       <div class="text-center"><button type="button" id="forgot-link" class="text-sm font-semibold text-swiftblue hover:underline cursor-pointer">Mot de passe oublié ?</button></div>
     </form>
     <form id="signup-form" class="space-y-4 hidden">
+      <div><label id="t-signup-pseudo" class="block text-xs font-semibold text-gray-700 mb-1">Pseudo <span class="font-normal text-gray-400">(le nom avec lequel on peut vous appeler)</span></label>
+        <input type="text" id="signup-pseudo" required maxlength="24" autocomplete="nickname" autocapitalize="none" spellcheck="false" placeholder="Ex : Marie237" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50"></div>
       <div><label id="t-signup-email" class="block text-xs font-semibold text-gray-700 mb-1">Gmail</label>
         <input type="email" id="signup-email" required autocapitalize="none" spellcheck="false" placeholder="votre@gmail.com" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-swiftblue focus:border-swiftblue outline-none transition bg-gray-50"></div>
       <div><label id="t-signup-phone" class="block text-xs font-semibold text-gray-700 mb-1">Numéro de téléphone</label>
@@ -637,6 +643,14 @@ loginForm.addEventListener('submit', async (e) => {
 signupForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const email = $('signup-email').value.trim(), phone = $('signup-phone').value.trim(), password = $('signup-password').value, t = translations[currentLang];
+  // Pseudo : 3 à 24 caractères (lettres, chiffres, espace, . _ -), unique
+  const pseudo = ($('signup-pseudo').value || '').trim().replace(/\s+/g, ' ');
+  if (!/^[A-Za-zÀ-ÖØ-öø-ÿ0-9][A-Za-zÀ-ÖØ-öø-ÿ0-9 ._-]{2,23}$/.test(pseudo)) { showAlert('Pseudo invalide : 3 à 24 caractères (lettres, chiffres, espace, point, tiret ou underscore).'); return; }
+  if (/admin|swiftway|support|assistance/i.test(pseudo)) { showAlert('Ce pseudo n’est pas autorisé. Choisissez-en un autre.'); return; }
+  try {
+    const pc = await supabaseClient.rpc('sw_pseudo_check', { p_pseudo: pseudo });
+    if (!pc.error && pc.data && pc.data.ok === false) { showAlert(pc.data.msg || 'Ce pseudo est déjà pris.'); return; }
+  } catch (e) {}
   // Validation stricte : Gmail uniquement
   if (!/^[^\s@]+@gmail\.com$/i.test(email)) { showAlert(t.gmailOnly); return; }
   // Validation stricte : au moins 9 chiffres (espaces, tirets et + ignorés)
@@ -648,7 +662,8 @@ signupForm.addEventListener('submit', async (e) => {
     if (!ck.error && ck.data) { showAlert(ck.data === 'email' ? t.emailTaken : t.phoneTaken); return; }
   } catch (e) {}
   showAlert(t.processing, 'success');
-  const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { phone_number: phone } } });
+  const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { phone_number: phone, pseudo } } });
+  if (!error) { try { localStorage.setItem('sw_pseudo_pending', JSON.stringify({ email: email.toLowerCase(), pseudo })); } catch (e) {} }
   if (error) showAlert(error.message);
   else if (data.session) { hideAlert(); showDashView(data.user); }
   else showAlert(t.confirmEmail, 'success');
@@ -1092,6 +1107,9 @@ let TRK = {}, OKT = false, UNS = -1;
 let TRKERR = '';
 const trackChip = (s) => {
   if (!receiptSet.has(s.id)) return '';
+  const sd = SHARED[s.id];
+  if (sd) return !sd.total ? `<p class="text-xs mt-1 text-gray-400" data-tvc="${esc(s.id)}">⏳ Accusé de réception : pas encore consulté sur le site de suivi</p>`
+    : `<p class="text-xs mt-2 inline-block rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 font-semibold text-green-700" data-tvc="${esc(s.id)}">✅ Accusé de réception · consulté ${sd.total} fois${sd.last ? ' · dernière le ' + esc(fmtFull(sd.last)) : ''}</p>`;
   if (!OKT) return TRKERR ? `<p class="text-xs mt-1 text-amber-700" data-tvc="${esc(s.id)}">👁 Accusé de réception indisponible : ${esc(TRKERR)}</p>` : '';
   const c = TRK[s.id] || { t: 0, u: 0 };
   if (!c.t) return `<p class="text-xs mt-1 text-gray-400" data-tvc="${esc(s.id)}">⏳ Accusé de réception : pas encore consulté sur le site de suivi</p>`;
@@ -1113,12 +1131,13 @@ async function refreshTrack() {
 }
 async function loadViews(id) {
   const h = $('tv-' + id); if (!h) return;
-  const { data, error } = await supabaseClient.rpc('sw_my_track_views', { p_shipment: String(id) });
+  const sd = SHARED[id];
+  const { data, error } = sd ? await supabaseClient.rpc('sw_dc_views', { p_token: sd.token }) : await supabaseClient.rpc('sw_my_track_views', { p_shipment: String(id) });
   if (error) { h.innerHTML = ''; return; }
   const r = data || [];
   h.innerHTML = `<div class="mt-3 bg-white rounded-xl border border-blue-100 p-3"><div class="flex items-center justify-between gap-2"><p class="text-xs font-bold text-swiftblue">Historique des consultations</p><span class="text-xs font-semibold text-gray-700">${r.length} consultation(s)</span></div>` +
     (r.length ? `<ol class="mt-2 space-y-1 max-h-56 overflow-y-auto pr-1">${r.map((x, i) => `<li class="flex items-center justify-between gap-2 text-sm text-gray-700 border-b border-gray-50 py-1"><span>#${r.length - i} · ${esc(fmtFull(x.viewed_at))}</span>${x.seen ? '' : '<span class="newtag">NOUVEAU</span>'}</li>`).join('')}</ol>` : '<p class="text-sm text-gray-500 mt-2">Personne n\'a encore consulté ce colis avec son code ou son QR code.</p>') + '</div>';
-  if (r.some(x => !x.seen)) { await supabaseClient.rpc('sw_my_track_mark_seen', { p_shipment: String(id) }); refreshTrack(); }
+  if (!sd && r.some(x => !x.seen)) { await supabaseClient.rpc('sw_my_track_mark_seen', { p_shipment: String(id) }); refreshTrack(); }
 }
 
 // Éditeur de suivi commun (propriétaire et double contrôle) : valide la saisie, puis apply({ seq, edits, auto, hs, note }) enregistre
@@ -1165,15 +1184,32 @@ function bindTrackEditor(holder, s, apply, done) {
   });
 }
 
-let SH = {}, lastOpenId = null;
+let SH = {}, lastOpenId = null, SHARED = {}, PEND_OPEN = null;
+window.swOpenShared = (id) => { PEND_OPEN = id || null; showTab('list'); };
+// Colis partagés AVEC moi (liens actifs) : ils sont affichés dans « Mes colis » comme les autres, avec la mention « Colis partagé par <pseudo> »
+async function loadSharedReceipts() {
+  SHARED = {};
+  try {
+    const r = await supabaseClient.rpc('sw_dc_my_shared');
+    if (r.error) return [];
+    return (r.data || []).filter(x => x.kind === 'receipt' && x.shipment).map(x => {
+      const sh = { ...x.shipment }; SHARED[sh.id] = { token: x.token, owner: x.owner_label || 'Un utilisateur SwiftWay', total: +x.views_total || 0, last: x.views_last || null, at: x.shared_at };
+      return sh;
+    });
+  } catch (e) { return []; }
+}
 async function renderDetails(id) {
   const holder = $('ev-' + id), s = SH[id]; if (!holder || !s) return;
-  const { data: events, error } = await supabaseClient.from('sw_shipment_events').select('*').eq('shipment_id', id).order('created_at', { ascending: true });
-  const withViews = OKT && receiptSet.has(id);
+  const sd = SHARED[id];
+  let events, error;
+  if (sd) { const r = await supabaseClient.rpc('sw_dc_open', { p_token: sd.token }); error = r.error; events = (r.data && r.data.events) || []; }
+  else { const r = await supabaseClient.from('sw_shipment_events').select('*').eq('shipment_id', id).order('created_at', { ascending: true }); events = r.data; error = r.error; }
+  const withViews = (OKT || !!sd) && receiptSet.has(id);
   holder.innerHTML = error ? '<p class="text-sm text-red-600 mt-3">Erreur de chargement.</p>' : (withViews ? '<div id="tv-' + esc(id) + '"></div>' : '') + agencyBlock(s.agency_name) + detailsHtml(s) + editCtl(s, events) + timeline(events, s);
   holder.classList.remove('hidden'); lastOpenId = id;
   if (withViews && !error) loadViews(id);
   bindTrackEditor(holder, s, async ({ seq, edits, auto, hs, note }) => {
+    if (sd) { const r = await supabaseClient.rpc('sw_dc_track', { p_token: sd.token, p_seq: seq, p_times: edits, p_auto: auto, p_hours: hs, p_note: note }); if (r.error) throw r.error; return; }
     for (const st of seq) { const r = await supabaseClient.rpc('sw_user_set_step', { p_id: id, p_status: st }); if (r.error) throw r.error; }
     if (Object.keys(edits).length) { const r = await supabaseClient.rpc('sw_user_set_event_times', { p_id: id, p_times: edits }); if (r.error) throw r.error; }
     const r2 = await supabaseClient.rpc('sw_user_update_shipment', { p_id: id, p_eta: null, p_auto: auto, p_steps: hs, p_note: note });
@@ -1201,15 +1237,19 @@ async function loadShipments(openId) {
   if (!openId) box.innerHTML = '<p class="text-center text-gray-500 py-8">Chargement...</p>';
   await refreshTrack();
   await supabaseClient.rpc('sw_advance_shipments_v2');
-  const { data, error } = await supabaseClient.from('sw_shipments').select('*').order('created_at', { ascending: false });
+  const focusId = PEND_OPEN; PEND_OPEN = null; if (!openId && focusId) openId = focusId;
+  const own = await supabaseClient.from('sw_shipments').select('*').order('created_at', { ascending: false });
+  const error = own.error;
   if (error) { box.innerHTML = ''; dShow("Impossible de charger les colis : " + error.message); return; }
+  const shared = await loadSharedReceipts();
+  const data = own.data.concat(shared).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   if (!data.length) {
     setInf('list-filters', 0, 0);
     box.innerHTML = `<div class="bg-white rounded-3xl border border-gray-100 p-8 text-center"><p class="text-gray-500 mb-4">Vous n'avez pas encore d'expédition.</p>
       <button type="button" id="go-new" class="bg-swiftblue text-white font-semibold px-5 py-3 rounded-xl cursor-pointer">Créer ma première expédition</button></div>`;
     $('go-new').addEventListener('click', () => { showTab('new'); setNewMode('parcel'); }); return;
   }
-  await loadReceiptSet();
+  await loadReceiptSet(); shared.forEach(x => receiptSet.add(x.id));
   await loadCancelSet();
   data.forEach(s => { if (s.status === 'picked_up') s.status = 'pending'; });
   SH = {}; data.forEach(s => { SH[s.id] = s; });
@@ -1225,8 +1265,10 @@ async function loadShipments(openId) {
         <button type="button" data-id="${esc(s.id)}" class="receipt-btn text-sm font-semibold text-white bg-swiftblue rounded-full px-4 py-2 cursor-pointer">Voir le reçu A5 · ${fmtMoney(RECEIPT_PRICE)}</button>
         ${delBtn(s)}
       </div></div>`;
+    const sd = SHARED[s.id];
     return `
-    <div data-sid="${esc(s.id)}" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3">
+    <div data-sid="${esc(s.id)}" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3${sd ? ' overflow-hidden' : ''}">
+      ${sd ? `<div class="shr-bar"><span class="shr-pin">📌</span><span>🤝 Colis partagé · par <b>${esc(sd.owner)}</b></span><small>Ce colis vous a été partagé : vous pouvez mettre à jour son suivi, mais pas le partager à votre tour.</small></div>` : ''}
       <div class="flex items-start justify-between gap-2"><div>
         <p class="font-bold text-gray-900 break-all">${esc(fmtCode(s.tracking_code))}</p>
         <p class="text-sm text-gray-500">${esc(s.origin)} → ${esc(s.destination)}</p>
@@ -1238,10 +1280,10 @@ async function loadShipments(openId) {
       <div class="flex flex-wrap items-center gap-3 mt-3">
         <button type="button" data-id="${esc(s.id)}" class="details-btn text-sm font-semibold text-swiftblue cursor-pointer">${openId === s.id ? 'Masquer le suivi' : 'Voir le suivi'}</button>
         <button type="button" data-id="${esc(s.id)}" class="receipt-btn text-sm font-semibold text-gray-700 border border-gray-200 rounded-full px-3 py-1 cursor-pointer">Voir le reçu A5</button>
-        <button type="button" data-id="${esc(s.id)}" class="copy-btn text-sm font-semibold text-gray-700 border border-gray-200 rounded-full px-3 py-1 cursor-pointer">Copier le lien de suivi</button>
+        ${sd ? '' : `<button type="button" data-id="${esc(s.id)}" class="copy-btn text-sm font-semibold text-gray-700 border border-gray-200 rounded-full px-3 py-1 cursor-pointer">Copier le lien de suivi</button>
         <button type="button" data-co-share="${esc(s.id)}" data-co-kind="receipt" data-co-title="${esc(fmtCode(s.tracking_code))}" class="share-btn text-sm font-semibold text-gray-700 border border-gray-200 rounded-full px-3 py-1 cursor-pointer">🔗 Double contrôle</button>
         ${cancelBtn(s)}
-        ${delBtn(s)}
+        ${delBtn(s)}`}
       </div>
       <div id="ev-${esc(s.id)}" class="hidden"></div></div>`;
   }).join('') + '<div id="lf-none" hidden class="bg-white rounded-3xl border border-gray-100 p-8 text-center text-gray-500">Aucun colis ne correspond à ces filtres.</div>';
@@ -1270,7 +1312,8 @@ async function loadShipments(openId) {
     await renderDetails(btn.dataset.id); btn.textContent = 'Masquer le suivi';
   }));
   applyList();
-  if (openId && SH[openId]) await renderDetails(openId);
+  if (openId && SH[openId]) { await renderDetails(openId); const b = box.querySelector('[data-sid="' + String(openId).replace(/"/g, '') + '"] .details-btn'); if (b) b.textContent = 'Masquer le suivi'; }
+  if (focusId) { const el = box.querySelector('[data-sid="' + String(focusId).replace(/"/g, '') + '"]'); if (el) { el.style.scrollMarginTop = '120px'; el.scrollIntoView({ behavior: 'smooth', block: 'start' }); el.classList.add('shr-flash'); setTimeout(() => el.classList.remove('shr-flash'), 3500); } }
 }
 // Toucher une carte (hors boutons et zones interactives) ouvre ou ferme son suivi
 $('list-container').addEventListener('click', (e) => {
@@ -4602,6 +4645,8 @@ window.flyRadar = async (box, o) => {
 'use strict';
 const SQLHINT = 'Mise à jour SQL manquante : exécutez « sw_transferts_partage_migration.sql » dans Supabase (SQL Editor).';
 const isMissing = (e) => !!e && /Could not find the function|PGRST202|schema cache/i.test((e.code || '') + ' ' + (e.message || ''));
+const DCHINT = 'Mise à jour SQL manquante : exécutez « sw_pseudo_double_controle.sql » dans Supabase (SQL Editor).';
+const dcErr = (e) => isMissing(e) ? DCHINT : /PSEUDO_REQUIRED/.test((e && e.message) || '') ? 'Choisissez d’abord votre pseudo.' : errMsg(e);
 const errMsg = (e) => isMissing(e) ? SQLHINT : String((e && e.message) || e || 'Erreur inconnue');
 const uid = () => { try { return crypto.randomUUID(); } catch (e) { return 'k' + Date.now() + Math.random().toString(16).slice(2); } };
 
@@ -4792,6 +4837,61 @@ async function trOpen() {
 }
 
 /* =====================================================================
+   1 bis) PSEUDO : nom affiché aux personnes avec qui on partage un colis (jamais l'e-mail)
+   ===================================================================== */
+const PS = { v: null, loaded: false, missing: false };
+function paintPseudoBtn() {
+  const em = document.getElementById('user-email'); if (!em) return;
+  let b = document.getElementById('pseudo-btn');
+  if (!b) { b = document.createElement('button'); b.type = 'button'; b.id = 'pseudo-btn'; b.className = 'text-xs font-semibold cursor-pointer'; b.style.cssText = 'display:block;margin-top:2px;text-align:left;color:#fff;opacity:.92;background:none;border:0;padding:0;text-decoration:underline;text-underline-offset:2px'; em.insertAdjacentElement('afterend', b); b.addEventListener('click', () => pseudoAsk({ required: false })); }
+  b.hidden = PS.missing; b.textContent = PS.v ? '👤 ' + PS.v + ' ✏️' : '👤 Choisir mon pseudo';
+}
+async function pseudoLoad() {
+  const r = await supabaseClient.rpc('sw_pseudo_get');
+  if (r.error) { PS.missing = isMissing(r.error); PS.loaded = !PS.missing ? false : true; paintPseudoBtn(); return null; }
+  PS.v = r.data || null; PS.loaded = true; PS.missing = false; paintPseudoBtn(); return PS.v;
+}
+/* Fenêtre « Choisissez votre pseudo » : renvoie le pseudo enregistré, ou null si l'utilisateur ferme */
+function pseudoAsk(o) {
+  o = o || {};
+  return new Promise((resolve) => {
+    let done = false; const end = (v) => { if (done) return; done = true; unsheet('pseudo-sh'); resolve(v); };
+    const ov = sheet('pseudo-sh', shHead('👤', PS.v ? 'Modifier mon pseudo' : 'Choisissez votre pseudo', 'Le nom avec lequel on peut vous appeler') + `<div class="sx-b">
+      <p class="sx-p">${esc(o.why || 'Votre pseudo est affiché aux personnes à qui vous partagez un colis (« Colis partagé par … »). Votre e-mail et votre numéro restent privés.')}</p>
+      <label class="sx-l" for="ps-in">Pseudo</label>
+      <input class="sx-in" id="ps-in" maxlength="24" autocomplete="nickname" autocapitalize="none" spellcheck="false" placeholder="Ex : Marie237" value="${esc(PS.v || '')}">
+      <p class="sx-sub">3 à 24 caractères : lettres, chiffres, espace, point, tiret ou underscore. Il doit être unique.</p>
+      <div class="sx-err" id="ps-err" hidden></div>
+      <button type="button" class="sx-cta" id="ps-ok">Enregistrer</button>
+      ${o.required ? '' : '<button type="button" class="sx-ghost" id="ps-later" style="width:100%;margin-top:8px">' + (PS.v ? 'Annuler' : 'Plus tard') + '</button>'}</div>`, { onBackdrop: () => { if (!o.required) end(null); } });
+    const box = ov.firstElementChild, inp = box.querySelector('#ps-in'), err = box.querySelector('#ps-err'), ok = box.querySelector('#ps-ok');
+    box.addEventListener('click', (e) => { if (e.target.closest('[data-x]') || e.target.closest('#ps-later')) end(null); });
+    const save = async () => {
+      const v = inp.value.trim(); err.hidden = true; ok.disabled = true; ok.textContent = 'Enregistrement…';
+      const r = await supabaseClient.rpc('sw_set_pseudo', { p_pseudo: v });
+      ok.disabled = false; ok.textContent = 'Enregistrer';
+      if (r.error) { err.textContent = dcErr(r.error); err.hidden = false; return; }
+      PS.v = r.data || v; PS.loaded = true; paintPseudoBtn(); toast('Pseudo enregistré : ' + PS.v); end(PS.v);
+    };
+    ok.addEventListener('click', save); inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } });
+    setTimeout(() => { try { inp.focus(); inp.select(); } catch (e) {} }, 50);
+  });
+}
+/* À la connexion : applique le pseudo choisi à l'inscription, sinon invite à en choisir un */
+async function pseudoEnsure() {
+  try {
+    const cur = await pseudoLoad(); if (cur || PS.missing || !currentUser) return;
+    let pend = null; try { pend = JSON.parse(localStorage.getItem('sw_pseudo_pending') || 'null'); } catch (e) {}
+    if (pend && String(pend.email || '').toLowerCase() === String(currentUser.email || '').toLowerCase()) {
+      try { localStorage.removeItem('sw_pseudo_pending'); } catch (e) {}
+      const r = await supabaseClient.rpc('sw_set_pseudo', { p_pseudo: pend.pseudo });
+      if (!r.error) { PS.v = r.data || pend.pseudo; paintPseudoBtn(); return; }
+    }
+    pseudoAsk({ required: false });
+  } catch (e) { console.error(e); }
+}
+
+/* =====================================================================
    2) DOUBLE CONTRÔLE : lien de partage d'un billet ou d'un reçu
    ===================================================================== */
 const coBase = () => { try { const u = new URL(location.href); u.search = ''; u.hash = ''; return u.toString(); } catch (e) { return location.href.split('?')[0].split('#')[0]; } };
@@ -4800,20 +4900,23 @@ const coPending = () => { try { return localStorage.getItem('sw_co_pending') || 
 const coClear = () => { window.__coPending = ''; try { localStorage.removeItem('sw_co_pending'); } catch (e) {} };
 
 async function coShare(kind, id, title) {
+  // Le pseudo est obligatoire : c'est lui (et jamais l'e-mail) que la personne verra
+  if (!PS.loaded) await pseudoLoad();
+  if (!PS.v && !PS.missing) { const ps = await pseudoAsk({ required: true, why: 'Avant de partager, choisissez votre pseudo : c’est lui que la personne verra, à la place de votre e-mail.' }); if (!ps) return; }
   const noun = kind === 'ticket' ? 'billet' : 'reçu';
-  const act = kind === 'ticket' ? ['consulter', 'consulter ce billet', 'Le billet est verrouillé : personne ne peut modifier ses informations.'] : ['consulter et mettre à jour le suivi de', 'mettre à jour le suivi de ce reçu', 'Les informations du colis restent verrouillées : seul le suivi peut être mis à jour.'];
+  const act = kind === 'ticket' ? ['consulter', 'consulter ce billet', 'Le billet est verrouillé : personne ne peut modifier ses informations.'] : ['consulter et mettre à jour le suivi de', 'mettre à jour le suivi de ce reçu', 'Les informations du colis restent verrouillées : seul le suivi peut être mis à jour.', 'Le colis est ajouté à « Mes colis » de cette personne, avec la mention « Colis partagé par ' + (PS.v || 'vous') + ' », avec l’accusé de réception.', 'Elle ne peut pas le partager à son tour.'];
   const ov = sheet('co-share', shHead('🔗', 'Lien de double contrôle', esc(title)) + '<div class="sx-b" style="text-align:center;padding:30px 18px">Chargement…</div>', { onBackdrop: () => unsheet('co-share') });
   const box = ov.firstElementChild; let st = null;
-  const fail = (e) => { box.innerHTML = shHead('🔗', 'Lien de double contrôle', esc(title)) + `<div class="sx-b"><div class="sx-err">${esc(errMsg(e))}</div></div>`; };
+  const fail = (e) => { box.innerHTML = shHead('🔗', 'Lien de double contrôle', esc(title)) + `<div class="sx-b"><div class="sx-err">${esc(dcErr(e))}</div></div>`; };
   const load = async (create) => {
-    const r = await supabaseClient.rpc(create ? 'sw_co_share' : 'sw_co_status', { p_kind: kind, p_id: String(id) });
+    const r = await supabaseClient.rpc(create ? 'sw_dc_share' : 'sw_dc_status', { p_kind: kind, p_id: String(id) });
     if (r.error) return fail(r.error); st = r.data || { active: false }; paint();
   };
   function paint() {
     const head = shHead('🔗', 'Lien de double contrôle', esc(title));
     if (!st.active) {
       box.innerHTML = head + `<div class="sx-b"><p class="sx-p">Créez un lien pour permettre à une autre personne de <b>${act[0]}</b> ce ${noun}. Elle doit avoir un compte SwiftWay Logistics (ou en créer un).</p>
-        <ul class="sx-ul"><li>Le lien ouvre directement la plateforme sur ce ${noun}.</li><li>${act[2]}</li><li>Vous pouvez désactiver le lien à tout moment.</li></ul>
+        <ul class="sx-ul"><li>Le lien ouvre directement la plateforme sur ce ${noun}.</li><li>${act[2]}</li>${act[3] ? `<li>${act[3]}</li><li>${act[4]}</li>` : ''}<li>Vous pouvez désactiver le lien à tout moment${kind === 'receipt' ? ' : le colis disparaît alors aussitôt de ses colis' : ''}.</li></ul>
         <button type="button" class="sx-cta" id="co-gen">Générer le lien</button></div>`;
       $('co-gen').onclick = () => { $('co-gen').disabled = true; $('co-gen').textContent = 'Création…'; load(true); };
       return;
@@ -4832,9 +4935,9 @@ async function coShare(kind, id, title) {
     $('co-wa').onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent('Lien de double contrôle SwiftWay Logistics (' + noun + ') : ' + url), '_blank');
     const sh = $('co-sh'); if (sh) sh.onclick = () => navigator.share({ title: 'SwiftWay Logistics', text: 'Lien de double contrôle (' + noun + ')', url }).catch(() => {});
     $('co-off').onclick = async () => {
-      if (!confirm('Désactiver ce lien ?\nLes personnes qui l’ont ouvert perdront immédiatement l’accès.')) return;
-      const r = await supabaseClient.rpc('sw_co_revoke', { p_kind: kind, p_id: String(id) });
-      if (r.error) return toast(errMsg(r.error), 'error'); toast('Lien désactivé.'); st = { active: false }; paint();
+      if (!confirm('Désactiver ce lien ?\nLes personnes qui l’ont ouvert perdront immédiatement l’accès' + (kind === 'receipt' ? ' et le colis disparaîtra de leurs colis.' : '.'))) return;
+      const r = await supabaseClient.rpc('sw_dc_revoke', { p_kind: kind, p_id: String(id) });
+      if (r.error) return toast(dcErr(r.error), 'error'); toast('Lien désactivé.'); st = { active: false }; paint();
     };
   }
   box.addEventListener('click', (e) => { if (e.target.closest('[data-x]')) unsheet('co-share'); });
@@ -4844,13 +4947,17 @@ async function coShare(kind, id, title) {
 /* ----- Ouverture d'un lien reçu ----- */
 async function coOpen(token) {
   try {
-    const r = await supabaseClient.rpc('sw_co_open', { p_token: token });
-    if (r.error) { toast(errMsg(r.error), 'error'); return false; }
+    const r = await supabaseClient.rpc('sw_dc_open', { p_token: token });
+    if (r.error) { toast(dcErr(r.error), 'error'); return false; }
     const d = r.data || {}; CO.at = 0;
     if (!d.kind) { toast('Ce lien n’est plus valide ou a été désactivé par son propriétaire.', 'error'); return false; }
-    if (d.kind === 'ticket') coViewTicket(d); else coEditReceipt(d);
+    if (d.kind === 'ticket') { coViewTicket(d); return true; }
+    // Reçu : il est maintenant enregistré dans « Mes colis » (mention « Colis partagé par <pseudo> »)
+    const sid = d.shipment && d.shipment.id;
+    toast(d.owner ? 'C’est votre propre colis.' : '🤝 Colis partagé par ' + (d.owner_label || 'un utilisateur') + ' : ajouté à « Mes colis ».');
+    window.swOpenShared(sid);
     return true;
-  } catch (e) { console.error(e); toast('Impossible d’ouvrir le lien : ' + errMsg(e), 'error'); return false; }
+  } catch (e) { console.error(e); toast('Impossible d’ouvrir le lien : ' + dcErr(e), 'error'); return false; }
 }
 function coProcessPending() { const t = coPending(); if (!t) return; coClear(); const n = $('co-auth-note'); if (n) n.classList.add('hidden'); coOpen(t); }
 
@@ -4877,12 +4984,12 @@ function coEditReceipt(d) {
        <div class="sx-foot sx-one"><button type="button" class="sx-ghost" id="ce-view">Voir le reçu A5</button></div>`;
     $('ce-view').onclick = () => showReceipt(s);
     bindTrackEditor($('ce-track'), s, async (a) => {
-      const r = await supabaseClient.rpc('sw_co_track', { p_token: token, p_seq: a.seq, p_times: a.edits, p_auto: a.auto, p_hours: a.hs, p_note: a.note });
+      const r = await supabaseClient.rpc('sw_dc_track', { p_token: token, p_seq: a.seq, p_times: a.edits, p_auto: a.auto, p_hours: a.hs, p_note: a.note });
       if (r.error) throw r.error;
     }, reload);
   };
   async function reload() {
-    const r = await supabaseClient.rpc('sw_co_open', { p_token: token });
+    const r = await supabaseClient.rpc('sw_dc_open', { p_token: token });
     if (r.error) return toast(errMsg(r.error), 'error');
     const nd = r.data || {}; s = nd.shipment || s; events = nd.events || events; paint();
     if (d.owner && !$('view-list').classList.contains('hidden') && typeof loadShipments === 'function') loadShipments(lastOpenId || undefined);
@@ -4901,10 +5008,10 @@ function coViewTicket(d) {
 const CO = { list: [], at: 0 };
 async function coBoxUpdate(tab) {
   const box = $('co-box'); if (!box) return;
-  const kind = tab === 'tickets' ? 'ticket' : tab === 'list' ? 'receipt' : null;
+  const kind = tab === 'tickets' ? 'ticket' : null;
   box.dataset.tab = tab || '';
   if (!kind || !currentUser || isAdmin) { box.innerHTML = ''; box.classList.add('hidden'); return; }
-  if (Date.now() - CO.at > 15000) { const r = await supabaseClient.rpc('sw_co_my_list'); CO.at = Date.now(); CO.list = r.error ? [] : (r.data || []); }
+  if (Date.now() - CO.at > 15000) { const r = await supabaseClient.rpc('sw_dc_my_shared'); CO.at = Date.now(); CO.list = r.error ? [] : (r.data || []); }
   if (box.dataset.tab !== tab) return;
   const rows = CO.list.filter((x) => x.kind === kind);
   if (!rows.length) { box.innerHTML = ''; box.classList.add('hidden'); return; }
@@ -5072,6 +5179,7 @@ function afterLogin() {
   trCheckIncoming();
   draftInit();
   coProcessPending();
+  PS.v = null; PS.loaded = false; pseudoEnsure();
 }
 /* Exécute afterLogin() une seule fois par connexion, QUEL QUE SOIT l'ordre de démarrage
    (session restaurée avant ou après l'installation du crochet showDashView). */
