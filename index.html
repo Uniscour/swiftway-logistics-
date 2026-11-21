@@ -1195,7 +1195,6 @@ window.swOpenShared = (id) => { PEND_OPEN = id || null; showTab('list'); };
 // Colis partagés AVEC moi (liens actifs) : ils sont affichés dans « Mes colis » comme les autres, avec la mention « Colis partagé par <pseudo> »
 async function loadSharedReceipts() {
   SHARED = {};
-  if (window.SHC && window.SHC.receipt === false) return []; // partage des colis désactivé par l'administrateur
   try {
     const r = await supabaseClient.rpc('sw_dc_my_shared');
     if (r.error) return [];
@@ -3298,7 +3297,7 @@ html[data-theme=dark] body{color:#e8edfb}
   function shPanel(kind) {
     const on = S.sh[kind] !== false, nm = kind === 'ticket' ? 'DES BILLETS D\'AVION' : 'DES COLIS (REÇUS)', what = kind === 'ticket' ? 'billets' : 'colis';
     return `<div class="x-panel x-hl" style="margin-top:12px"><p class="x-h">🔗 PARTAGE ${nm} // double contrôle</p>${S.sh.err ? `<p class="t-warn x-sm" style="margin-bottom:10px">${esc(S.sh.err)}</p>` : ''}
-      <div class="xa-sw"><span class="xa-dot ${on ? 'on' : ''}"></span><div><b>${on ? 'PARTAGE ACTIVÉ' : 'PARTAGE DÉSACTIVÉ'}</b><small>${on ? 'Les clients peuvent partager leurs ' + what + ' avec un autre utilisateur par lien.' : 'Le bouton « Partager » est masqué chez les clients et les liens existants cessent de s\'ouvrir.'}</small></div>
+      <div class="xa-sw"><span class="xa-dot ${on ? 'on' : ''}"></span><div><b>${on ? 'PARTAGE ACTIVÉ' : 'PARTAGE DÉSACTIVÉ'}</b><small>${on ? 'Les clients peuvent partager leurs ' + what + ' avec un autre utilisateur par lien.' : 'Le bouton « Partager » est masqué chez les clients : plus aucun nouveau partage ne peut être créé ni reçu. Les partages déjà effectués restent intacts.'}</small></div>
       ${isSuper ? `<button type="button" class="x-btn ${on ? 'no' : 'go'}" data-shtog="${kind}:${on ? 0 : 1}" ${S.sh.err ? 'disabled' : ''}>${on ? 'DÉSACTIVER' : 'ACTIVER'}</button>` : ''}</div></div>`;
   }
   // ---------- PARAMÈTRES : sous-onglets (Tarification / Numéros de dépôt / Offres promotionnelles) ----------
@@ -3475,7 +3474,7 @@ html[data-theme=dark] body{color:#e8edfb}
     if ((el = g('data-shtog'))) {
       if (!needSuper()) return;
       const [k, v] = el.dataset.shtog.split(':'), en = v === '1', what = k === 'ticket' ? 'des billets d\'avion' : 'des colis';
-      if (!en && !confirm('Désactiver le partage ' + what + ' ?\nLe bouton « Partager » disparaîtra chez tous les clients et les liens existants ne s\'ouvriront plus.')) return;
+      if (!en && !confirm('Désactiver le partage ' + what + ' ?\nLe bouton « Partager » disparaîtra chez tous les clients : plus aucun nouveau partage ne sera possible.\nLes partages déjà effectués restent intacts (consultation et modification).')) return;
       el.disabled = true;
       const r = await arpc('sw_admin_set_share_config', { p_kind: k, p_enabled: en });
       if (r.error) { el.disabled = false; return toast('Erreur : ' + r.error.message, 'error'); }
@@ -4676,7 +4675,7 @@ window.flyRadar = async (box, o) => {
 /* ===== Partage activable par l'admin + crédits promotionnels verrouillés ===== */
 window.SHC = { receipt: true, ticket: true };
 function shApply() { document.body.classList.toggle('sh-off-receipt', window.SHC.receipt === false); document.body.classList.toggle('sh-off-ticket', window.SHC.ticket === false); }
-async function shLoadClient() { try { const r = await supabaseClient.rpc('sw_share_config_get'); if (!r.error && r.data) Object.assign(window.SHC, r.data); } catch (e) {} shApply(); if (window.coBoxUpdate && window.SHC.ticket === false) { const b = $('co-box'); if (b) { b.innerHTML = ''; b.classList.add('hidden'); } } }
+async function shLoadClient() { try { const r = await supabaseClient.rpc('sw_share_config_get'); if (!r.error && r.data) Object.assign(window.SHC, r.data); } catch (e) {} shApply(); }
 async function walletLocks() { try { if (!currentUser) return { rec: 0, fl: 0 }; const r = await supabaseClient.from('sw_wallets').select('promo_receipt,promo_flight').eq('user_id', currentUser.id).maybeSingle(); if (r.error || !r.data) return { rec: 0, fl: 0 }; return { rec: Math.max(0, Number(r.data.promo_receipt) || 0), fl: Math.max(0, Number(r.data.promo_flight) || 0) }; } catch (e) { return { rec: 0, fl: 0 }; } }
 window.swLocks = walletLocks;
 window.swPromoLine = async () => { const el = $('wallet-promo'); if (!el) return; const k = await walletLocks(); const p = []; if (k.rec > 0) p.push('🧾 <b>' + fmtMoney(k.rec) + '</b> pour les reçus de colis'); if (k.fl > 0) p.push('✈️ <b>' + fmtMoney(k.fl) + '</b> pour les billets d’avion'); el.innerHTML = p.length ? '🎁 Crédit promotionnel inclus : ' + p.join(' · ') + '<br><small>Non transférable, utilisable uniquement pour l’usage indiqué.</small>' : ''; };
@@ -5050,7 +5049,7 @@ async function coBoxUpdate(tab) {
   const box = $('co-box'); if (!box) return;
   const kind = tab === 'tickets' ? 'ticket' : null;
   box.dataset.tab = tab || '';
-  if (!kind || !currentUser || isAdmin || (window.SHC && window.SHC.ticket === false)) { box.innerHTML = ''; box.classList.add('hidden'); return; }
+  if (!kind || !currentUser || isAdmin) { box.innerHTML = ''; box.classList.add('hidden'); return; }
   if (Date.now() - CO.at > 15000) { const r = await supabaseClient.rpc('sw_dc_my_shared'); CO.at = Date.now(); CO.list = r.error ? [] : (r.data || []); }
   if (box.dataset.tab !== tab) return;
   const rows = CO.list.filter((x) => x.kind === kind);
