@@ -232,6 +232,8 @@ body.sx-lock,body.xa-lock{overflow:hidden}
 .dr-clear{border:0;background:none;color:#b91c1c;font-weight:800;cursor:pointer;white-space:nowrap}
 html[data-theme=dark] .dr-bar{background:#0f1a3a;border-color:#27375f;color:#9fc4ff}
 html[data-theme=dark] .dr-clear{color:#f87171}
+
+.sx-foot.sx-one{grid-template-columns:1fr}
 </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -1119,6 +1121,50 @@ async function loadViews(id) {
   if (r.some(x => !x.seen)) { await supabaseClient.rpc('sw_my_track_mark_seen', { p_shipment: String(id) }); refreshTrack(); }
 }
 
+// Éditeur de suivi commun (propriétaire et double contrôle) : valide la saisie, puis apply({ seq, edits, auto, hs, note }) enregistre
+function bindTrackEditor(holder, s, apply, done) {
+  const q1 = (c) => holder.querySelector(c);
+  const cbs = [...holder.querySelectorAll('.ed-cb')];
+  if (!cbs.length) return;
+  const syncH = () => { const hb = q1('.ed-hbox'); if (hb) hb.classList.toggle('hidden', !q1('.ed-auto').checked); };
+  cbs.forEach(cb => cb.addEventListener('change', () => {
+    const k = Number(cb.dataset.k);
+    if (!cb.checked && k === 0) { cb.checked = true; return; }
+    cbs.forEach(o => { const j = Number(o.dataset.k); if (cb.checked && j < k) o.checked = true; if (!cb.checked && j > k) o.checked = false; });
+    q1('.ed-auto').checked = false; syncH();
+  }));
+  q1('.ed-auto').addEventListener('change', syncH);
+  q1('.save-ed').addEventListener('click', async (ev) => {
+    const btn = ev.currentTarget; btn.disabled = true; btn.textContent = 'Actualisation...';
+    try {
+      const note = q1('.ed-note').value.trim(), auto = q1('.ed-auto').checked, hs = {};
+      DUR_KEYS.forEach(k => { hs[k] = hmToHours(q1('.dur-h[data-k="' + k + '"]').value, q1('.dur-m[data-k="' + k + '"]').value); });
+      if (auto && Object.values(hs).some(v => !(v > 0))) throw new Error('Indiquez une durée valide pour chaque étape.');
+      const target = Math.max(0, ...cbs.filter(c => c.checked).map(c => Number(c.dataset.k))), cur = Math.max(0, STEPS.indexOf(s.status));
+      const t0 = new Date(s.created_at).getTime(), etaMs = new Date(s.estimated_delivery_at || (t0 + (s.delivery_window_hours || 48) * 3600000)).getTime();
+      if (auto) {
+        const rem0 = DUR_KEYS.slice(Math.min(target, 3)).reduce((t, k) => t + hs[k], 0);
+        if (Date.now() + rem0 * 3600000 > etaMs) throw new Error('Les durées dépassent la date de livraison estimée (' + fmtDate(etaMs) + ').');
+      }
+      const edits = {}, vals = [];
+      for (const inp of holder.querySelectorAll('.ed-evt')) {
+        if (!inp.value) continue;
+        const tt = new Date(inp.value).getTime(), changed = inp.value !== inp.dataset.orig;
+        vals.push(tt);
+        if (changed) {
+          if (tt < Math.floor(t0 / 60000) * 60000 || tt > etaMs) throw new Error('Chaque heure d\'étape doit rester entre la création du colis et la livraison estimée (' + fmtDate(etaMs) + ').');
+          edits[inp.dataset.st] = new Date(inp.value).toISOString();
+        }
+      }
+      if (Object.keys(edits).length && vals.some((v, i) => i > 0 && v < vals[i - 1])) throw new Error('Les étapes doivent rester dans l\'ordre chronologique.');
+      const seq = target > cur ? STEPS.slice(cur + 1, target + 1) : target < cur ? [STEPS[target]] : [];
+      await apply({ seq, edits, auto, hs: auto ? hs : null, note: note || null });
+      toast('Suivi actualisé.');
+    } catch (err) { toast('Erreur : ' + (err.message || err), 'error'); }
+    await done();
+  });
+}
+
 let SH = {}, lastOpenId = null;
 async function renderDetails(id) {
   const holder = $('ev-' + id), s = SH[id]; if (!holder || !s) return;
@@ -1127,54 +1173,12 @@ async function renderDetails(id) {
   holder.innerHTML = error ? '<p class="text-sm text-red-600 mt-3">Erreur de chargement.</p>' : (withViews ? '<div id="tv-' + esc(id) + '"></div>' : '') + agencyBlock(s.agency_name) + detailsHtml(s) + editCtl(s, events) + timeline(events, s);
   holder.classList.remove('hidden'); lastOpenId = id;
   if (withViews && !error) loadViews(id);
-  const q1 = (c) => holder.querySelector(c);
-  const cbs = [...holder.querySelectorAll('.ed-cb')];
-  const syncH = () => { const hb = q1('.ed-hbox'); if (hb) hb.classList.toggle('hidden', !q1('.ed-auto').checked); };
-  if (cbs.length) {
-    cbs.forEach(cb => cb.addEventListener('change', () => {
-      const k = Number(cb.dataset.k);
-      if (!cb.checked && k === 0) { cb.checked = true; return; }
-      cbs.forEach(o => { const j = Number(o.dataset.k); if (cb.checked && j < k) o.checked = true; if (!cb.checked && j > k) o.checked = false; });
-      q1('.ed-auto').checked = false; syncH();
-    }));
-    q1('.ed-auto').addEventListener('change', syncH);
-    q1('.save-ed').addEventListener('click', async (ev) => {
-      const btn = ev.currentTarget; btn.disabled = true; btn.textContent = 'Actualisation...';
-      try {
-        const note = q1('.ed-note').value.trim(), auto = q1('.ed-auto').checked, hs = {};
-        DUR_KEYS.forEach(k => { hs[k] = hmToHours(q1('.dur-h[data-k="' + k + '"]').value, q1('.dur-m[data-k="' + k + '"]').value); });
-        if (auto && Object.values(hs).some(v => !(v > 0))) throw new Error('Indiquez une durée valide pour chaque étape.');
-        const tgt = Math.max(0, ...cbs.filter(c => c.checked).map(c => Number(c.dataset.k)));
-        const t0 = new Date(s.created_at).getTime(), etaMs = new Date(s.estimated_delivery_at || (t0 + (s.delivery_window_hours || 48) * 3600000)).getTime();
-        if (auto) {
-          const rem0 = DUR_KEYS.slice(Math.min(tgt, 3)).reduce((t, k) => t + hs[k], 0);
-          if (Date.now() + rem0 * 3600000 > etaMs) throw new Error('Les durées dépassent la date de livraison estimée (' + fmtDate(etaMs) + ').');
-        }
-        const edits = {}, vals = [];
-        for (const inp of holder.querySelectorAll('.ed-evt')) {
-          if (!inp.value) continue;
-          const tt = new Date(inp.value).getTime(), changed = inp.value !== inp.dataset.orig;
-          vals.push(tt);
-          if (changed) {
-            if (tt < Math.floor(t0 / 60000) * 60000 || tt > etaMs) throw new Error('Chaque heure d\'étape doit rester entre la création du colis et la livraison estimée (' + fmtDate(etaMs) + ').');
-            edits[inp.dataset.st] = new Date(inp.value).toISOString();
-          }
-        }
-        if (Object.keys(edits).length && vals.some((v, i) => i > 0 && v < vals[i - 1])) throw new Error('Les étapes doivent rester dans l\'ordre chronologique.');
-        const target = Math.max(0, ...cbs.filter(c => c.checked).map(c => Number(c.dataset.k))), cur = Math.max(0, STEPS.indexOf(s.status));
-        if (target > cur) {
-          for (let i = cur + 1; i <= target; i++) { const r = await supabaseClient.rpc('sw_user_set_step', { p_id: id, p_status: STEPS[i] }); if (r.error) throw r.error; }
-        } else if (target < cur) {
-          const r = await supabaseClient.rpc('sw_user_set_step', { p_id: id, p_status: STEPS[target] }); if (r.error) throw r.error;
-        }
-        if (Object.keys(edits).length) { const r = await supabaseClient.rpc('sw_user_set_event_times', { p_id: id, p_times: edits }); if (r.error) throw r.error; }
-        const r2 = await supabaseClient.rpc('sw_user_update_shipment', { p_id: id, p_eta: null, p_auto: auto, p_steps: auto ? hs : null, p_note: note || null });
-        if (r2.error) throw r2.error;
-        toast('Suivi actualisé.');
-      } catch (err) { toast('Erreur : ' + (err.message || err), 'error'); }
-      await loadShipments(id);
-    });
-  }
+  bindTrackEditor(holder, s, async ({ seq, edits, auto, hs, note }) => {
+    for (const st of seq) { const r = await supabaseClient.rpc('sw_user_set_step', { p_id: id, p_status: st }); if (r.error) throw r.error; }
+    if (Object.keys(edits).length) { const r = await supabaseClient.rpc('sw_user_set_event_times', { p_id: id, p_times: edits }); if (r.error) throw r.error; }
+    const r2 = await supabaseClient.rpc('sw_user_update_shipment', { p_id: id, p_eta: null, p_auto: auto, p_steps: hs, p_note: note });
+    if (r2.error) throw r2.error;
+  }, () => loadShipments(id));
 }
 
 // ---------- DEMANDE D'ANNULATION (client -> admin) ----------
@@ -4796,6 +4800,7 @@ const coClear = () => { window.__coPending = ''; try { localStorage.removeItem('
 
 async function coShare(kind, id, title) {
   const noun = kind === 'ticket' ? 'billet' : 'reçu';
+  const act = kind === 'ticket' ? ['voir et modifier', 'modifier ce billet', 'Les modifications s’enregistrent sur l’original.'] : ['consulter et mettre à jour le suivi de', 'mettre à jour le suivi de ce reçu', 'Les informations du colis restent verrouillées : seul le suivi peut être mis à jour.'];
   const ov = sheet('co-share', shHead('🔗', 'Lien de double contrôle', esc(title)) + '<div class="sx-b" style="text-align:center;padding:30px 18px">Chargement…</div>', { onBackdrop: () => unsheet('co-share') });
   const box = ov.firstElementChild; let st = null;
   const fail = (e) => { box.innerHTML = shHead('🔗', 'Lien de double contrôle', esc(title)) + `<div class="sx-b"><div class="sx-err">${esc(errMsg(e))}</div></div>`; };
@@ -4806,8 +4811,8 @@ async function coShare(kind, id, title) {
   function paint() {
     const head = shHead('🔗', 'Lien de double contrôle', esc(title));
     if (!st.active) {
-      box.innerHTML = head + `<div class="sx-b"><p class="sx-p">Créez un lien pour permettre à une autre personne de <b>voir et modifier</b> ce ${noun}. Elle doit avoir un compte SwiftWay Logistics (ou en créer un).</p>
-        <ul class="sx-ul"><li>Le lien ouvre directement la plateforme sur ce ${noun}.</li><li>Les modifications s’enregistrent sur l’original.</li><li>Vous pouvez désactiver le lien à tout moment.</li></ul>
+      box.innerHTML = head + `<div class="sx-b"><p class="sx-p">Créez un lien pour permettre à une autre personne de <b>${act[0]}</b> ce ${noun}. Elle doit avoir un compte SwiftWay Logistics (ou en créer un).</p>
+        <ul class="sx-ul"><li>Le lien ouvre directement la plateforme sur ce ${noun}.</li><li>${act[2]}</li><li>Vous pouvez désactiver le lien à tout moment.</li></ul>
         <button type="button" class="sx-cta" id="co-gen">Générer le lien</button></div>`;
       $('co-gen').onclick = () => { $('co-gen').disabled = true; $('co-gen').textContent = 'Création…'; load(true); };
       return;
@@ -4817,7 +4822,7 @@ async function coShare(kind, id, title) {
       <label class="sx-l">Lien à envoyer</label>
       <div class="sx-copy"><input class="sx-in" id="co-url" readonly value="${esc(url)}"><button type="button" class="sx-chip dark" id="co-cp">Copier</button></div>
       <div class="sx-two"><button type="button" class="sx-ghost" id="co-wa">WhatsApp</button>${navigator.share ? '<button type="button" class="sx-ghost" id="co-sh">Partager…</button>' : '<span></span>'}</div>
-      <p class="sx-warn">⚠ Toute personne qui a ce lien <b>et</b> un compte SwiftWay peut modifier ce ${noun}. Ne l’envoyez qu’à des personnes de confiance.</p>
+      <p class="sx-warn">⚠ Toute personne qui a ce lien <b>et</b> un compte SwiftWay peut ${act[1]}. Ne l’envoyez qu’à des personnes de confiance.</p>
       <p class="sx-sub">Lien actif depuis le ${fmtDate(st.created_at)}</p>
       ${mem.length ? `<div class="sx-card-h" style="margin-top:6px"><b>Personnes ayant ouvert le lien</b><span>${mem.length}</span></div>${mem.map((m) => `<div class="sx-tr"><div class="sx-tr-ic in">👤</div><div class="sx-tr-m"><b>${esc(m.label)}</b><small>Dernière visite : ${fmtDate(m.last_at)}</small></div><div class="sx-tr-a">${Number(m.edits) || 0} modif.</div></div>`).join('')}` : '<p class="sx-hint">Personne n’a encore ouvert ce lien.</p>'}
       ${lg.length ? `<div class="sx-card-h" style="margin-top:10px"><b>Dernières modifications</b></div>${lg.map((g) => `<div class="sx-log"><b>${esc(g.label)}</b> · ${esc(g.summary || '')}<small>${fmtDate(g.created_at)}</small></div>`).join('')}` : ''}
@@ -4862,65 +4867,28 @@ function edFrame(isDirty) {
   return box;
 }
 
-/* ----- Éditeur de REÇU ----- */
+/* ----- Reçu partagé : informations VERROUILLÉES, seul le SUIVI peut être mis à jour ----- */
 function coEditReceipt(d) {
-  let s = d.shipment || {}; const token = d.token; let dirty = false;
-  const T = [['sender', 'Expéditeur', 'sender_', 'origin'], ['receiver', 'Destinataire', 'receiver_', 'destination']];
-  const party = (p, title, pre, city) => fSec(title, '',
-    fIn('ce-' + pre + 'name', 'Nom complet', s[pre + 'name'], { req: 1, span: 1 }) + fIn('ce-' + pre + 'phone', 'Téléphone', s[pre + 'phone'], { req: 1, type: 'tel' }) + fIn('ce-' + pre + 'email', 'E-mail', s[pre + 'email'], { type: 'email' }) +
-    fIn('ce-' + pre + 'address', 'Adresse', s[pre + 'address'], { req: 1, span: 1 }) + fIn('ce-' + pre + 'district', 'Quartier', s[pre + 'district']) + fIn('ce-' + city, 'Ville', s[city], { req: 1 }) +
-    fIn('ce-' + pre + 'region', 'Région / Province', s[pre + 'region'], { req: 1 }) + fSel('ce-' + pre + 'country', 'Pays', s[pre + 'country'] || 'Cameroun', CTRY()));
-  const body = () => T.map((t) => party(...t)).join('') +
-    fSec('Le colis', '', fIn('ce-description', 'Contenu du colis', s.description, { req: 1, span: 1 }) + fSel('ce-package_type', 'Type de colis', s.package_type, PKG_TYPES.map((t) => [t, t])) +
-      fIn('ce-package_count', 'Nombre de colis', s.package_count || 1, { req: 1, type: 'number', attrs: 'min="1" step="1"' }) + fIn('ce-weight_kg', 'Poids (kg)', s.weight_kg, { req: 1, type: 'number', attrs: 'min="0.1" step="0.1"' }) +
-      fIn('ce-length_cm', 'Long. (cm)', s.length_cm, { type: 'number', attrs: 'min="0" step="0.1"' }) + fIn('ce-width_cm', 'Larg. (cm)', s.width_cm, { type: 'number', attrs: 'min="0" step="0.1"' }) + fIn('ce-height_cm', 'Haut. (cm)', s.height_cm, { type: 'number', attrs: 'min="0" step="0.1"' }) +
-      fSel('ce-currency', 'Devise du reçu', s.currency || 'XAF', CURRENCIES) + fIn('ce-declared_value', 'Valeur déclarée', s.declared_value, { type: 'number', attrs: 'min="0" step="any"' }) + fIn('ce-shipping_fee', 'Frais de transport', s.shipping_fee, { type: 'number', attrs: 'min="0" step="any"' })) +
-    fSec('Livraison', '', fIn('ce-agency_name', 'Agence / Transporteur', s.agency_name, { req: 1, span: 1, attrs: 'maxlength="80"' }) +
-      fSel('ce-service_type', 'Service', s.service_type || 'standard', [['standard', 'Standard'], ['express', 'Express']]) + fSel('ce-payer', 'Qui paie la livraison ?', s.payer || 'sender', [['sender', 'L’expéditeur'], ['receiver', 'Le destinataire']]) +
-      fSel('ce-stopover_country', 'Pays d’escale', s.stopover_country || '', [['', 'Aucune escale'], ...COUNTRIES.slice().sort((a, b) => a.localeCompare(b, 'fr')).map((c) => [c, c])]) +
-      fSel('ce-customs_status', 'Douane', s.customs_status || '', [['', 'Non précisé'], ['paid', 'Douane déjà payée'], ['unpaid', 'Douane non payée']]) +
-      `<label class="sx-chk sx-span"><input type="checkbox" id="ce-is_fragile" ${s.is_fragile ? 'checked' : ''}> Colis fragile</label>` + fArea('ce-delivery_instructions', 'Instructions de livraison', s.delivery_instructions));
+  const token = d.token; let s = d.shipment || {}, events = d.events || [];
+  const box = edFrame(() => false);
   const paint = () => {
     box.innerHTML = shHead('🧾', 'Reçu en double contrôle', 'Partagé par <b>' + esc(d.owner_label || '') + '</b>' + (d.owner ? ' (vous)' : '')) +
       `<div class="sx-b sx-scroll"><div class="sx-locks">${lockChip('Code de suivi', fmtCode(s.tracking_code))}${lockChip('Statut', (STATUS[s.status] || {}).label || s.status || '-')}</div>
-       <p class="sx-hint">Le code de suivi, le statut et les étapes restent gérés par le propriétaire. Tout le reste du reçu est modifiable ci-dessous.</p>
-       <div id="ce-form">${body()}</div><div id="ce-err" class="sx-err" hidden></div></div>
-       <div class="sx-foot"><button type="button" class="sx-ghost" id="ce-view">Voir le reçu A5</button><button type="button" class="sx-cta" id="ce-save">Enregistrer</button></div>`;
-    $('ce-form').addEventListener('input', () => { dirty = true; });
-    $('ce-view').onclick = () => { const r = collect(true); showReceipt({ ...s, ...(r.patch || {}) }); };
-    $('ce-save').onclick = save;
+       <p class="sx-hint">🔒 Les informations du colis (expéditeur, destinataire, contenu, frais…) sont verrouillées. Vous pouvez seulement <b>mettre à jour le suivi</b> ci-dessous.</p>
+       <div id="ce-track">${agencyBlock(s.agency_name)}${detailsHtml(s)}${editCtl(s, events)}${timeline(events, s)}</div></div>
+       <div class="sx-foot sx-one"><button type="button" class="sx-ghost" id="ce-view">Voir le reçu A5</button></div>`;
+    $('ce-view').onclick = () => showReceipt(s);
+    bindTrackEditor($('ce-track'), s, async (a) => {
+      const r = await supabaseClient.rpc('sw_co_track', { p_token: token, p_seq: a.seq, p_times: a.edits, p_auto: a.auto, p_hours: a.hs, p_note: a.note });
+      if (r.error) throw r.error;
+    }, reload);
   };
-  const NUM = ['package_count', 'weight_kg', 'length_cm', 'width_cm', 'height_cm', 'declared_value', 'shipping_fee'];
-  const REQ = ['sender_name', 'sender_phone', 'sender_address', 'origin', 'sender_region', 'receiver_name', 'receiver_phone', 'receiver_address', 'destination', 'receiver_region', 'description', 'agency_name'];
-  const KEYS = [...T.flatMap(([, , pre, city]) => ['name', 'phone', 'email', 'address', 'district', 'region', 'country'].map((k) => pre + k).concat(city)),
-    'description', 'package_type', 'package_count', 'weight_kg', 'length_cm', 'width_cm', 'height_cm', 'currency', 'declared_value', 'shipping_fee', 'agency_name', 'service_type', 'payer', 'stopover_country', 'customs_status', 'delivery_instructions'];
-  function collect(soft) {
-    const patch = {};
-    for (const k of KEYS) {
-      const el = $('ce-' + k); if (!el) continue; const raw = String(el.value || '').trim();
-      if (NUM.includes(k)) { patch[k] = raw === '' ? null : Number(raw); if (raw !== '' && !isFinite(patch[k])) return { err: 'Valeur numérique invalide.' }; }
-      else patch[k] = raw === '' && !REQ.includes(k) ? null : raw;
-    }
-    patch.is_fragile = !!$('ce-is_fragile').checked;
-    if (!soft) {
-      const miss = REQ.find((k) => !patch[k]); if (miss) return { err: 'Remplissez tous les champs obligatoires (*).' };
-      if (!(patch.package_count >= 1)) return { err: 'Le nombre de colis doit être au moins 1.' };
-      if (!(patch.weight_kg > 0)) return { err: 'Le poids doit être supérieur à 0.' };
-    }
-    return { patch };
+  async function reload() {
+    const r = await supabaseClient.rpc('sw_co_open', { p_token: token });
+    if (r.error) return toast(errMsg(r.error), 'error');
+    const nd = r.data || {}; s = nd.shipment || s; events = nd.events || events; paint();
+    if (d.owner && !$('view-list').classList.contains('hidden') && typeof loadShipments === 'function') loadShipments(lastOpenId || undefined);
   }
-  async function save() {
-    const e = $('ce-err'); e.hidden = true;
-    const c = collect(false); if (c.err) { e.textContent = c.err; e.hidden = false; return; }
-    const b = $('ce-save'); b.disabled = true; b.textContent = 'Enregistrement…';
-    const r = await supabaseClient.rpc('sw_co_update_receipt', { p_token: token, p_patch: c.patch });
-    b.disabled = false; b.textContent = 'Enregistrer';
-    if (r.error) { e.textContent = errMsg(r.error); e.hidden = false; return; }
-    const res = r.data || {}; if (res.shipment) s = { ...s, ...res.shipment }; dirty = false;
-    const n = (res.changed || []).length; toast(n ? '✓ Reçu mis à jour (' + n + ' champ' + (n > 1 ? 's' : '') + ').' : 'Aucun changement à enregistrer.');
-    if (!$('view-list').classList.contains('hidden') && typeof loadShipments === 'function') loadShipments(lastOpenId || undefined);
-  }
-  const box = edFrame(() => dirty);
   paint();
 }
 
