@@ -226,6 +226,12 @@ body.sx-lock,body.xa-lock{overflow:hidden}
 .xa-two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
 .xa-trbar{display:flex;gap:8px;margin-bottom:10px}.xa-trbar .x-in{flex:1}
 .xa-tiles{margin:12px 0}
+
+.dr-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;font-weight:600;color:#0a2a6b;background:#eaf1ff;border:1px solid #cfe0ff;border-radius:14px;padding:9px 14px;margin-bottom:14px}
+.dr-bar.hidden{display:none}
+.dr-clear{border:0;background:none;color:#b91c1c;font-weight:800;cursor:pointer;white-space:nowrap}
+html[data-theme=dark] .dr-bar{background:#0f1a3a;border-color:#27375f;color:#9fc4ff}
+html[data-theme=dark] .dr-clear{color:#f87171}
 </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -4848,6 +4854,14 @@ const fSec = (t, sub, body) => `<section class="sx-sec"><h4>${t}</h4>${sub ? `<p
 const CTRY = () => [['Cameroun', 'Cameroun'], ...COUNTRIES.filter((c) => c !== 'Cameroun').slice().sort((a, b) => a.localeCompare(b, 'fr')).map((c) => [c, c])];
 const lockChip = (l, v) => `<span class="sx-chiplock"><i>🔒</i>${l} : <b>${esc(v)}</b></span>`;
 
+/* Cadre commun des deux éditeurs (reçu et billet) */
+function edFrame(isDirty) {
+  const close = () => { if (isDirty() && !confirm('Fermer sans enregistrer vos modifications ?')) return; unsheet('co-ed'); };
+  const box = sheet('co-ed', '', { cls: 'sx-ed', onBackdrop: close }).firstElementChild;
+  box.addEventListener('click', (e) => { if (e.target.closest('[data-x]')) close(); });
+  return box;
+}
+
 /* ----- Éditeur de REÇU ----- */
 function coEditReceipt(d) {
   let s = d.shipment || {}; const token = d.token; let dirty = false;
@@ -4906,9 +4920,7 @@ function coEditReceipt(d) {
     const n = (res.changed || []).length; toast(n ? '✓ Reçu mis à jour (' + n + ' champ' + (n > 1 ? 's' : '') + ').' : 'Aucun changement à enregistrer.');
     if (!$('view-list').classList.contains('hidden') && typeof loadShipments === 'function') loadShipments(lastOpenId || undefined);
   }
-  const close = () => { if (dirty && !confirm('Fermer sans enregistrer vos modifications ?')) return; unsheet('co-ed'); };
-  const ov = sheet('co-ed', '', { cls: 'sx-ed', onBackdrop: close }); const box = ov.firstElementChild;
-  box.addEventListener('click', (e) => { if (e.target.closest('[data-x]')) close(); });
+  const box = edFrame(() => dirty);
   paint();
 }
 
@@ -4975,9 +4987,7 @@ function coEditTicket(d) {
     const n = (res.changed || []).length; toast(n ? '✓ Billet mis à jour (' + n + ' champ' + (n > 1 ? 's' : '') + ').' : 'Aucun changement à enregistrer.');
     if (!$('view-tickets').classList.contains('hidden') && window.ticketsInit) window.ticketsInit();
   }
-  const close = () => { if (dirty && !confirm('Fermer sans enregistrer vos modifications ?')) return; unsheet('co-ed'); };
-  const ov = sheet('co-ed', '', { cls: 'sx-ed', onBackdrop: close }); const box = ov.firstElementChild;
-  box.addEventListener('click', (e) => { if (e.target.closest('[data-x]')) close(); });
+  const box = edFrame(() => dirty);
   paint();
 }
 
@@ -5006,6 +5016,145 @@ document.addEventListener('click', (e) => {
   if (op) { e.preventDefault(); coOpen(op.dataset.coOpen); }
 }, true);
 
+
+/* =====================================================================
+   3) BROUILLONS AUTOMATIQUES : reçu et billet d'avion
+   Tout ce que l'utilisateur saisit est gardé sur son appareil (60 jours) jusqu'à la validation
+   (paiement réussi) ou jusqu'à ce qu'il efface lui-même le brouillon.
+   ===================================================================== */
+const DR_TTL = 60 * 864e5, drTimers = {}; let restoring = false, parcelFor = '';
+const drKey = (k) => 'sw_draft_' + k + '_' + (currentUser ? currentUser.id : '');
+const drForm = (k) => k === 'parcel' ? $('new-form') : $('fl-form');
+function drLoad(k) {
+  if (!currentUser) return null;
+  try { const d = JSON.parse(localStorage.getItem(drKey(k)) || 'null'); if (!d || !d.v || Date.now() - d.t > DR_TTL) { localStorage.removeItem(drKey(k)); return null; } return d; } catch (e) { return null; }
+}
+function drSnap(f) {
+  const v = {};
+  f.querySelectorAll('input,select,textarea').forEach((el) => {
+    if (el.type === 'password' || el.type === 'file' || el.type === 'button') return;
+    if (el.type === 'radio') { if (el.checked) v['@' + el.name] = el.value; return; }
+    if (!el.id) return; v[el.id] = el.type === 'checkbox' ? (el.checked ? '1' : '0') : el.value;
+  });
+  return v;
+}
+function drSave(k) {
+  const f = drForm(k); if (!f || !currentUser) return;
+  const d = { t: Date.now(), v: drSnap(f) };
+  if (k === 'parcel') { d.sig = {}; ['sig-s', 'sig-a'].forEach((id) => { try { if (SIG[id] && !SIG[id].empty) d.sig[id] = SIG[id].c.toDataURL('image/png'); } catch (e) {} }); }
+  try { localStorage.setItem(drKey(k), JSON.stringify(d)); } catch (e) {}
+  drPush(k, d); drBar(k);
+}
+let drSrv = true, drReady = Promise.resolve(); const drPushT = {};
+// Synchronisation avec le serveur : le brouillon le plus récent (appareil ou serveur) est retenu
+async function drPull(k) {
+  if (!drSrv || !currentUser) return;
+  try {
+    const r = await supabaseClient.rpc('sw_draft_get', { p_kind: k });
+    if (r.error) { if (isMissing(r.error)) drSrv = false; return; }
+    const sd = r.data; if (!sd || !sd.v) return;
+    const ld = drLoad(k);
+    if (!ld || (sd.t || 0) > ld.t) { try { localStorage.setItem(drKey(k), JSON.stringify(sd)); } catch (e) {} }
+  } catch (e) {}
+}
+function drPush(k, d) {
+  if (!drSrv || !currentUser) return; clearTimeout(drPushT[k]);
+  drPushT[k] = setTimeout(async () => {
+    try { if (JSON.stringify(d).length > 900000) return; const r = await supabaseClient.rpc('sw_draft_save', { p_kind: k, p_data: d }); if (r.error && isMissing(r.error)) drSrv = false; } catch (e) {}
+  }, 1500);
+}
+function drQueue(k) { if (restoring || !currentUser) return; clearTimeout(drTimers[k]); drTimers[k] = setTimeout(() => drSave(k), 400); }
+function drBar(k) {
+  const host = k === 'parcel' ? $('new-form') : $('new-fly'); if (!host) return;
+  let b = $('dr-bar-' + k);
+  if (!b) { b = document.createElement('p'); b.id = 'dr-bar-' + k; b.className = 'dr-bar hidden'; }
+  if (!b.isConnected) host.insertBefore(b, host.firstChild);
+  const d = drLoad(k); b.classList.toggle('hidden', !d); if (!d) return;
+  const t = new Date(d.t);
+  b.innerHTML = '<span>💾 Brouillon enregistré automatiquement (' + String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0') + '). Vous le retrouverez tant que vous n’avez pas validé.</span><button type="button" class="dr-clear" data-dr="' + k + '">Effacer</button>';
+}
+function drClear(k, resetForm) {
+  clearTimeout(drTimers[k]); clearTimeout(drPushT[k]); try { localStorage.removeItem(drKey(k)); } catch (e) {}
+  if (drSrv && currentUser) supabaseClient.rpc('sw_draft_delete', { p_kind: k }).then(() => {}, () => {});
+  if (resetForm) { const f = drForm(k); if (f) f.reset(); }   // l'évènement « reset » remet aussi les valeurs par défaut
+  drBar(k);
+}
+const drFire = (el, types) => types.forEach((t) => el.dispatchEvent(new Event(t, { bubbles: true })));
+function parcelDefaults() { $('auto-box').classList.remove('hidden'); syncEta(); clearSig('sig-s'); clearSig('sig-a'); }
+function flyDefaults() {
+  const f = $('fl-form'); if (!f) return;
+  $('f-date').min = new Date().toISOString().slice(0, 10); $('f-nat').value = 'Cameroun'; $('f-cur').value = 'XAF'; $('f-dep').value = '08:00'; $('f-rdep').value = '08:00';
+  $('f-stl').innerHTML = ''; $('f-rstl').innerHTML = '';
+  restoring = true;   // ces évènements de remise à zéro ne doivent pas recréer un brouillon
+  try { ['f-fromc', 'f-toc', 'f-stops', 'f-rstops', 'f-trip'].forEach((id) => { const e = $(id); if (e) drFire(e, ['input', 'change']); }); } finally { restoring = false; }
+}
+function parcelRestore(d) {
+  restoring = true;
+  try {
+    const f = $('new-form');
+    Object.entries(d.v).forEach(([id, val]) => { const el = document.getElementById(id); if (!el || !f.contains(el) || id[0] === '@') return; if (el.type === 'checkbox') el.checked = val === '1'; else el.value = val; });
+    $('auto-box').classList.toggle('hidden', $('p-auto').value !== '1'); syncEta();
+    Object.entries(d.sig || {}).forEach(([id, url]) => {
+      const s = SIG[id]; if (!s) return; const img = new Image();
+      img.onload = () => { s.c.getContext('2d').drawImage(img, 0, 0, s.c.width, s.c.height); s.empty = false; }; img.src = url;
+    });
+  } finally { restoring = false; }
+}
+const flyDone = new WeakSet();
+function flyRestore() {
+  const f = $('fl-form'), sentinel = $('f-nom'); if (!f || !sentinel || flyDone.has(sentinel) || !currentUser) return;
+  flyDone.add(sentinel);
+  const d = drLoad('fly'); if (!d) return;
+  restoring = true;
+  try {
+    const done = new Set();
+    for (let pass = 0; pass < 5; pass++) {   // plusieurs passes : pays → aéroports, nombre d'escales → listes d'escales
+      let n = 0;
+      f.querySelectorAll('input,select,textarea').forEach((el) => {
+        const key = el.type === 'radio' ? '@' + el.name : el.id;
+        if (!key || !(key in d.v) || done.has(key)) return; done.add(key); n++;
+        if (el.type === 'radio') { const r = [...f.querySelectorAll('input[type=radio]')].find((x) => x.name === el.name && x.value === String(d.v[key])); if (r) r.checked = true; return; }
+        if (el.type === 'checkbox') el.checked = d.v[key] === '1'; else el.value = d.v[key];
+        drFire(el, el.tagName === 'SELECT' ? ['input', 'change'] : ['input']);
+      });
+      if (!n) break;
+    }
+  } finally { restoring = false; }
+}
+['input', 'change'].forEach((ev) => document.addEventListener(ev, (e) => {
+  const t = e.target; if (!t || !t.closest) return;
+  if (t.closest('#new-form')) drQueue('parcel'); else if (t.closest('#fl-form')) drQueue('fly');
+}, true));
+document.addEventListener('pointerup', (e) => { if (e.target.closest && e.target.closest('#new-form canvas')) drQueue('parcel'); }, true);
+document.addEventListener('click', (e) => {
+  if (e.target.closest && e.target.closest('.sig-clear')) return drQueue('parcel');
+  const b = e.target.closest && e.target.closest('.dr-clear'); if (!b) return;
+  if (!confirm('Effacer le brouillon et vider le formulaire ?')) return;
+  const k = b.dataset.dr; drClear(k, true); toast('Brouillon effacé.');
+}, true);
+// Après un envoi réussi (le formulaire est vidé par le script d'origine) : le brouillon disparaît
+document.addEventListener('reset', (e) => {
+  if (restoring || !e.target) return;
+  if (e.target.id === 'new-form') { drClear('parcel', false); setTimeout(parcelDefaults, 0); }
+  if (e.target.id === 'fl-form') { drClear('fly', false); setTimeout(flyDefaults, 0); }
+}, true);
+function draftInit() {
+  if (!currentUser) return;
+  drReady = Promise.all([drPull('parcel'), drPull('fly')]).then(() => {
+    if (!currentUser) return;
+    if (parcelFor !== currentUser.id) {
+      if (parcelFor) { restoring = true; try { $('new-form').reset(); parcelDefaults(); } finally { restoring = false; } }
+      parcelFor = currentUser.id; const d = drLoad('parcel'); if (d) parcelRestore(d);
+    }
+    drBar('parcel');
+  });
+}
+const _flyInit = window.flyInit;
+if (_flyInit) window.flyInit = async function () {
+  await _flyInit.apply(this, arguments);
+  try { await drReady; flyRestore(); drBar('fly'); } catch (e) { restoring = false; }
+};
+
 /* ----- Branchements ----- */
 $('tr-open').addEventListener('click', trOpen);
 $('tr-goto-rc').addEventListener('click', () => { const f = $('recharge-form'); if (f) f.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
@@ -5014,6 +5163,7 @@ function afterLogin() {
   CO.list = []; CO.at = 0; TRC.loaded = false;
   trLoadConfig().then(trRenderActions);
   trCheckIncoming();
+  draftInit();
   coProcessPending();
 }
 const _showDash = window.showDashView;
