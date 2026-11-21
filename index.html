@@ -4843,11 +4843,14 @@ async function coShare(kind, id, title) {
 
 /* ----- Ouverture d'un lien reçu ----- */
 async function coOpen(token) {
-  const r = await supabaseClient.rpc('sw_co_open', { p_token: token });
-  if (r.error) { toast(errMsg(r.error), 'error'); return false; }
-  const d = r.data || {}; CO.at = 0;
-  if (d.kind === 'ticket') coViewTicket(d); else coEditReceipt(d);
-  return true;
+  try {
+    const r = await supabaseClient.rpc('sw_co_open', { p_token: token });
+    if (r.error) { toast(errMsg(r.error), 'error'); return false; }
+    const d = r.data || {}; CO.at = 0;
+    if (!d.kind) { toast('Ce lien n’est plus valide ou a été désactivé par son propriétaire.', 'error'); return false; }
+    if (d.kind === 'ticket') coViewTicket(d); else coEditReceipt(d);
+    return true;
+  } catch (e) { console.error(e); toast('Impossible d’ouvrir le lien : ' + errMsg(e), 'error'); return false; }
 }
 function coProcessPending() { const t = coPending(); if (!t) return; coClear(); const n = $('co-auth-note'); if (n) n.classList.add('hidden'); coOpen(t); }
 
@@ -5062,6 +5065,7 @@ if (_flyInit) window.flyInit = async function () {
 $('tr-open').addEventListener('click', trOpen);
 $('tr-goto-rc').addEventListener('click', () => { const f = $('recharge-form'); if (f) f.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
 
+let afterFor = '';
 function afterLogin() {
   CO.list = []; CO.at = 0; TRC.loaded = false;
   trLoadConfig().then(trRenderActions);
@@ -5069,16 +5073,25 @@ function afterLogin() {
   draftInit();
   coProcessPending();
 }
+/* Exécute afterLogin() une seule fois par connexion, QUEL QUE SOIT l'ordre de démarrage
+   (session restaurée avant ou après l'installation du crochet showDashView). */
+function ensureAfterLogin() {
+  try {
+    const dv = $('dash-view'); const on = !!dv && !dv.classList.contains('hidden');
+    if (!on) { afterFor = ''; return; }
+    if (isAdmin) { if (coPending()) { coClear(); toast('Un lien de double contrôle s’ouvre avec un compte client.', 'error'); } return; }
+    if (!currentUser || afterFor === currentUser.id) return;
+    afterFor = currentUser.id; afterLogin();
+  } catch (e) { console.error(e); }
+}
 const _showDash = window.showDashView;
 window.showDashView = async function () {
   const r = await _showDash.apply(this, arguments);
-  try {
-    const dashOn = !$('dash-view').classList.contains('hidden');
-    if (dashOn && !isAdmin && currentUser) afterLogin();
-    else if (isAdmin && coPending()) { coClear(); toast('Un lien de double contrôle s’ouvre avec un compte client.', 'error'); }
-  } catch (e) {}
+  ensureAfterLogin();
   return r;
 };
+try { new MutationObserver(ensureAfterLogin).observe($('dash-view'), { attributes: true, attributeFilter: ['class'] }); } catch (e) {}
+ensureAfterLogin();
 setInterval(() => { if (document.visibilityState === 'visible') trCheckIncoming(); }, 30000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') trCheckIncoming(); });
 // Bandeau sur l'écran de connexion lorsqu'un lien de double contrôle est en attente
