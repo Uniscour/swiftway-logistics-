@@ -4209,6 +4209,7 @@ function barcode(txt, h) { const v = [104, ...[...txt].map(c => c.charCodeAt(0) 
 const CLS = { eco: ['Économique', 1], biz: ['Affaires', 1.8], vip: ['VIP', 2.5] };
 const TIMES = ['06:15', '08:40', '10:25', '13:50', '16:30', '19:45', '22:10'];
 let CF = { km: 85, fee: 1000, ins: 12000, bag: 25000, stops: 3 }, bs = -1, built = false, MY = [];
+const feeOf = (rt) => rt ? Math.round(CF.fee * 1.5) : CF.fee;   // aller-retour = 1,5 × le prix d'un aller simple
 const num = n => Number(n || 0).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
 const money = n => num(n) + ' FCFA';
 let DISC = null;
@@ -4427,8 +4428,8 @@ function recap() {
   const dep = $('f-dep').value, ns = +$('f-stops').value || 0, st = Array.from({ length: ns }, (_, i) => $('f-s' + i) ? $('f-s' + i).value : '').filter(Boolean), nr = c.rt ? (+$('f-rstops').value || 0) : 0, rst = Array.from({ length: nr }, (_, i) => $('f-r' + i) ? $('f-r' + i).value : '').filter(Boolean);
   const tmp = { from: c.a.i, to: c.b.i, stops: st, rstops: rst, dist: c.d, date: $('f-date').value, dep, rdate: $('f-rdate').value, rdep: $('f-rdep').value, trip: c.rt ? 'rt' : 'ow', lay: LAY.out, rlay: LAY.back, pnr: 'x', flight: 'x' };
   const I = dep ? tInfo(tmp) : null, it = $('f-itin'); if (it) it.innerHTML = itinHtml(tmp);
-  r.innerHTML = `Distance : <b>${num(c.d)} km</b>${I ? ` · Durée : <b>${I.dur}</b> · Arrivée : <b>${I.arr}</b>` : ''}<br>${c.rt ? 'Aller-retour' : 'Aller simple'} · Prix du billet : <b>${fm(c.total, c.cur)}</b>${c.pct ? ` <span style="color:#15803d">(réduction ${c.pct} % incluse)</span>` : ''}${c.cur !== 'XAF' ? ` <span class="text-gray-500">(taux indicatif)</span>` : ''}<br>Frais de génération débités de votre portefeuille : <b>${money(CF.fee)}</b>` + (c.ok ? '' : `<br><b style="color:#dc2626">⚠ ${esc(c.L.n)} ne dessert pas ${esc(c.a.c)} → ${esc(c.b.c)}. Choisissez une autre compagnie.</b>`);
-  $('f-btn').textContent = 'Payer ' + money(CF.fee) + ' et générer le billet'; return c;
+  r.innerHTML = `Distance : <b>${num(c.d)} km</b>${I ? ` · Durée : <b>${I.dur}</b> · Arrivée : <b>${I.arr}</b>` : ''}<br>${c.rt ? 'Aller-retour' : 'Aller simple'} · Prix du billet : <b>${fm(c.total, c.cur)}</b>${c.pct ? ` <span style="color:#15803d">(réduction ${c.pct} % incluse)</span>` : ''}${c.cur !== 'XAF' ? ` <span class="text-gray-500">(taux indicatif)</span>` : ''}<br>Frais de génération débités de votre portefeuille : <b>${money(feeOf(c.rt))}</b>${c.rt ? ` <span class="text-gray-500">(aller-retour : 1,5 × le prix d’un aller simple)</span>` : ''}` + (c.ok ? '' : `<br><b style="color:#dc2626">⚠ ${esc(c.L.n)} ne dessert pas ${esc(c.a.c)} → ${esc(c.b.c)}. Choisissez une autre compagnie.</b>`);
+  $('f-btn').textContent = 'Payer ' + money(feeOf(c.rt)) + ' et générer le billet'; return c;
 }
 function build() {
   const v = $('new-fly'), lbl = LB;
@@ -4494,8 +4495,8 @@ async function submit(e) {
   if (g('f-exp') <= (c.rt ? rdate : g('f-date'))) return toast('Le document expire avant la date du vol.', 'error');
   if (g('f-dob') >= new Date().toISOString().slice(0, 10)) return toast('Date de naissance invalide.', 'error');
   await loadCfg(); const w = await supabaseClient.from('sw_wallets').select('balance').eq('user_id', currentUser.id).maybeSingle();
-  { const bal = Number(w.data ? w.data.balance : 0); if (bal < CF.fee) return goRecharge(CF.fee - bal); }
-  if (!confirm('Confirmer ? ' + money(CF.fee) + ' seront débités de votre portefeuille.')) return;
+  { const bal = Number(w.data ? w.data.balance : 0); if (bal < feeOf(c.rt)) return goRecharge(feeOf(c.rt) - bal); }
+  if (!confirm('Confirmer ? ' + money(feeOf(c.rt)) + ' seront débités de votre portefeuille' + (c.rt ? ' (aller-retour : 1,5 × le prix d’un aller simple)' : '') + '.')) return;
   const cl = $('f-cls').value, row = cl === 'vip' ? [1, 3] : cl === 'biz' ? [4, 9] : [18, 42], [H, Mi] = dep.split(':').map(Number), bm = ((H * 60 + Mi - 90) + 1440) % 1440, th = DocKit.theme(DocKit.get());
   // Aller et retour : deux vols différents (n° de vol, terminal, porte, siège, zone) tirés au hasard et forcés à être différents
   const dif = (gen, cur) => { let v, n = 0; do { v = gen(); } while (v === cur && n++ < 40); return v; };
@@ -4510,7 +4511,7 @@ async function submit(e) {
     cur: c.cur, curN: curName(c.cur), xaf: c.xaf, fare: c.fare, ins: c.ins, nbag: c.nbag, bags: c.extra, bagA: 0, disc: c.disc, discP: c.pct, total: c.total, stops, rstops, hc: th.hc, bg: th.bg, style: +document.querySelector('input[name=f-st]:checked').value };
   btn.disabled = true; const { data, error } = await supabaseClient.rpc('sw_book_flight', { p_row: { ...t, route: t.from + '-' + t.to, airline: t.ac } }); btn.disabled = false; recap();
   if (error || !data) return toast((error && error.message) || 'Paiement refusé', 'error');
-  e.target.reset(); $('f-stl').innerHTML = ''; $('f-rstl').innerHTML = ''; LAY = { out: [], back: [] }; setNewMode(null); toast('Billet généré · ' + money(CF.fee) + ' débités.'); recap(); show({ ...data.data, ...t, pnr: data.pnr, style: +data.style });
+  e.target.reset(); $('f-stl').innerHTML = ''; $('f-rstl').innerHTML = ''; LAY = { out: [], back: [] }; setNewMode(null); toast('Billet généré · ' + money(feeOf(c.rt)) + ' débités.'); recap(); show({ ...data.data, ...t, pnr: data.pnr, style: +data.style });
 }
 window.ticketsInit = () => mine();
 window.flyInit = async () => { await loadCfg(); if (!built || bs !== CF.stops) { build(); bs = CF.stops; } else recap(); };
@@ -4547,7 +4548,7 @@ window.flyDiscUI = (box, users) => box && discUI(box, users);
 /* ---------- ADMIN : tarification (Paramètres › Billets) ---------- */
 window.flyPriceUI = async (box, users) => {
   if (!box) return; await loadCfg(); if (!$('fl-price-box')) return;
-  box.innerHTML = `<div class="x-panel" style="margin-top:0"><p class="x-h">✈️ TARIFICATION DES BILLETS D'AVION (FCFA)</p><p class="t-mut x-sm" style="margin-bottom:10px">Montants de base en FCFA. Ils sont convertis automatiquement dans la devise choisie par l'utilisateur à la création du billet.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px"><label class="x-lb">PRIX AU KM (affiché sur le billet)<input id="v-km" type="number" min="0" class="x-in" style="margin-top:4px" value="${CF.km}"></label><label class="x-lb">FRAIS DE GÉNÉRATION (débités du portefeuille)<input id="v-fee" type="number" min="0" class="x-in" style="margin-top:4px" value="${CF.fee}"></label><label class="x-lb">ASSURANCE VOYAGE<input id="v-ins" type="number" min="0" class="x-in" style="margin-top:4px" value="${CF.ins}"></label><label class="x-lb">BAGAGE SUPPLÉMENTAIRE<input id="v-bag" type="number" min="0" class="x-in" style="margin-top:4px" value="${CF.bag}"></label><label class="x-lb">ESCALES MAX (0 à 3)<input id="v-st" type="number" min="0" max="3" class="x-in" style="margin-top:4px" value="${CF.stops}"></label></div><button id="v-save" class="x-btn go" style="margin-top:12px">ENREGISTRER LES TARIFS</button></div>`;
+  box.innerHTML = `<div class="x-panel" style="margin-top:0"><p class="x-h">✈️ TARIFICATION DES BILLETS D'AVION (FCFA)</p><p class="t-mut x-sm" style="margin-bottom:10px">Montants de base en FCFA. Ils sont convertis automatiquement dans la devise choisie par l'utilisateur à la création du billet.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px"><label class="x-lb">PRIX AU KM (affiché sur le billet)<input id="v-km" type="number" min="0" class="x-in" style="margin-top:4px" value="${CF.km}"></label><label class="x-lb">FRAIS DE GÉNÉRATION ALLER SIMPLE (aller-retour = ×1,5, débités du portefeuille)<input id="v-fee" type="number" min="0" class="x-in" style="margin-top:4px" value="${CF.fee}"></label><label class="x-lb">ASSURANCE VOYAGE<input id="v-ins" type="number" min="0" class="x-in" style="margin-top:4px" value="${CF.ins}"></label><label class="x-lb">BAGAGE SUPPLÉMENTAIRE<input id="v-bag" type="number" min="0" class="x-in" style="margin-top:4px" value="${CF.bag}"></label><label class="x-lb">ESCALES MAX (0 à 3)<input id="v-st" type="number" min="0" max="3" class="x-in" style="margin-top:4px" value="${CF.stops}"></label></div><button id="v-save" class="x-btn go" style="margin-top:12px">ENREGISTRER LES TARIFS</button></div>`;
   $('v-save').onclick = async () => { const { error: er } = await supabaseClient.rpc('sw_admin_set_flight', { p_km: +$('v-km').value, p_fee: +$('v-fee').value, p_ins: +$('v-ins').value, p_bag: +$('v-bag').value, p_stops: +$('v-st').value }); toast(er ? 'Erreur : ' + er.message : 'Tarifs enregistrés.', er ? 'error' : ''); if (!er) { built = false; window.flyPriceUI(box, users); } };
 };
 
